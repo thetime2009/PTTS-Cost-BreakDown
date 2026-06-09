@@ -4408,7 +4408,7 @@ function _updatePricingInsight() {
   <button onclick="showPricingAnalysis()"
     style="width:100%;margin-top:4px;padding:9px 10px;border:none;border-radius:9px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.82rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;box-shadow:0 2px 10px rgba(79,70,229,.35);transition:opacity .15s"
     onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-    🤖 วิเคราะห์ละเอียด (AI)
+    🤖 AI เคาะราคา
   </button>
   `;
 }
@@ -5607,22 +5607,39 @@ function submitForm() {
 
 // ── Remark Chips ─────────────────────────────────────────────────
 function syncRemarkChips() {
-  const parts = [];
+  const el = $('f_remark');
+
+  // รวบรวม label ทุก chip (ทั้ง checked และไม่ checked)
+  const allLabels = Array.from(document.querySelectorAll('#remarkChips .rchip')).map(chip => {
+    const sel = chip.querySelector('.rchip-sel');
+    let label = chip.dataset.label || '';
+    if (chip.dataset.labelSel && sel) label = sel.value;
+    return label.trim();
+  }).filter(Boolean);
+
+  // ดึงข้อความที่พิมพ์เองออกมา (ส่วนที่ไม่ใช่ chip label)
+  const currentParts = el.value.split(',').map(s => s.trim()).filter(Boolean);
+  const manualParts = currentParts.filter(s => !allLabels.some(l => s.startsWith(l)));
+
+  // chip ที่ checked อยู่
+  const chipParts = [];
   document.querySelectorAll('#remarkChips .rchip').forEach(chip => {
     const cb = chip.querySelector('input[type=checkbox]');
     if (!cb?.checked) return;
     const sel  = chip.querySelector('.rchip-sel');
-    const num  = chip.querySelector('.rchip-num');
-    let label  = chip.dataset.label || '';
+    const numEl = chip.querySelector('.rchip-num');
+    let label = chip.dataset.label || '';
     if (chip.dataset.labelSel && sel) label = sel.value;
     let text = label;
-    if (num?.value) {
-      const unit = chip.dataset.unit || num.dataset.unit || '';
-      text += ' ' + num.value + ' ' + unit;
+    if (numEl?.value) {
+      const unit = chip.dataset.unit || numEl.dataset.unit || '';
+      text += ' ' + numEl.value + ' ' + unit;
     }
-    if (text.trim()) parts.push(text.trim());
+    if (text.trim()) chipParts.push(text.trim());
   });
-  $('f_remark').value = parts.join(', ');
+
+  // ต่อกัน: ข้อความพิมพ์เอง + chip ที่เลือก
+  el.value = [...manualParts, ...chipParts].filter(Boolean).join(', ');
 }
 
 function _clearRemarkChips() {
@@ -6254,7 +6271,7 @@ async function testProviderKey(provider) {
         const visionModels = models
           .filter(m => m.supportedGenerationMethods?.includes('generateContent'))
           .map(m => m.name.replace('models/',''));
-        const preferred = ['gemini-2.5-flash','gemini-2.5-pro','gemini-2.0-flash','gemini-2.0-flash-001','gemini-1.5-flash','gemini-1.5-pro'];
+        const preferred = ['gemini-2.0-flash','gemini-2.0-flash-001','gemini-1.5-flash','gemini-1.5-pro','gemini-2.5-flash','gemini-2.5-pro'];
         const pick = preferred.find(p => visionModels.includes(p)) || visionModels[0] || 'gemini-2.0-flash';
         localStorage.setItem('ptts_gemini_model', pick);
         ok = true;
@@ -6465,19 +6482,32 @@ async function callAiText(prompt, maxTokens = 1800) {
     if (!r.ok) throw new Error(d.error?.message || 'OpenAI error');
     return d.choices?.[0]?.message?.content || '';
 
-  } else { // gemini
-    const geminiModel = localStorage.getItem('ptts_gemini_model') || 'gemini-2.0-flash';
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${k}`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+  } else { // gemini — auto-fallback เมื่อ quota หมด
+    const _fallbacks = ['gemini-2.0-flash','gemini-2.0-flash-001','gemini-1.5-flash','gemini-1.5-pro','gemini-2.5-flash'];
+    const _cur = localStorage.getItem('ptts_gemini_model') || 'gemini-2.0-flash';
+    // เริ่มจาก model ปัจจุบัน แล้วต่อด้วยตัวที่เหลือ
+    const _order = [_cur, ..._fallbacks.filter(m => m !== _cur)];
+    let lastErr = '';
+    for (const model of _order) {
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${k}`,
+        { method:'POST', headers:{'content-type':'application/json'},
+          body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }] }) }
+      );
+      const d = await r.json();
+      if (r.ok) {
+        if (model !== _cur) {
+          localStorage.setItem('ptts_gemini_model', model);
+          Swal.fire({ toast:true, position:'top-end', icon:'info', showConfirmButton:false, timer:3500,
+            title:`⚡ สลับ model → ${model}`, text:`Quota ${_cur} หมด ใช้ ${model} แทน` });
+        }
+        return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
       }
-    );
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error?.message || 'Gemini error');
-    return d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const msg = d.error?.message || '';
+      lastErr = msg;
+      if (!msg.toLowerCase().includes('quota') && !msg.toLowerCase().includes('rate')) throw new Error(msg);
+    }
+    throw new Error('Quota หมดทุก model: ' + lastErr);
   }
 }
 
@@ -6564,81 +6594,58 @@ async function showPricingAnalysis() {
 
   const meshDesc = [cur.meshOut?'ตะแกรงนอก':'', cur.meshIn?'ตะแกรงใน':''].filter(Boolean).join('+') || 'ไม่มีตะแกรง';
 
-  const prompt = `คุณเป็นที่ปรึกษาการกำหนดราคาสินค้าชิ้นส่วนโลหะอุตสาหกรรม (ฝากรองกรอง/แผ่นกรอง) มีความเชี่ยวชาญด้านการวิเคราะห์ราคาตลาดและกลยุทธ์การแข่งขัน
+  const prompt = `คุณเป็นที่ปรึกษาราคาสินค้าชิ้นส่วนโลหะอุตสาหกรรม
 
-═══════════ ข้อมูลงานปัจจุบัน ═══════════
-• ขนาด: OD ${cur.od} × ID ${cur.id} × H ${cur.h} mm
-• จำนวน: ${cur.unit} ลูก
-• วัตถุดิบ (MAT ฝา): ${cur.mat||'ไม่ระบุ'}
-• โครงสร้าง: ${meshDesc}
-• ต้นทุนรวม/ลูก: ${B(cur.costPerUnit)}
-• ราคาเสนอปัจจุบัน: ${cur.sellPrice>0?B(cur.sellPrice):'ยังไม่กำหนด'} ${cur.sellPrice>0?`(Margin ${P1(margin)})`:''}
-• ราคาตามสูตร Margin ต่างๆ:
-  ${mOpts}
+ข้อมูลงาน:
+- ขนาด: OD${cur.od}×ID${cur.id}×H${cur.h} mm | จำนวน: ${cur.unit} ลูก
+- วัตถุดิบ: ${cur.mat||'ไม่ระบุ'} | ${meshDesc}
+- ต้นทุน/ลูก: ${B(cur.costPerUnit)}
+- ราคาเสนอปัจจุบัน: ${cur.sellPrice>0?B(cur.sellPrice)+` (Margin ${P1(margin)})`:'ยังไม่กำหนด'}
 
-═══════════ ข้อมูลประวัติย้อนหลัง 3 ปี ═══════════
-(กรองงานที่คล้ายกันด้วย OD×ID×H×วัตถุดิบ×ตะแกรง)
+ข้อมูลประวัติงานที่คล้ายกัน (3 ปีย้อนหลัง):
+${grpTxt('กลุ่ม A เหมือนมาก', sA)}
+${grpTxt('กลุ่ม B คล้ายกัน', sB)}
+${grpTxt('กลุ่ม C ขนาดใกล้เคียง', sC)}
 
-${grpTxt('กลุ่ม A — เหมือนมาก (OD+ID+H+วัตถุดิบ+ตะแกรงตรง)', sA)}
-
-${grpTxt('กลุ่ม B — คล้ายกัน (OD+บางมิติตรง)', sB)}
-
-${grpTxt('กลุ่ม C — ขนาดใกล้เคียง (OD เป็นหลัก)', sC)}
-
-รวมงานที่คล้าย: ${scored.length} งาน
-
-═══════════ สิ่งที่ต้องการ ═══════════
-กรุณาวิเคราะห์และตอบเป็นภาษาไทยในรูปแบบต่อไปนี้:
-
-1. 🔍 สรุปสถานะราคาปัจจุบัน (2-3 ประโยค: ราคาปัจจุบันอยู่ที่ไหนในตลาด, Percentile, ต่างจากเฉลี่ยเท่าไหร่)
-2. 🎯 กลยุทธ์ 3 แบบพร้อมราคาเป็นตัวเลขชัดเจน:
-   - แบบ 1: ราคาเชิงรุก (ชิงงาน/ลูกค้าใหม่)
-   - แบบ 2: ราคากลาง (สมเหตุสมผล, Win rate ดี)
-   - แบบ 3: ราคาพรีเมียม (งานด่วน/ลูกค้าประจำ)
-   สำหรับแต่ละแบบ: บอกราคา (฿), Margin ที่จะได้, เหตุผล, Win probability
-3. 📝 ฟันธง: ราคาสุดท้ายที่แนะนำคือ ฿_____ พร้อมเหตุผลสั้นๆ 2-3 ประโยค
-
-ตอบแบบกระชับ ตรงประเด็น ใช้ตัวเลขจริงจากข้อมูลข้างต้น`;
+ตอบเป็นภาษาไทย กระชับ แค่ 3 บรรทัด:
+1. ราคาที่แนะนำ: ฿_____  (Margin ___%)
+2. เหตุผล: (1 ประโยค)
+3. ความเสี่ยง: (1 ประโยค ถ้ามี)`;
 
   // ── แสดง loading modal ──────────────────────────────
   Swal.fire({
-    title: '🤖 กำลังวิเคราะห์ราคา…',
-    html: '<div style="color:#94a3b8;font-size:.85rem">AI กำลังประมวลผลข้อมูล 3 ปีย้อนหลัง</div>',
+    title: '🤖 AI กำลังเคาะราคา…',
+    html: '<div style="color:#94a3b8;font-size:.85rem">รอสักครู่…</div>',
     background: '#0d1b2a', color: '#cce4ff',
     allowOutsideClick: false, showConfirmButton: false,
     didOpen: () => Swal.showLoading()
   });
 
   try {
-    const result = await callAiText(prompt, 2000);
+    const result = await callAiText(prompt, 400);
 
-    // แปลง markdown เป็น HTML อย่างง่าย
     const toHtml = txt => txt
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
-      .replace(/###\s*(.+)/g,'<div style="font-size:.9rem;font-weight:800;color:#60a5fa;margin:10px 0 4px">$1</div>')
-      .replace(/##\s*(.+)/g,'<div style="font-size:.95rem;font-weight:800;color:#a78bfa;margin:12px 0 4px">$1</div>')
-      .replace(/^(#{1})\s*(.+)/gm,'<div style="font-size:1rem;font-weight:900;color:#c4b5fd;margin:12px 0 5px">$2</div>')
-      .replace(/^[-•]\s(.+)/gm,'<div style="padding:2px 0 2px 12px;border-left:2px solid rgba(99,102,241,.4);margin:2px 0;color:#cbd5e1">$1</div>')
       .replace(/\n/g,'<br>');
 
     Swal.fire({
-      title: '🎯 วิเคราะห์ราคา',
+      title: '🎯 AI เคาะราคา',
       html: `
-        <div style="text-align:left;font-family:Sarabun,sans-serif;font-size:.82rem;line-height:1.75;color:#cbd5e1;max-height:65vh;overflow-y:auto;padding:4px 2px">
-          <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:8px;padding:6px 10px;margin-bottom:10px;font-size:.75rem;color:#94a3b8">
-            OD${cur.od}×ID${cur.id}×H${cur.h} · ${cur.unit} ลูก · ${cur.mat||'MAT ไม่ระบุ'} · ${meshDesc} · ต้นทุน ${B(cur.costPerUnit)}/ลูก
+        <div style="text-align:left;font-family:Sarabun,sans-serif;font-size:.88rem;line-height:2;color:#cbd5e1;padding:4px 2px">
+          <div style="background:rgba(99,102,241,.12);border-radius:8px;padding:7px 12px;margin-bottom:12px;font-size:.75rem;color:#94a3b8">
+            OD${cur.od}×ID${cur.id}×H${cur.h} · ${cur.unit} ลูก · ต้นทุน ${B(cur.costPerUnit)}/ลูก
           </div>
           ${toHtml(result)}
         </div>`,
       background: '#0d1b2a', color: '#cce4ff',
-      width: 640,
+      width: 480,
       showCloseButton: true,
       confirmButtonText: '✅ ปิด',
       confirmButtonColor: '#4f46e5',
     });
   } catch(e) {
-    Swal.fire({ icon:'error', title:'วิเคราะห์ไม่สำเร็จ', text: e.message,
+    Swal.fire({ icon:'error', title:'AI ไม่ตอบสนอง', text: e.message,
       background:'#0d1b2a', color:'#f1f5f9' });
   }
 }
@@ -6759,11 +6766,15 @@ function fillFromAi(p) {
       if (opt) sel.value = opt.value;
     }
   }
-  setVal('f_od',   p.od);
-  setVal('f_id',   p.id);
-  setVal('f_h',    p.h);
-  setVal('f_unit', p.qty);
-  setVal('f_note', p.note);
+  setVal('f_od',     p.od);
+  setVal('f_id',     p.id);
+  setVal('f_h',      p.h);
+  setVal('f_unit',   p.qty);
+  setVal('f_remark', p.note);
+  // default ฝาบน/ล่าง = SPCC-0.6 ถ้าว่าง
+  ['f_matTop','f_matBot'].forEach(id => {
+    const el = $(id); if (el && !el.value) el.value = 'SPCC-0.6';
+  });
   if (p.od || p.id || p.h) updateSize();
   calcAll();
   Swal.fire({icon:'success',title:'เติมข้อมูลแล้ว ✅',
@@ -6799,7 +6810,7 @@ function openTextReader() {
       allowOutsideClick:false,showConfirmButton:false,
       didOpen:()=>Swal.showLoading()});
     try {
-      const parsed = await callAiText(res.value);
+      const parsed = await _callAiTextReader(res.value);
       Swal.close();
       showTextAiConfirm(parsed);
     } catch(e) {
@@ -6809,7 +6820,7 @@ function openTextReader() {
   });
 }
 
-async function callAiText(rawText) {
+async function _callAiTextReader(rawText) {
   const k = AI_KEYS[AI_PROVIDER];
   if (!k) throw new Error('ยังไม่มี API Key');
   // Build MAT reference
@@ -6861,14 +6872,29 @@ ${rawText}
     const d = await r.json();
     if (!r.ok) throw new Error(d.error?.message||'OpenAI error');
     return JSON.parse((d.choices?.[0]?.message?.content||'{}').match(/\{[\s\S]*\}/)?.[0]||'{}');
-  } else {
-    const model = localStorage.getItem('ptts_gemini_model')||'gemini-2.0-flash';
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${k}`,
-      {method:'POST',headers:{'content-type':'application/json'},
-       body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error?.message||'Gemini error');
-    return JSON.parse((d.candidates?.[0]?.content?.parts?.[0]?.text||'{}').match(/\{[\s\S]*\}/)?.[0]||'{}');
+  } else { // gemini — auto-fallback
+    const _fallbacks = ['gemini-2.0-flash','gemini-2.0-flash-001','gemini-1.5-flash','gemini-1.5-pro','gemini-2.5-flash'];
+    const _cur = localStorage.getItem('ptts_gemini_model')||'gemini-2.0-flash';
+    const _order = [_cur, ..._fallbacks.filter(m=>m!==_cur)];
+    let lastErr = '';
+    for (const model of _order) {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${k}`,
+        {method:'POST',headers:{'content-type':'application/json'},
+         body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+      const d = await r.json();
+      if (r.ok) {
+        if (model !== _cur) {
+          localStorage.setItem('ptts_gemini_model', model);
+          Swal.fire({ toast:true, position:'top-end', icon:'info', showConfirmButton:false, timer:3500,
+            title:`⚡ สลับ model → ${model}`, text:`Quota ${_cur} หมด ใช้ ${model} แทน` });
+        }
+        return JSON.parse((d.candidates?.[0]?.content?.parts?.[0]?.text||'{}').match(/\{[\s\S]*\}/)?.[0]||'{}');
+      }
+      const msg = d.error?.message||'';
+      lastErr = msg;
+      if (!msg.toLowerCase().includes('quota') && !msg.toLowerCase().includes('rate')) throw new Error(msg);
+    }
+    throw new Error('Quota หมดทุก model: ' + lastErr);
   }
 }
 
@@ -6921,7 +6947,7 @@ function showTextAiConfirm(p) {
 function fillFromTextAi(p) {
   const set = (id,v) => { const el=$(id); if(el && v!==undefined && v!=='') el.value=v; };
   set('f_od', p.od); set('f_id', p.id); set('f_h', p.h); set('f_unit', p.qty);
-  set('f_note', p.note);
+  set('f_remark', p.note);
   // แบบงาน
   if (p.workType) {
     const wSel = $('f_workType');
@@ -6934,6 +6960,10 @@ function fillFromTextAi(p) {
   // ตะแกรง
   if (p.meshOut) { const s=$('f_meshOut'); if(s) s.value=p.meshOut; }
   if (p.meshIn)  { const s=$('f_meshIn');  if(s) s.value=p.meshIn;  }
+  // default ฝาบน/ล่าง = SPCC-0.6 ถ้าว่าง
+  ['f_matTop','f_matBot'].forEach(id => {
+    const el = $(id); if (el && !el.value) el.value = 'SPCC-0.6';
+  });
   if (p.od||p.id||p.h) updateSize();
   calcAll();
   Swal.fire({icon:'success',title:'ลงฟอร์มแล้ว ✅',
