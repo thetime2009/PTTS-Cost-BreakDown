@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>PTTS — Cost Breakdown</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=optional" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -33,7 +33,7 @@
   --t3: #7a9ab8;
   --t4: #a0bcd4;
   --tabbar:   rgba(238,246,255,.97);
-  --shadow:   0 2px 12px rgba(59,130,246,.08);
+  --shadow:   0 4px 20px rgba(59,130,246,.12), 0 1px 4px rgba(0,0,0,.06);
   --readonly-bg:  rgba(59,130,246,.06);
   --readonly-bc:  rgba(59,130,246,.18);
   --readonly-col: var(--c1);
@@ -44,18 +44,18 @@
 [data-theme="dark"] {
   --bg:       #0d1b2a;
   --bg-deep:  #0a1420;
-  --bg-card:  rgba(255,255,255,.04);
-  --bg-input: rgba(8,16,28,.75);
-  --bg-input2:rgba(10,20,36,.8);
-  --bc-card:  rgba(255,255,255,.07);
-  --bc-input: rgba(255,255,255,.09);
-  --bc-div:   rgba(255,255,255,.05);
+  --bg-card:  rgba(255,255,255,.07);
+  --bg-input: rgba(8,16,28,.80);
+  --bg-input2:rgba(10,20,36,.85);
+  --bc-card:  rgba(255,255,255,.12);
+  --bc-input: rgba(255,255,255,.13);
+  --bc-div:   rgba(255,255,255,.07);
   --t1: #cce4ff;
   --t2: #6a8daa;
   --t3: #527aa0;
   --t4: #3a5878;
   --tabbar:   rgba(8,16,30,.97);
-  --shadow:   0 2px 12px rgba(0,0,0,.3);
+  --shadow:   0 4px 24px rgba(0,0,0,.45), 0 1px 6px rgba(0,0,0,.25);
   --readonly-bg:  rgba(59,130,246,.07);
   --readonly-bc:  rgba(59,130,246,.18);
   --readonly-col: var(--c1);
@@ -93,6 +93,26 @@ body {
 
 .tab-content { display: none; padding: 0 12px 16px; }
 .tab-content.active { display: block; }
+
+/* ── TAB MANAGER ─────────────────────────────────── */
+.tmr-row {
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px;border-radius:10px;margin-bottom:6px;
+  background:var(--bg-card);border:1px solid var(--bc-card);
+  transition:opacity .2s;cursor:grab;user-select:none;
+}
+.tmr-row.drag-over { border-color:var(--c1);background:var(--c1-10); }
+.tmr-row.tmr-hidden { opacity:.4; }
+.tmr-handle { font-size:1.1rem;color:var(--t3);cursor:grab;touch-action:none; }
+.tmr-icon { font-size:1.1rem;flex-shrink:0; }
+.tmr-label { flex:1;font-size:.88rem;font-weight:600;color:var(--t1); }
+.tmr-btn {
+  padding:4px 8px;border-radius:6px;border:1px solid var(--bc-card);
+  background:transparent;color:var(--t2);font-size:.78rem;cursor:pointer;
+  font-family:'Sarabun',sans-serif;transition:background .15s;
+}
+.tmr-btn:disabled { opacity:.25;cursor:default; }
+.tmr-btn:not(:disabled):hover { background:var(--c1-10); }
 
 /* ── HEADER ─────────────────────────────────────── */
 .page-header {
@@ -225,19 +245,25 @@ body {
 .card {
   background: var(--bg-card); backdrop-filter: blur(10px);
   border: 1px solid var(--bc-card); border-radius: 14px;
-  padding: 16px; margin: 0 auto 14px; max-width: 720px;
+  padding: 18px 18px 16px; margin: 0 auto 14px; max-width: 720px;
   box-shadow: var(--shadow);
+  transition: box-shadow .2s, border-color .2s;
 }
+.card:hover {
+  box-shadow: var(--shadow), 0 0 0 1px var(--bc-card);
+  border-color: rgba(255,255,255,.18);
+}
+[data-theme="dark"] .card:hover { border-color: rgba(255,255,255,.18); }
 .card-header {
-  display: flex; align-items: center; gap: 9px;
-  margin-bottom: 14px; padding-bottom: 10px;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px; padding-bottom: 11px;
   border-bottom: 1px solid var(--bc-div);
 }
 .card-header .icon {
-  width: 32px; height: 32px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center; font-size: .95rem;
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 1rem;
 }
-.card-header h2 { font-size: .95rem; font-weight: 700; color: var(--t1); }
+.card-header h2 { font-size: 1rem; font-weight: 700; color: var(--t1); letter-spacing: .01em; }
 .card-title { font-size: .88rem; font-weight: 700; color: var(--t1); }
 .ic-info   { background: var(--c1-10);  color: var(--c1); }
 .ic-dim    { background: rgba(14,165,233,.15); color: #0ea5e9; }
@@ -275,6 +301,9 @@ input[type="text"], input[type="number"], input[type="date"], select, textarea {
   font-family: 'Sarabun', sans-serif; font-size: .9rem; width: 100%;
   transition: border-color .18s, box-shadow .18s; outline: none;
   -webkit-appearance: none; appearance: none;
+}
+input:hover:not([readonly]), select:hover, textarea:hover {
+  border-color: var(--c1-30);
 }
 input:focus, select:focus, textarea:focus {
   border-color: var(--c1); box-shadow: 0 0 0 3px var(--c1-15);
@@ -786,6 +815,261 @@ select option { background: var(--sel-bg); color: var(--t1); }
   background: var(--c1-05); border: 1px solid var(--bc-card);
   text-align: center;
 }
+
+/* ── SUMMARY PANEL (hidden on mobile) ────────────────── */
+.summary-panel { display: none; }
+
+/* ── IMAGE PREVIEW BOX (hidden on mobile, shown on desktop) ── */
+.attach-preview-box {
+  display: none; /* overridden to block at ≥1280px */
+  position: relative; cursor: pointer;
+  border: 2px dashed var(--bc-card);
+  border-radius: 14px; background: var(--bg-card);
+  min-height: 150px; margin-bottom: 14px;
+  overflow: hidden; transition: border-color .2s;
+}
+.attach-preview-box:hover { border-color: var(--c1); }
+.ap-empty {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px; color: var(--t3); pointer-events: none;
+}
+.ap-empty .ap-icon { font-size: 2rem; }
+.ap-empty .ap-label { font-size: .78rem; }
+#attachPreviewImg {
+  width: 100%; height: auto;
+  object-fit: contain;
+  border-radius: 12px; display: block;
+}
+.ap-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,.65));
+  display: flex; gap: 8px; justify-content: center;
+  padding: 20px 12px 10px;
+}
+.ap-overlay button {
+  padding: 5px 14px; border-radius: 8px; border: none;
+  font-family: 'Sarabun', sans-serif; font-size: .75rem;
+  cursor: pointer; font-weight: 600;
+}
+.ap-overlay .ap-btn-view { background: rgba(255,255,255,.88); color: #0d1b2a; }
+.ap-overlay .ap-btn-del  { background: rgba(248,113,113,.88); color: #fff; }
+
+/* ── DESKTOP SIDEBAR (≥900px) ───────────────────────── */
+.sidebar-header { display: none; }
+
+@media (min-width: 900px) {
+  body { padding-bottom: 0; padding-left: 214px; }
+
+  /* ขยาย card ให้เต็มพื้นที่ — ไม่ cap 720px */
+  .tab-content { padding: 0 16px 24px; }
+  .card { max-width: 100% !important; }
+
+  /* inline-style max-width ใน tab-breakdown */
+  #tab-breakdown > div[style*="max-width"],
+  #tab-calc      > div[style*="max-width"],
+  #tab-labor     > div[style*="max-width"],
+  #tab-mold      > div[style*="max-width"],
+  #tab-api       > div[style*="max-width"],
+  #tab-mat       > div[style*="max-width"],
+  #tab-data      > div[style*="max-width"] { max-width: 100% !important; }
+}
+
+/* ล็อค s1-info ไม่ให้หดยืด */
+.s1-info { min-height: 160px; }
+.s1-info .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.s1-info input, .s1-info select {
+  min-width: 0; width: 100%; box-sizing: border-box;
+  height: 2.5rem; /* lock ความสูง — ไม่ขยับตาม content */
+}
+
+/* img-row ซ่อนบน mobile — แสดงเฉพาะ ≥1280px */
+.img-row { display: none; }
+/* mob-btns แสดงบน mobile */
+.mob-btns { display: flex; }
+
+/* 2-column layout breakdown (≥1280px) */
+.bd-cols { display: block; }
+@media (min-width: 1280px) {
+  .bd-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start; /* แต่ละ column สูงตามเนื้อหาตัวเอง — ไม่หดขยายตามกัน */
+  }
+  /* Left col = flex column */
+  .bd-left { display: flex; flex-direction: column; }
+
+  /* img-row: รูป (ซ้าย) + ปุ่ม (ขวา) */
+  .img-row { display: flex; gap: 12px; align-items: stretch; margin-bottom: 14px; }
+  .img-row .attach-preview-box { flex: 1; margin-bottom: 0; box-sizing: border-box; }
+  .img-btns { display: flex; flex-direction: column; gap: 8px; justify-content: center; min-width: 110px; }
+
+  /* Image preview — แสดงในแถว */
+  .attach-preview-box { display: block; min-height: 150px; }
+
+  /* Mobile buttons ซ่อนบน desktop */
+  .mob-btns { display: none !important; }
+
+  /* Right col เลื่อนได้ภายใน viewport — ไม่ยืดหน้ายาว */
+  .bd-right {
+    position: sticky;
+    top: 8px;
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--bc-card) transparent;
+    border-radius: 14px;
+  }
+}
+/* Empty state: centered absolutely */
+.ap-empty {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px; color: var(--t3); pointer-events: none;
+}
+.ap-empty .ap-icon { font-size: 2rem; }
+.ap-empty .ap-label { font-size: .78rem; }
+/* Image fills box */
+#attachPreviewImg {
+  width: 100%; height: auto;
+  max-height: 300px; object-fit: contain;
+  border-radius: 12px; display: block;
+}
+.ap-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,.65));
+  display: flex; gap: 8px; justify-content: center;
+  padding: 20px 12px 10px;
+}
+.ap-overlay button {
+  padding: 5px 14px; border-radius: 8px; border: none;
+  font-family: 'Sarabun', sans-serif; font-size: .75rem;
+  cursor: pointer; font-weight: 600;
+}
+.ap-overlay .ap-btn-view { background: rgba(255,255,255,.88); color: #0d1b2a; }
+.ap-overlay .ap-btn-del  { background: rgba(248,113,113,.88); color: #fff; }
+
+  .tab-bar {
+    bottom: auto; right: auto;
+    top: 0; left: 0;
+    width: 214px; height: 100vh;
+    flex-direction: column;
+    border-top: none; border-right: 1px solid var(--bc-div);
+    padding: 0 8px 20px;
+    align-items: stretch; justify-content: flex-start;
+    overflow-y: auto; overflow-x: hidden;
+    scrollbar-width: none;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    flex: none;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 9px 13px;
+    border-radius: 10px;
+    font-size: .9rem;
+    gap: 10px;
+    margin-bottom: 2px;
+    height: auto;
+    text-align: left;
+  }
+  .tab-btn .t-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .tab-btn .t-label { max-width: none; text-align: left; flex: 1; }
+
+  .sidebar-header {
+    display: flex !important;
+    align-items: center; gap: 10px;
+    padding: 18px 12px 14px;
+    margin: 0 0 6px;
+    border-bottom: 1px solid var(--bc-div);
+    flex-shrink: 0;
+  }
+  .sidebar-logo {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    background: var(--grad);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; font-weight: 900; color: #fff; letter-spacing: -1px;
+    box-shadow: 0 3px 10px var(--c1-28);
+  }
+  .sidebar-title { font-size: .88rem; font-weight: 700; color: var(--t1); line-height: 1.2; }
+  .sidebar-sub   { font-size: .68rem; color: var(--t3); }
+
+  /* Help FAB: shift to not overlap sidebar */
+  .help-fab { bottom: 20px; right: 20px; }
+
+  /* Page header stripe covers full width already (position:relative in flow) */
+  .page-header::before,
+  .page-header::after { left: 0; }
+}
+
+/* ── DESKTOP SUMMARY PANEL (≥1100px) ─────────────────── */
+@media (min-width: 1100px) {
+  body { padding-right: 272px; }
+
+  .summary-panel {
+    display: flex; flex-direction: column;
+    position: fixed; top: 0; right: 0;
+    width: 272px; height: 100vh;
+    background: var(--bg-card);
+    border-left: 1px solid var(--bc-div);
+    overflow-y: auto; overflow-x: hidden;
+    scrollbar-width: none; z-index: 90;
+    padding: 18px 14px 24px;
+    gap: 0;
+  }
+  .summary-panel::-webkit-scrollbar { display: none; }
+
+  .sp-header {
+    font-size: .78rem; font-weight: 700; color: var(--t3);
+    letter-spacing: .8px; text-transform: uppercase;
+    margin-bottom: 14px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--bc-div);
+  }
+  .sp-total-lbl { font-size: .72rem; color: var(--t3); margin-bottom: 2px; }
+  .sp-total {
+    font-size: 1.55rem; font-weight: 800; color: var(--c1);
+    letter-spacing: -.5px; line-height: 1.1; margin-bottom: 2px;
+  }
+  .sp-per-unit { font-size: .78rem; color: var(--t2); margin-bottom: 14px; }
+  .sp-chart-wrap {
+    width: 100%; aspect-ratio: 1;
+    max-width: 180px; margin: 0 auto 10px;
+    position: relative;
+  }
+  .sp-chart-center {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    text-align: center; pointer-events: none;
+  }
+  .sp-chart-center-val { font-size: .78rem; font-weight: 700; color: var(--t1); }
+  .sp-chart-center-lbl { font-size: .62rem; color: var(--t3); }
+  .sp-legend { margin-bottom: 14px; }
+  .sp-legend-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: .75rem; padding: 3px 0;
+    border-bottom: 1px solid var(--bc-div);
+  }
+  .sp-legend-row:last-child { border-bottom: none; }
+  .sp-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-right: 5px; }
+  .sp-legend-name { flex: 1; color: var(--t2); display: flex; align-items: center; }
+  .sp-legend-val { font-weight: 600; color: var(--t1); }
+  .sp-divider { border: none; border-top: 1px solid var(--bc-div); margin: 8px 0 12px; }
+  .sp-kpi-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 5px 0; font-size: .78rem;
+  }
+  .sp-kpi-lbl { color: var(--t3); }
+  .sp-kpi-val { font-weight: 700; color: var(--t1); }
+  .sp-kpi-val.pos { color: #34d399; }
+  .sp-kpi-val.neg { color: #f87171; }
+  .sp-no-data {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    font-size: .78rem; color: var(--t3); text-align: center; padding: 20px;
+  }
+}
 </style>
 </head>
 <body>
@@ -857,8 +1141,8 @@ select option { background: var(--sel-bg); color: var(--t1); }
 <div id="tab-breakdown" class="tab-content active">
 
 <!-- URL SETUP -->
-<div style="max-width:720px;margin:10px auto 8px;padding:0 0px;
-  display:flex;align-items:center;justify-content:space-between;gap:8px">
+<div style="max-width:100%;margin:10px 0 8px;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap">
   <span id="dbStatus" style="font-size:.78rem;padding:5px 13px;border-radius:999px;
     background:rgba(100,116,139,.3);color:#cbd5e1;border:1px solid rgba(255,255,255,.2)">
     ⬤ ยังไม่เชื่อมต่อ
@@ -866,7 +1150,12 @@ select option { background: var(--sel-bg); color: var(--t1); }
   <button onclick="loadAllData(true)" style="padding:6px 14px;border-radius:8px;
     border:1px solid #16a34a;background:#4ade80;color:#052e16;
     font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:700;cursor:pointer">
-    🔄 รีเฟรช
+    🔄 รีเฟรช data base
+  </button>
+  <button onclick="location.reload()" style="padding:6px 14px;border-radius:8px;
+    border:1px solid #16a34a;background:#4ade80;color:#052e16;
+    font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:700;cursor:pointer">
+    ↺ คืนค่าฟอร์ม
   </button>
 </div>
 
@@ -875,8 +1164,48 @@ select option { background: var(--sel-bg); color: var(--t1); }
 <!-- hidden file input for attachment -->
 <input type="file" id="attachFileInput" accept="image/*" style="display:none" onchange="handleAttachFile(event)">
 
+<!-- 2-column: left (รูป + ข้อมูล + ขนาด) | right (วัสดุ scrollable) -->
+<div class="bd-cols">
+<div class="bd-left">
+
+<!-- Desktop: รูป (ซ้าย) + ปุ่ม (ขวา) — แสดงเฉพาะ ≥1280px -->
+<div class="img-row">
+  <div class="attach-preview-box" id="attachPreviewBox"
+    onclick="$('attachFileInput').click()">
+    <div class="ap-empty" id="apEmpty">
+      <span class="ap-icon">📎</span>
+      <span class="ap-label">คลิกเพื่อแนบรูปใบขอราคา</span>
+    </div>
+    <img id="attachPreviewImg" alt="ใบขอราคา" style="display:none">
+    <div class="ap-overlay" id="apOverlay" style="display:none" onclick="event.stopPropagation()">
+      <button class="ap-btn-view" onclick="viewAttachedImage()">🔍 ดูเต็ม</button>
+      <button class="ap-btn-del"  onclick="clearAttachedImage()">🗑 ลบ</button>
+    </div>
+  </div>
+  <div class="img-btns">
+    <button id="btnAttach" onclick="$('attachFileInput').click()"
+      style="padding:8px 14px;border-radius:8px;border:1px solid rgba(52,211,153,.4);
+        background:#4ade80;color:#052e16;font-family:Sarabun,sans-serif;
+        font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap">
+      📎 แนบรูป
+    </button>
+    <button id="btnViewAttach" onclick="viewAttachedImage()"
+      style="display:none;padding:8px 14px;border-radius:8px;border:1px solid rgba(251,191,36,.7);
+        background:rgba(251,191,36,.22);color:#fde68a;font-family:Sarabun,sans-serif;
+        font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap">
+      🔍 ดูรูป
+    </button>
+    <button onclick="openAiReader()"
+      style="padding:8px 14px;border-radius:8px;border:1px solid rgba(130,100,220,.65);
+        background:rgba(130,100,220,.25);color:#c4b5fd;font-family:Sarabun,sans-serif;
+        font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap">
+      📷 อ่านแบบ AI
+    </button>
+  </div>
+</div>
+
 <!-- S1: ข้อมูลทั่วไป -->
-<div class="card">
+<div class="card s1-info">
   <div class="card-header"><div class="icon ic-info">📄</div><h2>ข้อมูลทั่วไป</h2></div>
   <div class="grid g3">
     <div class="field">
@@ -904,10 +1233,8 @@ select option { background: var(--sel-bg); color: var(--t1); }
       <input type="text" id="f_refId" placeholder="Q-YYYYMMDD-XXXX" readonly
         style="background:var(--readonly-bg);border-color:var(--readonly-bc);color:var(--readonly-col);font-size:.78rem;letter-spacing:.5px">
     </div>
-  </div>
-  <div class="grid g2" style="margin-top:10px">
     <div class="field"><label>ผู้เสนอราคา</label><input type="text" id="f_quoter" value="คุณกิ๊ฟ" placeholder="ชื่อผู้เสนอ"></div>
-    <div class="field"><label>ลูกค้า / ผู้ติดต่อ</label><select id="f_contact"><option value="">— เลือกผู้ติดต่อ —</option></select></div>
+    <div class="field"><label>ลูกค้า / ผู้ติดต่อ</label><select id="f_contact"><option value="">— กำลังโหลด… —</option></select></div>
   </div>
 </div>
 
@@ -916,24 +1243,18 @@ select option { background: var(--sel-bg); color: var(--t1); }
   <div class="card-header">
     <div class="icon ic-dim">📐</div>
     <h2>ขนาดชิ้นงาน</h2>
-    <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
-      <!-- แนบรูปใบขอราคา -->
-      <button id="btnAttach" onclick="$('attachFileInput').click()"
+    <!-- Mobile-only buttons (ซ่อนบน desktop ≥1280px) -->
+    <div class="mob-btns" style="margin-left:auto;gap:6px;align-items:center">
+      <button onclick="$('attachFileInput').click()"
         style="padding:6px 12px;border-radius:8px;border:1px solid #16a34a;
           background:#4ade80;color:#052e16;font-family:Sarabun,sans-serif;
-          font-size:.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap">
-        📎 แนบรูป
-      </button>
-      <button id="btnViewAttach" onclick="viewAttachedImage()" title="ดูรูปใบขอราคา"
-        style="display:none;padding:6px 10px;border-radius:8px;border:1px solid rgba(251,191,36,.7);
-          background:rgba(251,191,36,.22);color:#fde68a;font-family:Sarabun,sans-serif;
           font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap">
-        🔍 ดูรูป
+        📎 แนบรูป
       </button>
       <button onclick="openAiReader()" style="padding:6px 14px;border-radius:8px;
         border:1px solid rgba(130,100,220,.65);background:rgba(130,100,220,.25);
         color:#c4b5fd;font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;
-        display:flex;align-items:center;gap:5px;white-space:nowrap">
+        white-space:nowrap">
         📷 อ่านแบบ AI
       </button>
     </div>
@@ -989,7 +1310,8 @@ select option { background: var(--sel-bg); color: var(--t1); }
   </div>
 </div>
 
-<!-- S3+S4+S5: วัสดุ / กระบวนการภายนอก / ค่าใช้จ่ายอื่นๆ (รวมการ์ด) -->
+</div><!-- end bd-left -->
+<div class="bd-right"><!-- S3+S4+S5: วัสดุ / กระบวนการภายนอก / ค่าใช้จ่ายอื่นๆ (รวมการ์ด) -->
 <div class="card">
   <div class="card-header">
     <div class="icon ic-mat">🏭</div>
@@ -1204,6 +1526,9 @@ select option { background: var(--sel-bg); color: var(--t1); }
   </div>
 </div>
 
+</div><!-- end bd-right -->
+</div><!-- end bd-cols -->
+
 <!-- S6: ต้นทุนรวม -->
 <div class="card">
   <div class="card-header"><div class="icon ic-profit">📊</div><h2>ต้นทุนรวมและกำไร</h2></div>
@@ -1409,7 +1734,7 @@ select option { background: var(--sel-bg); color: var(--t1); }
 <div id="tab-labor" class="tab-content">
 
   <div class="tab-title" style="padding-top:16px">
-    <div class="ticon ic-blue">⚙️</div>
+    <div class="ticon ic-blue">👷</div>
     <div>ตั้งค่าค่าแรง (Labor Config)
       <div style="font-size:.72rem;color:#94a3b8;font-weight:400">กำหนดกระบวนการ → คำนวณค่าแรงอัตโนมัติ</div>
     </div>
@@ -1552,7 +1877,7 @@ select option { background: var(--sel-bg); color: var(--t1); }
 <!-- ══════════════════════════════════════════════════ -->
 <div id="tab-api" class="tab-content">
   <div class="tab-title" style="padding-top:16px">
-    <div class="ticon ic-blue">⚙️</div>ตั้งค่า
+    <div class="ticon ic-blue">🔧</div>ตั้งค่า
   </div>
 
   <!-- Google Apps Script URL -->
@@ -1761,6 +2086,21 @@ select option { background: var(--sel-bg); color: var(--t1); }
 
   </div>
 
+  <!-- Tab Manager -->
+  <div style="max-width:720px;margin:0 auto 16px;background:var(--bg-card);border:1px solid var(--bc-card);border-radius:14px;padding:16px 18px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <div style="font-weight:700;font-size:.9rem;color:var(--t1)">📑 จัดการลำดับแท็บ</div>
+        <div style="font-size:.72rem;color:var(--t3);margin-top:2px">ลาก / ↑↓ เรียงลำดับ · 👁️ ซ่อน-แสดง</div>
+      </div>
+      <button onclick="tabMgrReset()"
+        style="padding:5px 12px;border-radius:8px;border:1px solid rgba(248,113,113,.3);
+        background:transparent;color:#f87171;font-family:'Sarabun',sans-serif;
+        font-size:.75rem;cursor:pointer">🔄 รีเซ็ต</button>
+    </div>
+    <div id="tabManagerWrap"></div>
+  </div>
+
   <!-- Info box -->
   <div style="max-width:720px;margin:0 auto;background:rgba(155,143,255,.06);border:1px solid rgba(155,143,255,.2);
     border-radius:11px;padding:13px 15px;font-size:.78rem;color:#8b8aaa;line-height:1.8">
@@ -1891,28 +2231,43 @@ select option { background: var(--sel-bg); color: var(--t1); }
 <!-- ══════════════════════════════════════════════════ -->
 <!-- BOTTOM TAB BAR                                    -->
 <!-- ══════════════════════════════════════════════════ -->
-<div class="tab-bar">
-  <button class="tab-btn active" id="tbtn-breakdown" onclick="switchTab('breakdown')">
-    <span class="t-icon">📋</span><span class="t-label">ฟอร์ม</span>
-  </button>
-  <button class="tab-btn" id="tbtn-calc" onclick="switchTab('calc')">
-    <span class="t-icon">🔢</span><span class="t-label">คำนวณ</span>
-  </button>
-  <button class="tab-btn" id="tbtn-labor" onclick="switchTab('labor')">
-    <span class="t-icon">⚙️</span><span class="t-label">แรงงาน</span>
-  </button>
-  <button class="tab-btn" id="tbtn-mold" onclick="switchTab('mold')">
-    <span class="t-icon">🔩</span><span class="t-label">แม่พิมพ์</span>
-  </button>
-  <button class="tab-btn" id="tbtn-data" onclick="switchTab('data')">
-    <span class="t-icon">🗂️</span><span class="t-label">DATA</span>
-  </button>
-  <button class="tab-btn" id="tbtn-api" onclick="switchTab('api')">
-    <span class="t-icon">⚙️</span><span class="t-label">ตั้งค่า</span>
-  </button>
-  <button class="tab-btn" id="tbtn-mat" onclick="switchTab('mat')">
-    <span class="t-icon">🧱</span><span class="t-label">MAT</span>
-  </button>
+<div class="tab-bar" id="mainTabBar">
+  <!-- rendered dynamically by renderTabBar() -->
+</div>
+
+<!-- ── SUMMARY PANEL (desktop right, ≥1100px) ─── -->
+<div class="summary-panel" id="summaryPanel">
+  <div class="sp-header">📊 สรุปต้นทุน</div>
+  <div class="sp-total-lbl">ต้นทุนรวม / Job</div>
+  <div class="sp-total" id="sp_totalJob">฿0.00</div>
+  <div class="sp-per-unit" id="sp_costPerUnit">ต้นทุน/ลูก: ฿0.00</div>
+  <div class="sp-chart-wrap">
+    <canvas id="spDonut"></canvas>
+    <div class="sp-chart-center">
+      <div class="sp-chart-center-val" id="sp_pct_mat">0%</div>
+      <div class="sp-chart-center-lbl">วัสดุ</div>
+    </div>
+  </div>
+  <div class="sp-legend" id="sp_legend">
+    <div class="sp-no-data">กรอกข้อมูลเพื่อดูกราฟ</div>
+  </div>
+  <hr class="sp-divider">
+  <div class="sp-kpi-row">
+    <span class="sp-kpi-lbl">จำนวน</span>
+    <span class="sp-kpi-val" id="sp_unit">— ลูก</span>
+  </div>
+  <div class="sp-kpi-row">
+    <span class="sp-kpi-lbl">ราคาเสนอ/ลูก</span>
+    <span class="sp-kpi-val" id="sp_sellPrice">฿0.00</span>
+  </div>
+  <div class="sp-kpi-row">
+    <span class="sp-kpi-lbl">กำไร/Job</span>
+    <span class="sp-kpi-val" id="sp_profit">฿0.00</span>
+  </div>
+  <div class="sp-kpi-row">
+    <span class="sp-kpi-lbl">Margin</span>
+    <span class="sp-kpi-val" id="sp_margin">—%</span>
+  </div>
 </div>
 
 <script>
@@ -1955,20 +2310,149 @@ function saveScriptUrl() {
 }
 
 // ── TAB SWITCHING ────────────────────────────────────
+// ── Tab Config System ────────────────────────────────
+const TAB_DEFS = [
+  { id:'breakdown', icon:'📋', label:'ฟอร์ม'    },
+  { id:'calc',      icon:'🔢', label:'คำนวณ'    },
+  { id:'labor',     icon:'👷', label:'แรงงาน'  },
+  { id:'mold',      icon:'🔩', label:'แม่พิมพ์' },
+  { id:'data',      icon:'🗂️', label:'DATA'     },
+  { id:'api',       icon:'🔧', label:'ตั้งค่า'  },
+  { id:'mat',       icon:'🧱', label:'MAT'      },
+];
+
+function _loadTabCfg() {
+  const order  = JSON.parse(localStorage.getItem('ptts_tab_order')  || 'null') || TAB_DEFS.map(t=>t.id);
+  const hidden = JSON.parse(localStorage.getItem('ptts_tab_hidden') || '[]');
+  return { order, hidden };
+}
+function _saveTabCfg(order, hidden) {
+  localStorage.setItem('ptts_tab_order',  JSON.stringify(order));
+  localStorage.setItem('ptts_tab_hidden', JSON.stringify(hidden));
+}
+
+let _activeTab = 'breakdown';
+
+function renderTabBar() {
+  const bar = $('mainTabBar');
+  if (!bar) return;
+  const { order, hidden } = _loadTabCfg();
+  const sidebarHdr = `<div class="sidebar-header">
+    <div class="sidebar-logo">PT</div>
+    <div><div class="sidebar-title">PTTS</div><div class="sidebar-sub">Cost Breakdown</div></div>
+  </div>`;
+  const buttons = order.map(id => {
+    if (hidden.includes(id)) return '';
+    const def = TAB_DEFS.find(t=>t.id===id);
+    if (!def) return '';
+    const isActive = id === _activeTab;
+    return `<button class="tab-btn${isActive?' active':''}" id="tbtn-${id}" onclick="switchTab('${id}')">
+      <span class="t-icon">${def.icon}</span><span class="t-label">${def.label}</span>
+    </button>`;
+  }).join('');
+  bar.innerHTML = sidebarHdr + buttons;
+}
+
 function switchTab(name) {
-  ['breakdown','calc','labor','mold','api','data','mat'].forEach(t => {
-    $('tab-' + t).classList.remove('active');
-    $('tbtn-' + t).classList.remove('active');
+  const { hidden } = _loadTabCfg();
+  if (hidden.includes(name)) return;
+  TAB_DEFS.forEach(t => {
+    const tab  = $('tab-'  + t.id);
+    const tbtn = $('tbtn-' + t.id);
+    if (tab)  tab.classList.remove('active');
+    if (tbtn) tbtn.classList.remove('active');
   });
-  $('tab-' + name).classList.add('active');
-  $('tbtn-' + name).classList.add('active');
-  if (name === 'calc') refreshCalcTab();
-  if (name === 'labor') { renderProcTable(); updateLaborPreview(); }
-  if (name === 'mold') renderMoldTable();
+  const tabEl  = $('tab-'  + name);
+  const tbtnEl = $('tbtn-' + name);
+  if (tabEl)  tabEl.classList.add('active');
+  if (tbtnEl) tbtnEl.classList.add('active');
+  _activeTab = name;
+  if (name === 'calc')      refreshCalcTab();
+  if (name === 'labor')     { renderProcTable(); updateLaborPreview(); }
+  if (name === 'mold')      renderMoldTable();
   if (name === 'breakdown') setTimeout(updateCharts, 50);
-  if (name === 'data') dtRefresh(false);
-  if (name === 'api')  { initCfgTheme(); }
-  if (name === 'mat')  { renderMatTable('flap'); renderMatTable('mesh'); }
+  if (name === 'data')      dtRefresh(false);
+  if (name === 'api')       { initCfgTheme(); renderTabManager(); }
+  if (name === 'mat')       { renderMatTable('flap'); renderMatTable('mesh'); }
+}
+
+// ── Tab Manager UI ───────────────────────────────────
+let _tmrDragSrc = null;
+
+function renderTabManager() {
+  const wrap = $('tabManagerWrap');
+  if (!wrap) return;
+  const { order, hidden } = _loadTabCfg();
+  wrap.innerHTML = order.map((id, i) => {
+    const def = TAB_DEFS.find(t=>t.id===id);
+    if (!def) return '';
+    const isHidden = hidden.includes(id);
+    return `<div class="tmr-row${isHidden?' tmr-hidden':''}" id="tmr-${id}"
+      draggable="true"
+      ondragstart="_tmrDragStart(event,'${id}')"
+      ondragover="_tmrDragOver(event,'${id}')"
+      ondragleave="_tmrDragLeave(event,'${id}')"
+      ondrop="_tmrDrop(event,'${id}')">
+      <span class="tmr-handle">⠿</span>
+      <span class="tmr-icon">${def.icon}</span>
+      <span class="tmr-label">${def.label}</span>
+      <button class="tmr-btn" onclick="_tmrMove('${id}',-1)" ${i===0?'disabled':''}
+        title="ขยับขึ้น">↑</button>
+      <button class="tmr-btn" onclick="_tmrMove('${id}',1)" ${i===order.length-1?'disabled':''}
+        title="ขยับลง">↓</button>
+      <button class="tmr-btn" onclick="_tmrToggle('${id}')"
+        style="color:${isHidden?'#f87171':'#34d399'};border-color:${isHidden?'rgba(248,113,113,.3)':'rgba(52,211,153,.3)'}"
+        title="${isHidden?'แสดง':'ซ่อน'}">${isHidden?'🙈':'👁️'}</button>
+    </div>`;
+  }).join('');
+}
+
+function _tmrDragStart(e, id) { _tmrDragSrc=id; e.dataTransfer.effectAllowed='move'; }
+function _tmrDragOver(e, id)  {
+  e.preventDefault(); e.dataTransfer.dropEffect='move';
+  const el = $('tmr-'+id); if(el) el.classList.add('drag-over');
+}
+function _tmrDragLeave(e, id) { const el=$('tmr-'+id); if(el) el.classList.remove('drag-over'); }
+function _tmrDrop(e, id) {
+  e.preventDefault();
+  const el=$('tmr-'+id); if(el) el.classList.remove('drag-over');
+  if (!_tmrDragSrc || _tmrDragSrc===id) return;
+  const { order, hidden } = _loadTabCfg();
+  const fi=order.indexOf(_tmrDragSrc), ti=order.indexOf(id);
+  if(fi<0||ti<0) return;
+  order.splice(fi,1); order.splice(ti,0,_tmrDragSrc);
+  _saveTabCfg(order, hidden); renderTabBar(); renderTabManager();
+}
+function _tmrMove(id, dir) {
+  const { order, hidden } = _loadTabCfg();
+  const i=order.indexOf(id), ni=i+dir;
+  if(ni<0||ni>=order.length) return;
+  order.splice(i,1); order.splice(ni,0,id);
+  _saveTabCfg(order, hidden); renderTabBar(); renderTabManager();
+}
+function _tmrToggle(id) {
+  const { order, hidden } = _loadTabCfg();
+  const i=hidden.indexOf(id);
+  // ห้ามซ่อนแท็บ ตั้งค่า (api) — ต้องเข้าถึงได้เสมอ
+  if(id==='api' && i<0) {
+    Swal.fire({icon:'warning',title:'ไม่สามารถซ่อนแท็บ ตั้งค่า',text:'ต้องเข้าถึงได้เสมอเพื่อจัดการแท็บอื่น',background:'#0d1b2a',color:'#cce4ff',timer:2200,showConfirmButton:false,toast:true,position:'top-end'});
+    return;
+  }
+  if(i>=0) hidden.splice(i,1); else hidden.push(id);
+  // ห้ามซ่อนทุกแท็บ
+  const visible = order.filter(x=>!hidden.includes(x));
+  if(!visible.length) { Swal.fire({icon:'warning',title:'ต้องมีแท็บอย่างน้อย 1 อัน',background:'#0d1b2a',color:'#cce4ff',timer:1800,showConfirmButton:false,toast:true,position:'top-end'}); return; }
+  // ถ้าซ่อนแท็บที่กำลังแสดงอยู่ → switch ไปแท็บแรกที่ visible
+  if(hidden.includes(_activeTab)) switchTab(visible[0]);
+  _saveTabCfg(order, hidden); renderTabBar(); renderTabManager();
+}
+function tabMgrReset() {
+  localStorage.removeItem('ptts_tab_order');
+  localStorage.removeItem('ptts_tab_hidden');
+  _activeTab='breakdown';
+  renderTabBar();
+  renderTabManager();
+  Swal.fire({icon:'success',title:'รีเซ็ตแล้ว',background:'#0d1b2a',color:'#cce4ff',timer:1400,showConfirmButton:false,toast:true,position:'top-end'});
 }
 
 // ── Size auto-calculate ──────────────────────────────
@@ -2589,6 +3073,7 @@ function calcAll() {
   $('pb_job').className = 'profit-box' + (profitJob < 0 ? ' neg' : '');
   updateCharts();
   renderPriceComparison();
+  updateSummaryPanel();
 }
 
 // ── Price Comparison Table & Chart ───────────────────
@@ -3175,6 +3660,89 @@ function toggleLaborMode() {
     if (chip) { chip.textContent='⚡ อัตโนมัติ'; chip.style.background='rgba(52,211,153,.15)'; chip.style.color='#34d399'; chip.style.borderColor='rgba(52,211,153,.3)'; }
     calcLaborByProcess();
     calcAll();
+  }
+}
+
+// ── Summary Panel ────────────────────────────────────
+let _spDonut = null;
+function updateSummaryPanel() {
+  const panel = $('summaryPanel');
+  if (!panel || panel.offsetParent === null) return; // hidden on mobile
+  const unit      = num('f_unit') || 1;
+  const costTop   = num('f_costTop'), costBot = num('f_costBot');
+  const cMeshOut  = num('f_cMeshOut'), cMeshIn = num('f_cMeshIn');
+  const cTestWaste= num('f_cTestWaste'), cOutsource = num('f_cOutsource');
+  const cLaser    = num('f_cLaser'), cPlating = num('f_cPlating');
+  const cLabor    = num('f_cLabor'), cMachine = num('f_cMachine');
+  const cMold     = num('f_cMold'), fixedCost = num('f_fixedCost');
+  const cOther    = num('f_cOther1') + num('f_cOther2') + num('f_cOther3');
+  const cTransport= unit > 0 ? num('f_transport')/unit : num('f_transport');
+
+  const perUnitVar = costTop+costBot+cTestWaste+cOutsource+cMeshOut+cMeshIn+
+                     cLaser+cPlating+cLabor+cTransport+cMachine+cOther;
+  const total      = perUnitVar*unit + cMold + fixedCost;
+  const costPerUnit= perUnitVar + (unit > 0 ? (cMold+fixedCost)/unit : (cMold+fixedCost));
+  const sellPriceUnit = num('f_sellPrice');
+  const profitJob  = (sellPriceUnit - costPerUnit) * unit;
+  const margin     = sellPriceUnit > 0 ? ((sellPriceUnit - costPerUnit)/sellPriceUnit*100) : 0;
+
+  // KPI text
+  if($('sp_totalJob'))    $('sp_totalJob').textContent    = fmt(total);
+  if($('sp_costPerUnit')) $('sp_costPerUnit').textContent = 'ต้นทุน/ลูก: ' + fmt(costPerUnit);
+  if($('sp_unit'))        $('sp_unit').textContent        = unit.toLocaleString('th-TH') + ' ลูก';
+  if($('sp_sellPrice'))   $('sp_sellPrice').textContent   = fmt(sellPriceUnit);
+  const profEl = $('sp_profit');
+  if(profEl) { profEl.textContent = fmt(profitJob); profEl.className = 'sp-kpi-val ' + (profitJob >= 0 ? 'pos' : 'neg'); }
+  const marEl = $('sp_margin');
+  if(marEl)  { marEl.textContent = margin.toFixed(1) + '%'; marEl.className = 'sp-kpi-val ' + (margin >= 0 ? 'pos' : 'neg'); }
+
+  // Donut chart data (per-job totals)
+  const matCost   = (costTop+costBot+cMeshOut+cMeshIn+cTestWaste+cOutsource) * unit;
+  const laborCost = (cLabor+cMachine) * unit;
+  const moldCost  = cMold + fixedCost;
+  const otherCost = (cLaser+cPlating+cOther+cTransport) * unit;
+  const chartData = [matCost, laborCost, moldCost, otherCost].map(v => Math.max(0,v));
+  const hasData   = chartData.some(v => v > 0);
+
+  const matPct = total > 0 ? (matCost/total*100).toFixed(0) : 0;
+  if($('sp_pct_mat')) $('sp_pct_mat').textContent = matPct + '%';
+
+  const legend = $('sp_legend');
+  if (!hasData) {
+    if(legend) legend.innerHTML = '<div class="sp-no-data">กรอกข้อมูลเพื่อดูกราฟ</div>';
+    if(_spDonut) { _spDonut.destroy(); _spDonut = null; }
+    return;
+  }
+
+  const COLORS = ['#3b82f6','#34d399','#f59e0b','#a78bfa'];
+  const LABELS = ['วัสดุ','แรงงาน','แม่พิมพ์','อื่นๆ'];
+  const canvas  = $('spDonut');
+  if (canvas && typeof Chart !== 'undefined') {
+    if (_spDonut) {
+      _spDonut.data.datasets[0].data = chartData;
+      _spDonut.update('none');
+    } else {
+      _spDonut = new Chart(canvas, {
+        type: 'doughnut',
+        data: { labels: LABELS, datasets: [{ data: chartData, backgroundColor: COLORS, borderWidth: 0, hoverOffset: 4 }] },
+        options: {
+          cutout: '65%',
+          plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } } },
+          animation: { duration: 250 }
+        }
+      });
+    }
+  }
+
+  // Legend rows
+  if (legend) {
+    legend.innerHTML = chartData.map((v,i) => {
+      const pct = total > 0 ? (v/total*100).toFixed(1) : '0.0';
+      return `<div class="sp-legend-row">
+        <span class="sp-legend-name"><span class="sp-legend-dot" style="background:${COLORS[i]}"></span>${LABELS[i]}</span>
+        <span class="sp-legend-val">${pct}%</span>
+      </div>`;
+    }).join('');
   }
 }
 
@@ -4925,6 +5493,7 @@ function handleAttachFile(e) {
     }
     const viewBtn = $('btnViewAttach');
     if (viewBtn) viewBtn.style.display = 'flex';
+    _syncAttachPreview();
     // reset input so same file can be reselected
     $('attachFileInput').value = '';
   };
@@ -4948,12 +5517,31 @@ function viewAttachedImage() {
   });
 }
 
+function _syncAttachPreview() {
+  const img     = $('attachPreviewImg');
+  const empty   = $('apEmpty');
+  const overlay = $('apOverlay');
+  if (!img) return;
+  if (_attachedImage) {
+    img.src = _attachedImage.dataUrl;
+    img.style.display = 'block';
+    if (empty)   empty.style.display   = 'none';
+    if (overlay) overlay.style.display = 'flex';
+  } else {
+    img.src = '';
+    img.style.display = 'none';
+    if (empty)   empty.style.display   = 'flex';
+    if (overlay) overlay.style.display = 'none';
+  }
+}
+
 function clearAttachedImage() {
   _attachedImage = null;
   const btn = $('btnAttach');
   if (btn) { btn.innerHTML = '📎 แนบรูป'; btn.style.borderColor = 'rgba(52,211,153,.3)'; }
   const viewBtn = $('btnViewAttach');
   if (viewBtn) viewBtn.style.display = 'none';
+  _syncAttachPreview();
 }
 
 function _loadAttachFromUrl(url) {
@@ -4963,6 +5551,7 @@ function _loadAttachFromUrl(url) {
   if (btn) { btn.innerHTML = '📎 <span style="color:#34d399">●</span> เปลี่ยนรูป'; btn.style.borderColor = 'rgba(52,211,153,.6)'; }
   const viewBtn = $('btnViewAttach');
   if (viewBtn) viewBtn.style.display = 'flex';
+  _syncAttachPreview();
 }
 
 async function _runAiFromDataUrl(dataUrl, mime) {
@@ -5796,6 +6385,10 @@ function _enableShareBtn(row) {
 
 // ── Init ────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Render tab bar from saved config
+  renderTabBar();
+  switchTab('breakdown');
+
   // Init labor fingerprint (baseline = ค่าที่โหลดมาตอนเปิดฟอร์ม)
   _saveLaborFingerprint();
 
