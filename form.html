@@ -564,6 +564,13 @@ select option { background: var(--sel-bg); color: var(--t1); }
 [data-theme="dark"] .cp-stat-val.green { color: #6ecfad; }
 .cp-flip { font-size: .72rem; color: #c9a85c; margin-top: 6px; }
 .cp-empty { color: var(--t4); font-size: .82rem; font-style: italic; }
+.cp-grid-summary {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: .76rem; color: var(--t2);
+  background: var(--pair-bg); border: 1px solid var(--pair-bc);
+  border-radius: 8px; padding: 7px 10px; margin-top: 10px;
+}
+.cp-grid-svg { display: block; margin: 8px auto 2px; }
 
 /* ── API Provider Cards ──────────────────────────── */
 .api-provider-card {
@@ -952,6 +959,7 @@ select option { background: var(--sel-bg); color: var(--t1); }
 .ap-overlay .ap-btn-view { background: rgba(255,255,255,.88); color: #0d1b2a; }
 .ap-overlay .ap-btn-del  { background: rgba(248,113,113,.88); color: #fff; }
 
+@media (min-width: 1024px) {
   .tab-bar {
     bottom: auto; right: auto;
     top: 0; left: 0;
@@ -1201,6 +1209,12 @@ select option { background: var(--sel-bg); color: var(--t1); }
         font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap">
       📷 อ่านแบบ AI
     </button>
+    <button onclick="openTextReader()"
+      style="padding:8px 14px;border-radius:8px;border:1px solid rgba(34,197,94,.5);
+        background:rgba(34,197,94,.15);color:#86efac;font-family:Sarabun,sans-serif;
+        font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap">
+      📝 ข้อความลูกค้า
+    </button>
   </div>
 </div>
 
@@ -1256,6 +1270,12 @@ select option { background: var(--sel-bg); color: var(--t1); }
         color:#c4b5fd;font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;
         white-space:nowrap">
         📷 อ่านแบบ AI
+      </button>
+      <button onclick="openTextReader()" style="padding:6px 14px;border-radius:8px;
+        border:1px solid rgba(34,197,94,.5);background:rgba(34,197,94,.15);
+        color:#86efac;font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;
+        white-space:nowrap">
+        📝 ข้อความ
       </button>
     </div>
   </div>
@@ -2170,6 +2190,10 @@ select option { background: var(--sel-bg); color: var(--t1); }
           <th onclick="dtSort('noQuo')" id="dth_noQuo" style="padding:9px 10px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;white-space:nowrap;border-bottom:1px solid var(--bc-div);cursor:pointer;user-select:none">Quo No. <span id="dts_noQuo">▼</span></th>
           <th onclick="dtSort('date')"  id="dth_date"  style="padding:9px 10px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div);cursor:pointer;user-select:none">วันที่ <span id="dts_date"></span></th>
           <th style="padding:9px 10px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div)">พิกัดขนาด (OD×ID×H)</th>
+          <th style="padding:9px 10px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;white-space:nowrap;border-bottom:1px solid var(--bc-div)">ฝาบน</th>
+          <th style="padding:9px 10px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;white-space:nowrap;border-bottom:1px solid var(--bc-div)">ฝาล่าง</th>
+          <th style="padding:9px 10px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;white-space:nowrap;border-bottom:1px solid var(--bc-div)">ตะแกรงนอก</th>
+          <th style="padding:9px 10px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;white-space:nowrap;border-bottom:1px solid var(--bc-div)">ตะแกรงใน</th>
           <th onclick="dtSort('unit')"  id="dth_unit"  style="padding:9px 10px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:center;border-bottom:1px solid var(--bc-div);cursor:pointer;user-select:none">จำนวน <span id="dts_unit"></span></th>
           <th onclick="dtSort('totalCost')" id="dth_totalCost" style="padding:9px 10px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:right;border-bottom:1px solid var(--bc-div);cursor:pointer;user-select:none">ต้นทุนรวม <span id="dts_totalCost"></span></th>
           <th onclick="dtSort('sellPrice')" id="dth_sellPrice" style="padding:9px 10px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:right;border-bottom:1px solid var(--bc-div);cursor:pointer;user-select:none">เสนอขาย/ลูก <span id="dts_sellPrice"></span></th>
@@ -2178,7 +2202,7 @@ select option { background: var(--sel-bg); color: var(--t1); }
         </tr>
       </thead>
       <tbody id="dtBody">
-        <tr><td colspan="8" style="padding:40px;text-align:center;color:var(--t3);font-size:.8rem">
+        <tr><td colspan="12" style="padding:40px;text-align:center;color:var(--t3);font-size:.8rem">
           กำลังโหลดข้อมูล…
         </td></tr>
       </tbody>
@@ -2709,8 +2733,8 @@ function _getMatWrap(type){ return $(type==='flap' ? 'matFlapTableWrap' : 'matMe
 function _getMatSel(type) { return type==='flap' ? MAT_FLAP : MAT_MESH; }
 
 function _syncMatToMaps() {
-  _localMatFlap.forEach(m => { matPriceMap[m.code]=+m.price||0; if(m.w&&m.l) specMatData[m.code]={w:+m.w,l:+m.l}; });
-  _localMatMesh.forEach(m => { matPriceMap[m.code]=+m.price||0; if(m.w&&m.l) specMatData[m.code]={w:+m.w,l:+m.l}; });
+  _localMatFlap.forEach(m => { matPriceMap[m.code]=+m.price||0; if(m.name) matNameMap[m.code]=m.name; if(m.w&&m.l) specMatData[m.code]={w:+m.w,l:+m.l}; });
+  _localMatMesh.forEach(m => { matPriceMap[m.code]=+m.price||0; if(m.name) matNameMap[m.code]=m.name; if(m.w&&m.l) specMatData[m.code]={w:+m.w,l:+m.l}; });
 }
 
 function _saveLocalMat(type) {
@@ -2738,6 +2762,11 @@ function renderMatTable(type) {
           <input id="mat_code_${type}_${i}" value="${m.code}"
             style="width:100%;padding:5px 8px;border-radius:6px;border:1px solid rgba(52,211,153,.4);
             background:rgba(20,20,32,.9);color:#d4cfe8;font-family:Sarabun,sans-serif;font-size:.82rem">
+        </td>
+        <td style="padding:6px 8px">
+          <input id="mat_name_${type}_${i}" value="${m.name||''}" placeholder="ชื่อรายการวัตถุดิบ"
+            style="width:100%;padding:5px 8px;border-radius:6px;border:1px solid rgba(148,163,184,.25);
+            background:rgba(20,20,32,.9);color:#94a3b8;font-family:Sarabun,sans-serif;font-size:.78rem">
         </td>
         <td style="padding:6px 8px">
           <div style="font-size:.7rem;color:var(--t3);margin-bottom:2px">ราคาซื้อจริง</div>
@@ -2770,7 +2799,8 @@ function renderMatTable(type) {
       </tr>`;
     }
     return `<tr style="${i%2===0?'background:var(--c1-05)':''}">
-      <td style="padding:7px 10px;font-weight:600;color:var(--c1)">${m.code}</td>
+      <td style="padding:7px 10px;font-weight:600;color:var(--c1);white-space:nowrap">${m.code}</td>
+      <td style="padding:7px 10px;font-size:.8rem;color:var(--t2)">${m.name||'—'}</td>
       <td style="padding:7px 10px">
         <div style="font-size:.72rem;color:var(--t3)">ซื้อ: <span style="color:#fbbf24">${(+m.priceBuy||0).toLocaleString('th-TH')} ฿</span></div>
         <div style="font-weight:700;color:#34d399">${(+m.price||0).toLocaleString('th-TH')} ฿ <span style="font-size:.68rem;color:var(--t3)">+30%</span></div>
@@ -2792,6 +2822,7 @@ function renderMatTable(type) {
       <thead>
         <tr style="border-bottom:1px solid rgba(255,255,255,.1)">
           <th style="padding:6px 10px;text-align:left;color:var(--t2);font-weight:600;font-size:.75rem">รหัส / Code</th>
+          <th style="padding:6px 10px;text-align:left;color:var(--t2);font-weight:600;font-size:.75rem">ชื่อรายการ</th>
           <th style="padding:6px 10px;text-align:left;color:var(--t2);font-weight:600;font-size:.75rem">ราคาซื้อ / ราคา+30%</th>
           <th style="padding:6px 10px;text-align:left;color:var(--t2);font-weight:600;font-size:.75rem">ขนาดแผ่น (มิล)</th>
           <th style="padding:6px 10px;width:100px"></th>
@@ -2806,6 +2837,7 @@ function matCancelEdit(type)  { _matEditIdx[type]=-1; renderMatTable(type); }
 
 function matSaveRow(type, i) {
   const code     = (document.getElementById('mat_code_'+type+'_'+i)?.value||'').trim();
+  const name     = (document.getElementById('mat_name_'+type+'_'+i)?.value||'').trim();
   const priceBuy = parseFloat(document.getElementById('mat_pricebuy_'+type+'_'+i)?.value)||0;
   const price    = parseFloat(document.getElementById('mat_price_'+type+'_'+i)?.value)||Math.round(priceBuy*1.3);
   const w        = parseInt(document.getElementById('mat_w_'+type+'_'+i)?.value)||1219;
@@ -2816,7 +2848,7 @@ function matSaveRow(type, i) {
   if (arr.some((m,j) => m.code===code && j!==i)) {
     Swal.fire({icon:'warning',title:`รหัส "${code}" มีอยู่แล้ว`,background:'#0d1b2a',color:'#cce4ff',confirmButtonColor:'#3b82f6'}); return;
   }
-  arr[i] = { code, price, priceBuy, w, l, unit:'มิล' };
+  arr[i] = { code, name, price, priceBuy, w, l, unit:'มิล' };
   _matEditIdx[type] = -1;
   _saveLocalMat(type);
   // sync to specMat
@@ -3396,7 +3428,7 @@ function dtRender() {
   const tbody = $('dtBody');
   if (!tbody) return;
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="padding:32px;text-align:center;color:var(--t3);font-size:.8rem">
+    tbody.innerHTML = `<tr><td colspan="12" style="padding:32px;text-align:center;color:var(--t3);font-size:.8rem">
       ไม่พบข้อมูลที่ตรงกัน</td></tr>`;
     renderDtPagination(0, 0);
     return;
@@ -3423,6 +3455,10 @@ function dtRender() {
         <span style="font-size:.72rem;color:var(--c1);font-weight:600">${r[DT.noQuo]||'—'}</span></td>
       <td style="padding:8px 10px;font-size:.72rem;color:var(--t3);white-space:nowrap">${r[DT.date]||'—'}</td>
       <td style="padding:8px 10px;font-size:.78rem;color:var(--t1);font-weight:600;white-space:nowrap">${size} <span style="color:var(--t3);font-size:.65rem">มม.</span></td>
+      <td style="padding:8px 10px;font-size:.72rem;white-space:nowrap">${r[DT.matTop]  ? `<span style="background:rgba(59,130,246,.18);color:#111;border-radius:5px;padding:1px 7px;font-weight:600">${r[DT.matTop]}</span>`  : '<span style="color:var(--t3)">—</span>'}</td>
+      <td style="padding:8px 10px;font-size:.72rem;white-space:nowrap">${r[DT.matBot]  ? `<span style="background:rgba(59,130,246,.18);color:#111;border-radius:5px;padding:1px 7px;font-weight:600">${r[DT.matBot]}</span>`  : '<span style="color:var(--t3)">—</span>'}</td>
+      <td style="padding:8px 10px;font-size:.72rem;white-space:nowrap">${r[DT.meshOut] ? `<span style="background:rgba(74,222,128,.22);color:#111;border-radius:5px;padding:1px 7px;font-weight:600">${r[DT.meshOut]}</span>` : '<span style="color:var(--t3)">—</span>'}</td>
+      <td style="padding:8px 10px;font-size:.72rem;white-space:nowrap">${r[DT.meshIn]  ? `<span style="background:rgba(74,222,128,.22);color:#111;border-radius:5px;padding:1px 7px;font-weight:600">${r[DT.meshIn]}</span>`  : '<span style="color:var(--t3)">—</span>'}</td>
       <td style="padding:8px 10px;text-align:center;font-size:.8rem;color:var(--t1)">${r[DT.unit]||'—'}</td>
       <td style="padding:8px 10px;text-align:right;font-size:.78rem;color:var(--c1);font-weight:600">${fmtB(tc)} <span style="font-size:.65rem">฿</span></td>
       <td style="padding:8px 10px;text-align:right;font-size:.78rem;color:var(--t1);font-weight:600">${fmtB(sp)} <span style="font-size:.65rem">฿</span></td>
@@ -3581,7 +3617,7 @@ function dtLoadIntoForm(idx) {
     sv('f_laser',     r[DT.laser]);    sn('f_cLaser',    r[DT.cLaser]);
     sv('f_plating',   r[DT.plating]);  sn('f_cPlating',  r[DT.cPlating]);
     sv('f_mold',      r[DT.mold]);      sn('f_cMold',      r[DT.cMold]);
-    sn('f_workdays',  r[DT.workdays]);  // laborRate ใช้ค่าจาก config (localStorage)
+    sn('f_workdays',  r[DT.workdays]);
     sn('f_transport', r[DT.transport]); // f_cTransport คำนวณ auto ใน calcAll()
     sv('f_machine',   r[DT.machine]);  sn('f_cMachine',  r[DT.cMachine]);
     if ($('f_cMachine') && r[DT.cMachine]) $('f_cMachine')._userEdited = true;
@@ -3598,11 +3634,31 @@ function dtLoadIntoForm(idx) {
     // เลขอ้างอิง BB — โหลดของเดิม ถ้าไม่มีให้สร้างใหม่
     { const rid = r[DT.refId]; const el = $('f_refId');
       if (el) el.value = rid ? rid : generateRefId(); }
-    // ไม่โหลด sellPrice กลับ — ให้ calcAll() คำนวณใหม่จาก margin
-    if ($('f_sellPrice')) $('f_sellPrice').value = '';
+    const _savedSellPrice = parseFloat(r[DT.sellPrice]) || 0;
+    // โหลดค่าแรง/ลูก ที่บันทึกไว้ — ต้อง set manual mode ก่อน calcAll() เพื่อกัน calcLaborByProcess() ทับ
+    const savedCLabor = parseFloat(r[DT.cLabor]) || 0;
+    if (savedCLabor > 0) {
+      _laborManual = true;
+      const inp  = $('f_cLabor');
+      const chip = $('laborModeChip');
+      if (inp)  { inp.removeAttribute('readonly'); inp.value = savedCLabor.toFixed(2);
+                  inp.style.borderColor='rgba(251,191,36,.5)'; inp.style.background='rgba(251,191,36,.06)'; }
+      if (chip) { chip.textContent='✏️ กรอกเอง'; chip.style.background='rgba(251,191,36,.15)';
+                  chip.style.color='#fbbf24'; chip.style.borderColor='rgba(251,191,36,.3)'; }
+    } else {
+      _laborManual = false;
+      const inp  = $('f_cLabor');
+      const chip = $('laborModeChip');
+      if (inp)  { inp.setAttribute('readonly',''); inp.style.borderColor=''; inp.style.background=''; }
+      if (chip) { chip.textContent='⚡ อัตโนมัติ'; chip.style.background='rgba(52,211,153,.15)';
+                  chip.style.color='#34d399'; chip.style.borderColor='rgba(52,211,153,.3)'; }
+    }
     setLoadedJob(r[DT.noQuo]);
     if (typeof updateSize === 'function') updateSize();   // อัปเดตช่อง OD×ID×H
     calcAll();
+    // ตั้งราคาเสนอขายหลัง calcAll() เพราะ calcAll() จะทับด้วย margin อัตโนมัติ
+    if (_savedSellPrice > 0 && $('f_sellPrice'))
+      $('f_sellPrice').value = _savedSellPrice.toLocaleString('th-TH', {minimumFractionDigits:0, maximumFractionDigits:0});
     switchTab('breakdown');
     setTimeout(() => {
       Swal.fire({icon:'success',title:'โหลดสำเร็จ ✅',timer:1200,showConfirmButton:false,
@@ -3905,6 +3961,7 @@ function recalcBtn() {
 const MAT_FLAP = ['f_matTop','f_matBot'];
 const MAT_MESH = ['f_meshOut','f_meshIn'];
 let matPriceMap = {};
+let matNameMap  = {};   // code → ชื่อรายการ
 let specMatData  = {};
 // sync local spec mat into specMatData on declaration
 _localSpecMat.forEach(r => { specMatData[r.code] = {w:+r.w, l:+r.l}; });
@@ -3915,6 +3972,7 @@ function fillSelect(id, items) {
   while (sel.options.length > 1) sel.remove(1);
   items.forEach(m => {
     const code = typeof m === 'object' ? m.code : m;
+    const name = typeof m === 'object' && m.name ? m.name : (matNameMap[code] || '');
     const opt = document.createElement('option');
     opt.value = opt.textContent = code;
     sel.appendChild(opt);
@@ -3989,17 +4047,17 @@ async function loadAllData(showResult) {
           // ครั้งแรก: seed จาก server
           serverItems.forEach(m => {
             const spec = specMatData[m.code] || {};
-            arr.push({ code: m.code, price: +m.price||0, priceBuy: +m.priceBuy||0, w: spec.w||1219, l: spec.l||2438, unit:'มิล' });
+            arr.push({ code: m.code, name: m.name||'', price: +m.price||0, priceBuy: +m.priceBuy||0, w: spec.w||1219, l: spec.l||2438, unit:'มิล' });
           });
           _saveLocalMat(type);
         } else {
-          // เพิ่มรายการใหม่ + อัปเดต priceBuy ของรายการเดิมที่ยังเป็น 0
+          // เพิ่มรายการใหม่ + อัปเดต priceBuy/name ของรายการเดิม
           const localMap = new Map(arr.map((x,i) => [x.code, i]));
           let changed = false;
           serverItems.forEach(m => {
             if (!localMap.has(m.code)) {
               const spec = specMatData[m.code] || {};
-              arr.push({ code: m.code, price: +m.price||0, priceBuy: +m.priceBuy||0, w: spec.w||1219, l: spec.l||2438, unit:'มิล' });
+              arr.push({ code: m.code, name: m.name||'', price: +m.price||0, priceBuy: +m.priceBuy||0, w: spec.w||1219, l: spec.l||2438, unit:'มิล' });
               changed = true;
             } else if (+m.priceBuy > 0) {
               // อัปเดต priceBuy และ price จาก server ถ้า local ยังเป็นข้อมูลเก่า
@@ -4016,7 +4074,7 @@ async function loadAllData(showResult) {
           if (changed) _saveLocalMat(type);
         }
         _getMatSel(type).forEach(id => fillSelect(id, arr));
-        arr.forEach(m => { matPriceMap[m.code] = +m.price||0; });
+        arr.forEach(m => { matPriceMap[m.code] = +m.price||0; if(m.name) matNameMap[m.code] = m.name; });
       };
       seedMat(matData.matFlap, 'flap');
       seedMat(matData.matMesh, 'mesh');
@@ -4403,6 +4461,33 @@ function refreshCalcTab() {
   renderCalcTab(res);
 }
 
+function buildGridViz(sw, sl, cols, rows) {
+  // แสดงแนวนอน (landscape) เสมอ — ด้านยาวอยู่แนวนอน
+  const longH = sl >= sw, dW = longH ? sl : sw, dH = longH ? sw : sl;
+  const dCols = longH ? cols : rows, dRows = longH ? rows : cols;
+  const PT = 18, PL = 30, PR = 8, PB = 8;
+  const maxW = 270, maxH = 110;
+  const scale = Math.min(maxW / dW, maxH / dH);
+  const W = dW * scale, H = dH * scale;
+  const cellW = W / dCols, cellH = H / dRows;
+  const vW = W + PL + PR, vH = H + PT + PB;
+  let cells = '';
+  for (let r = 0; r < dRows; r++)
+    for (let c = 0; c < dCols; c++)
+      cells += `<rect x="${(PL+c*cellW).toFixed(1)}" y="${(PT+r*cellH).toFixed(1)}"
+        width="${(cellW-.8).toFixed(1)}" height="${(cellH-.8).toFixed(1)}"
+        fill="rgba(74,222,128,.12)" stroke="rgba(74,222,128,.5)" stroke-width=".6"/>`;
+  return `<svg viewBox="0 0 ${vW.toFixed(0)} ${vH.toFixed(0)}" class="cp-grid-svg" style="width:100%;max-width:320px">
+    <rect x="${PL}" y="${PT}" width="${W.toFixed(1)}" height="${H.toFixed(1)}"
+      fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.18)" stroke-width="1"/>
+    ${cells}
+    <text x="${(PL+W/2).toFixed(0)}" y="${(PT-5).toFixed(0)}"
+      text-anchor="middle" font-size="9" fill="#94a3b8">${dCols} แถว</text>
+    <text x="${(PL-4).toFixed(0)}" y="${(PT+H/2+3).toFixed(0)}"
+      text-anchor="end" font-size="9" fill="#94a3b8">${dRows} แถว</text>
+  </svg>`;
+}
+
 function renderCalcTab(res) {
   const od   = num('f_od');
   const id_  = num('f_id');
@@ -4475,6 +4560,11 @@ function renderCalcTab(res) {
           <div class="cp-stat-val green">${fmt(r.totalJob)}</div>
         </div>
       </div>
+      <div class="cp-grid-summary">
+        <span>ตารางกริดปกติ: กว้างฟิต <strong>${r.rows} แถว</strong> × ยาวฟิต <strong>${r.cols} แถว</strong> = <strong style="color:#4ade80">${r.pieces} ตัว/แผ่น</strong></span>
+        <span style="margin-left:auto">Utilization: <strong style="color:#4ade80">${((r.cw*r.cl*r.pieces)/(sw*sl)*100).toFixed(1)}%</strong></span>
+      </div>
+      ${r.rows>0 && r.cols>0 ? buildGridViz(sw, sl, r.cols, r.rows) : ''}
       ${(()=>{
         const nf = _partFormulas[i] && _partFormulas[i].noFlip;
         if (r.flipped) return `<button class="cp-flip-btn cp-flip-on" onclick="toggleFlip(${i})">↩ กลับทิศเดิม (${r.altPieces} ชิ้น)</button>`;
@@ -5740,6 +5830,176 @@ function fillFromAi(p) {
   if (p.od || p.id || p.h) updateSize();
   calcAll();
   Swal.fire({icon:'success',title:'เติมข้อมูลแล้ว ✅',
+    background:'#0d1b2a',color:'#cce4ff',
+    timer:1600,showConfirmButton:false,toast:true,position:'top-end'});
+}
+
+// ── Text Reader (ข้อความลูกค้า) ──────────────────────────────────
+function openTextReader() {
+  const k = AI_KEYS[AI_PROVIDER];
+  if (!k) {
+    Swal.fire({icon:'warning',title:'ยังไม่มี API Key',
+      text:'ตั้งค่า API Key ในแท็บ ตั้งค่า ก่อน',
+      background:'#0d1b2a',color:'#cce4ff',confirmButtonColor:'#3b82f6'}); return;
+  }
+  Swal.fire({
+    title: '📝 วางข้อความลูกค้า',
+    html: `<textarea id="swal-txt" rows="10" placeholder="วางข้อความขอราคาจากลูกค้าที่นี่..."
+      style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);
+      background:rgba(8,16,28,.8);color:#cce4ff;font-family:Sarabun,sans-serif;font-size:.85rem;
+      resize:vertical;outline:none;box-sizing:border-box"></textarea>`,
+    background:'#0d1b2a', color:'#cce4ff',
+    showCancelButton:true, confirmButtonText:'🤖 วิเคราะห์',
+    confirmButtonColor:'#2563eb', cancelButtonColor:'#6b7280', cancelButtonText:'ยกเลิก',
+    preConfirm: () => {
+      const v = document.getElementById('swal-txt').value.trim();
+      if (!v) { Swal.showValidationMessage('กรุณาวางข้อความก่อน'); return false; }
+      return v;
+    }
+  }).then(async res => {
+    if (!res.isConfirmed) return;
+    Swal.fire({title:'🤖 กำลังวิเคราะห์...',background:'#0d1b2a',color:'#cce4ff',
+      allowOutsideClick:false,showConfirmButton:false,
+      didOpen:()=>Swal.showLoading()});
+    try {
+      const parsed = await callAiText(res.value);
+      Swal.close();
+      showTextAiConfirm(parsed);
+    } catch(e) {
+      Swal.fire({icon:'error',title:'เกิดข้อผิดพลาด',text:e.message,
+        background:'#0d1b2a',color:'#cce4ff',confirmButtonColor:'#3b82f6'});
+    }
+  });
+}
+
+async function callAiText(rawText) {
+  const k = AI_KEYS[AI_PROVIDER];
+  if (!k) throw new Error('ยังไม่มี API Key');
+  // Build MAT reference
+  const meshRef = _localMatMesh.map(m => m.code + (m.name ? ' = '+m.name : '')).join('\n') || '(ยังไม่มีข้อมูล)';
+  const flapRef = _localMatFlap.map(m => m.code + (m.name ? ' = '+m.name : '')).join('\n') || '(ยังไม่มีข้อมูล)';
+  const prompt = `คุณคือผู้เชี่ยวชาญอ่านข้อความขอราคาชิ้นงานกรองอุตสาหกรรมไทย
+
+รายการวัตถุดิบตะแกรง (Mesh) ในระบบ:
+${meshRef}
+
+รายการวัตถุดิบฝา (Flap) ในระบบ:
+${flapRef}
+
+ข้อความจากลูกค้า:
+${rawText}
+
+วิเคราะห์และดึงข้อมูล จับคู่ตะแกรงนอก/ในกับ "code" ที่ตรงที่สุดจากรายการด้านบน
+(เช่น "รูกลม 5mm" → หา code ที่มี "5" และ "กลม" ในชื่อ, "CT-7" → code "CT-7")
+- workType: แบบงาน สรุปสั้นๆ (เช่น หัว-ท้าย ทะลุ / ก้นปิดสโลป / ฝาเรียบ)
+- od: OD เป็น mm ตัวเลขเท่านั้น
+- id: ID เป็น mm ตัวเลขเท่านั้น
+- h: H เป็น mm ตัวเลขเท่านั้น
+- meshOut: รหัสตะแกรงนอก (code จากรายการ หรือ "" ถ้าไม่มี)
+- meshIn: รหัสตะแกรงใน (code จากรายการ หรือ "" ถ้าไม่มี)
+- qty: จำนวน ตัวเลขเท่านั้น
+- note: หมายเหตุอื่นๆ สำคัญ (เช่น มีโอริง, ปากเบิด, เจาะรู ฯลฯ)
+
+ตอบเป็น JSON เท่านั้น:
+{"workType":"","od":"","id":"","h":"","meshOut":"","meshIn":"","qty":"","note":""}`;
+
+  if (AI_PROVIDER === 'anthropic') {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'x-api-key':k,'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true','content-type':'application/json'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:512,
+        messages:[{role:'user',content:prompt}]})
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error?.message||'Anthropic error');
+    return JSON.parse((d.content?.[0]?.text||'{}').match(/\{[\s\S]*\}/)?.[0]||'{}');
+  } else if (AI_PROVIDER === 'openai') {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+k,'content-type':'application/json'},
+      body:JSON.stringify({model:'gpt-4o-mini',max_tokens:512,
+        messages:[{role:'user',content:prompt}]})
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error?.message||'OpenAI error');
+    return JSON.parse((d.choices?.[0]?.message?.content||'{}').match(/\{[\s\S]*\}/)?.[0]||'{}');
+  } else {
+    const model = localStorage.getItem('ptts_gemini_model')||'gemini-2.0-flash';
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${k}`,
+      {method:'POST',headers:{'content-type':'application/json'},
+       body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error?.message||'Gemini error');
+    return JSON.parse((d.candidates?.[0]?.content?.parts?.[0]?.text||'{}').match(/\{[\s\S]*\}/)?.[0]||'{}');
+  }
+}
+
+function showTextAiConfirm(p) {
+  const inp = (id,val,ph='') =>
+    `<input id="tc_${id}" value="${val||''}" placeholder="${ph}"
+      style="width:100%;padding:5px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.15);
+      background:rgba(8,16,28,.8);color:#cce4ff;font-family:Sarabun,sans-serif;font-size:.82rem;
+      box-sizing:border-box">`;
+  // Build mesh select options
+  const meshOpts = (cur) => '<option value="">— ไม่มี —</option>' +
+    _localMatMesh.map(m => `<option value="${m.code}" ${m.code===cur?'selected':''}>${m.code}${m.name?' — '+m.name:''}</option>`).join('');
+  const sel = (id,cur) =>
+    `<select id="tc_${id}" style="width:100%;padding:5px 8px;border-radius:6px;
+      border:1px solid rgba(255,255,255,.15);background:rgba(8,16,28,.8);
+      color:#cce4ff;font-family:Sarabun,sans-serif;font-size:.82rem">${meshOpts(cur)}</select>`;
+  const row = (lbl,content) =>
+    `<tr><td style="padding:4px 8px;color:#8b8aaa;font-size:.78rem;white-space:nowrap;text-align:right;vertical-align:middle">${lbl}</td>
+     <td style="padding:4px 8px">${content}</td></tr>`;
+  Swal.fire({
+    title:'📋 ยืนยันข้อมูล',
+    html:`<table style="width:100%;border-collapse:collapse;text-align:left">
+      ${row('แบบงาน',inp('workType',p.workType,'หัว-ท้าย ทะลุ / ก้นปิด...'))}
+      ${row('OD (mm)',inp('od',p.od))}
+      ${row('ID (mm)',inp('id',p.id))}
+      ${row('H (mm)',inp('h',p.h))}
+      ${row('ตะแกรงนอก',sel('meshOut',p.meshOut))}
+      ${row('ตะแกรงใน',sel('meshIn',p.meshIn))}
+      ${row('จำนวน',inp('qty',p.qty))}
+      ${row('หมายเหตุ',inp('note',p.note,'โอริง, เจาะรู, ปากเบิด...'))}
+    </table>
+    <div style="margin-top:8px;font-size:.74rem;color:#64748b">แก้ไขได้ก่อนกด ✅</div>`,
+    background:'#0d1b2a', color:'#cce4ff', width:'480px',
+    showCancelButton:true,
+    confirmButtonText:'✅ ลงฟอร์ม', confirmButtonColor:'#1d65cc',
+    cancelButtonText:'ยกเลิก', cancelButtonColor:'#6b7280',
+    preConfirm: () => ({
+      workType: document.getElementById('tc_workType')?.value||'',
+      od:       document.getElementById('tc_od')?.value||'',
+      id:       document.getElementById('tc_id')?.value||'',
+      h:        document.getElementById('tc_h')?.value||'',
+      meshOut:  document.getElementById('tc_meshOut')?.value||'',
+      meshIn:   document.getElementById('tc_meshIn')?.value||'',
+      qty:      document.getElementById('tc_qty')?.value||'',
+      note:     document.getElementById('tc_note')?.value||'',
+    })
+  }).then(res => { if (res.isConfirmed) fillFromTextAi(res.value); });
+}
+
+function fillFromTextAi(p) {
+  const set = (id,v) => { const el=$(id); if(el && v!==undefined && v!=='') el.value=v; };
+  set('f_od', p.od); set('f_id', p.id); set('f_h', p.h); set('f_unit', p.qty);
+  set('f_note', p.note);
+  // แบบงาน
+  if (p.workType) {
+    const wSel = $('f_workType');
+    if (wSel) {
+      const opt = Array.from(wSel.options).find(o =>
+        o.value.includes(p.workType) || p.workType.includes(o.value));
+      if (opt) wSel.value = opt.value; else set('f_workType', p.workType);
+    }
+  }
+  // ตะแกรง
+  if (p.meshOut) { const s=$('f_meshOut'); if(s) s.value=p.meshOut; }
+  if (p.meshIn)  { const s=$('f_meshIn');  if(s) s.value=p.meshIn;  }
+  if (p.od||p.id||p.h) updateSize();
+  calcAll();
+  Swal.fire({icon:'success',title:'ลงฟอร์มแล้ว ✅',
     background:'#0d1b2a',color:'#cce4ff',
     timer:1600,showConfirmButton:false,toast:true,position:'top-end'});
 }
