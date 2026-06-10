@@ -1145,7 +1145,7 @@ select option { background: var(--sel-bg); color: var(--t1); }
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v2.0</span>
+      <span class="ph-chip ver">v3.2</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -1294,6 +1294,14 @@ select option { background: var(--sel-bg); color: var(--t1); }
       <input type="text" id="f_refId" placeholder="Q-YYYYMMDD-XXXX" readonly
         style="background:var(--readonly-bg);border-color:var(--readonly-bc);color:var(--readonly-col);font-size:.78rem;letter-spacing:.5px">
     </div>
+    <div class="field" id="revField" style="max-width:70px;display:none">
+      <label style="display:flex;align-items:center;gap:5px">
+        Rev.
+        <span style="font-size:.65rem;color:#34d399;font-weight:400">●BH</span>
+      </label>
+      <input type="text" id="f_rev" value="1" readonly
+        style="background:var(--readonly-bg);border-color:var(--readonly-bc);color:var(--readonly-col);font-size:.78rem;text-align:center">
+    </div>
     <div class="field"><label>ผู้เสนอราคา</label><input type="text" id="f_quoter" value="คุณกิ๊ฟ" placeholder="ชื่อผู้เสนอ"></div>
     <div class="field"><label>ลูกค้า / ผู้ติดต่อ</label><select id="f_contact"><option value="">— กำลังโหลด… —</option></select></div>
   </div>
@@ -1391,7 +1399,9 @@ select option { background: var(--sel-bg); color: var(--t1); }
     </div>
     <div class="field">
       <label>แบบงาน</label>
-      <select id="f_workType" onchange="autoRawMat()"><option value="">— กำลังโหลด… —</option></select>
+      <input type="text" id="f_workType" list="workTypeList" placeholder="พิมพ์เพื่อค้นหา หรือเลือกแบบงาน…"
+        oninput="autoRawMat()" onchange="autoRawMat()" autocomplete="off">
+      <datalist id="workTypeList"></datalist>
     </div>
   </div>
   <div class="grid g2" style="margin-top:10px">
@@ -1630,7 +1640,8 @@ select option { background: var(--sel-bg); color: var(--t1); }
       </label>
 
     </div>
-    <input type="text" id="f_remark" placeholder="หมายเหตุ (แก้ไขเพิ่มเติมได้)">
+    <textarea id="f_remark" placeholder="หมายเหตุ (แก้ไขเพิ่มเติมได้)" rows="3"
+      style="width:100%;resize:vertical;min-height:60px;font-family:inherit;line-height:1.5"></textarea>
   </div>
 </div>
 
@@ -1671,6 +1682,24 @@ select option { background: var(--sel-bg); color: var(--t1); }
       <input type="text" id="f_sellPrice" placeholder="0.00" inputmode="decimal"
         class="sell-price-inp" oninput="onSellPriceInput()">
     </div>
+    <input type="hidden" id="f_aiSale" value="">  <!-- BG = ผลวิเคราะห์ AI เคาะราคาล่าสุด -->
+    <div id="aiSaleHint" style="display:none;font-size:.68rem;color:#a5b4fc;margin-top:5px;text-align:center">
+      🤖 มีผลวิเคราะห์ AI แนบไว้กับงานนี้แล้ว
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-top:8px">
+      <button type="button" onclick="showPricingAnalysis()"
+        style="flex:1;padding:9px 10px;border:none;border-radius:9px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.82rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;box-shadow:0 2px 10px rgba(79,70,229,.35)">
+        🤖 AI เคาะราคา
+      </button>
+      <span onclick="showLastPricingResult()" title="ดูผลวิเคราะห์ล่าสุด (ไม่เสียโควต้า)"
+        style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;
+        border-radius:50%;background:rgba(79,70,229,.15);color:#a5b4fc;font-size:.85rem;font-weight:700;
+        cursor:pointer;border:1px solid rgba(124,58,237,.4)">🕐</span>
+      <span onclick="showPricingInfo()" title="วิธีคิดกลุ่ม A/B/C"
+        style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;
+        border-radius:50%;background:rgba(79,70,229,.15);color:#a5b4fc;font-size:.78rem;font-weight:700;
+        cursor:pointer;font-style:italic;font-family:Georgia,serif;border:1px solid rgba(124,58,237,.4)">i</span>
+    </div>
   </div>
   <div class="grid g3" style="gap:10px">
     <div class="total-box">
@@ -1695,6 +1724,16 @@ select option { background: var(--sel-bg); color: var(--t1); }
   <button class="btn btn-primary" onclick="submitForm()" style="justify-content:center;padding:11px 8px"><span id="saveBtnLabel">💾 บันทึกลง Sheets</span></button>
   <button id="btnReshowCard" class="btn btn-pdf" onclick="reshowShareCard()" style="justify-content:center;padding:11px 8px;opacity:.4;cursor:not-allowed" disabled title="ยังไม่มีข้อมูลที่บันทึก">📤 แชร์/รูป</button>
   <button class="btn btn-pdf" onclick="showDocExport()" style="justify-content:center;padding:11px 8px">🖨 ดูแบบเสนอราคา</button>
+</div>
+
+<!-- ── แบบร่าง (รองานที่ยังไม่พร้อมบันทึก) ── -->
+<div style="max-width:860px;margin:8px auto 0">
+  <button class="btn btn-pdf" onclick="openDrafts()" style="width:100%;justify-content:center;position:relative">
+    📂 แบบร่าง (รองาน/รอราคา)
+    <span class="draftCountBadge" style="display:none;margin-left:6px;min-width:18px;height:18px;border-radius:9px;
+      background:#7c3aed;color:#fff;font-size:.68rem;font-weight:800;align-items:center;justify-content:center;
+      padding:0 5px">0</span>
+  </button>
 </div>
 
 <!-- S7: ตารางเปรียบเทียบราคา -->
@@ -2499,7 +2538,17 @@ select option { background: var(--sel-bg); color: var(--t1); }
   <hr class="sp-divider" style="margin-top:8px">
   <div id="spInsightSection" style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(59,130,246,.06));border:1px solid rgba(99,102,241,.25);border-radius:12px;padding:10px 10px 8px;margin-bottom:8px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <span style="font-size:.78rem;font-weight:800;color:var(--c1);letter-spacing:.3px">🎯 วิเคราะห์ราคา</span>
+      <span style="font-size:.78rem;font-weight:800;color:var(--c1);letter-spacing:.3px;display:flex;align-items:center;gap:5px">
+        🎯 วิเคราะห์ราคา
+        <span onclick="showLastPricingResult()" title="ดูผลวิเคราะห์ล่าสุด (ไม่เสียโควต้า)"
+          style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;
+          border-radius:50%;background:var(--c1-10);color:var(--c1);font-size:.6rem;font-weight:700;
+          cursor:pointer;border:1px solid var(--c1)">🕐</span>
+        <span onclick="showPricingInfo()" title="วิธีคิดกลุ่ม A/B/C"
+          style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;
+          border-radius:50%;background:var(--c1-10);color:var(--c1);font-size:.62rem;font-weight:700;
+          cursor:pointer;font-style:italic;font-family:Georgia,serif;border:1px solid var(--c1)">i</span>
+      </span>
       <span id="spInsightMeta" style="font-size:.65rem;color:var(--t3);background:var(--c1-10);padding:2px 7px;border-radius:20px">—</span>
     </div>
     <div id="spInsightBody" style="font-size:.72rem;color:var(--t3);text-align:center;padding:4px 0">
@@ -2521,6 +2570,12 @@ select option { background: var(--sel-bg); color: var(--t1); }
       style="opacity:.4;cursor:not-allowed" disabled title="ยังไม่มีข้อมูลที่บันทึก">📤 แชร์/รูป</button>
     <button id="btnReloadLaborSP" class="sp-action-btn btn-calc" onclick="recalcBtn()">🔄 รีโหลดค่าแรง</button>
     <button class="sp-action-btn btn-clear" onclick="location.reload()">↺ คืนค่าฟอร์ม</button>
+    <button class="sp-action-btn btn-pdf" onclick="openDrafts()" style="position:relative">
+      📂 แบบร่าง (รองาน/รอราคา)
+      <span class="draftCountBadge" style="display:none;margin-left:6px;min-width:18px;height:18px;border-radius:9px;
+        background:#7c3aed;color:#fff;font-size:.68rem;font-weight:800;align-items:center;justify-content:center;
+        padding:0 5px">0</span>
+    </button>
   </div>
 </div>
 
@@ -3555,7 +3610,9 @@ const DT = {
   od2:      54,  // BC = OD ฝา2 (mm)
   matOd2:   55,  // BD = MAT ฝา2 code
   costOd2:  56,  // BE = cost ฝา2 / ลูก
-  calcOd2:  57   // BF = 1=คำนวณ, 0=ไม่คำนวณ
+  calcOd2:  57,  // BF = 1=คำนวณ, 0=ไม่คำนวณ
+  aiSale:   58,  // BG = ผลวิเคราะห์ AI เคาะราคา
+  rev:      59   // BH = Rev. (เลขแก้ไข เริ่มที่ 1, +1 ทุกครั้งที่บันทึกทับแถวเดิม)
 };
 
 async function dtRefresh(showMsg) {
@@ -3811,7 +3868,12 @@ function dtRender() {
     const profCol = prof >= 0 ? '#34d399' : '#f87171';
     const profSign = prof >= 0 ? '+' : '';
     const workNote = [r[DT.workType], r[DT.remark]].filter(Boolean).join(' · ');
-    const rowBg = ri % 2 === 0 ? '' : 'background:var(--pair-bg)';
+    // ไฮไลต์แถวที่ใช้วัตถุดิบสแตนเลส/SUS304 (AW) เพราะราคาสูงเป็นพิเศษ
+    const rawMatStr = String(r[DT.rawMat]||'').toUpperCase();
+    const isStainless = rawMatStr.includes('สแตนเลส') || rawMatStr.includes('SUS');
+    const rowBg = isStainless
+      ? 'background:rgba(250,204,21,.16);border-left:3px solid #facc15'
+      : (ri % 2 === 0 ? '' : 'background:var(--pair-bg)');
     return `<tr style="${rowBg};border-bottom:1px solid var(--bc-div)" class="dt-row">
       <td style="padding:8px 10px;white-space:nowrap">${statusBadge(r[DT.status])}<br>
         <span style="font-size:.72rem;color:var(--c1);font-weight:600">${r[DT.noQuo]||'—'}</span></td>
@@ -4082,6 +4144,16 @@ function dtLoadIntoForm(idx) {
         const costEl = $('f_costOd2');
         if (costEl) { costEl.value = parseFloat(r[DT.costOd2]) || ''; }
       }
+    }
+    // โหลด Rev. (BH) — แสดงเฉพาะตอนโหลดจ๊อบเก่าเข้าฟอร์ม
+    { _loadedRev = parseInt(r[DT.rev]) || 0;
+      if ($('f_rev')) $('f_rev').value = _loadedRev || 1;
+      if ($('revField')) $('revField').style.display = '';
+    }
+    // โหลดผลวิเคราะห์ AI เคาะราคา (BG)
+    { const aiSaleVal = r[DT.aiSale] || '';
+      if ($('f_aiSale')) $('f_aiSale').value = aiSaleVal;
+      if ($('aiSaleHint')) $('aiSaleHint').style.display = aiSaleVal ? 'block' : 'none';
     }
     // โหลดรูปใบขอราคา (AY = index 50)
     { const imgUrl = r[50]; if (imgUrl) _loadAttachFromUrl(imgUrl); else clearAttachedImage(); }
@@ -4791,12 +4863,12 @@ async function loadAllData(showResult) {
     }
     // Work Types
     if (workData.status === 'ok' && Array.isArray(workData.types)) {
-      const wSel = $('f_workType'), wPrev = wSel ? wSel.value : '';
-      if (wSel) {
-        wSel.innerHTML = '<option value="">— เลือกแบบงาน —</option>';
+      const wSel = $('f_workType'), wDl = $('workTypeList'), wPrev = wSel ? wSel.value : '';
+      if (wSel && wDl) {
+        wDl.innerHTML = '';
         workData.types.forEach(t => {
           const o = document.createElement('option');
-          o.value = o.textContent = t; wSel.appendChild(o);
+          o.value = t; wDl.appendChild(o);
         });
         if (wPrev) wSel.value = wPrev;
       }
@@ -4932,12 +5004,13 @@ function loadWorkTypes(silent) {
     .then(data => {
       if (data.status === 'ok' && Array.isArray(data.types)) {
         const sel = $('f_workType');
+        const dl  = $('workTypeList');
         const prev = sel.value;
-        sel.innerHTML = '<option value="">— เลือกแบบงาน —</option>';
+        dl.innerHTML = '';
         data.types.forEach(t => {
           const opt = document.createElement('option');
-          opt.value = opt.textContent = t;
-          sel.appendChild(opt);
+          opt.value = t;
+          dl.appendChild(opt);
         });
         if (prev) sel.value = prev;
       }
@@ -5321,6 +5394,10 @@ function clearForm() {
     });
     $('f_date').value = new Date().toISOString().split('T')[0];
     if ($('f_custGap')) $('f_custGap').value = '0';
+    if ($('aiSaleHint')) $('aiSaleHint').style.display = 'none';
+    if ($('f_rev')) $('f_rev').value = '1';
+    _loadedDraftId = null;
+    _loadedRev = 0;
     // restore defaults
     if ($('f_transport'))  $('f_transport').value  = '300';  // เหมารวม /job default
     if ($('f_cPlating'))   $('f_cPlating').value   = '90';
@@ -5337,9 +5414,17 @@ function clearForm() {
 
 // ── LOADED JOB TRACKER ──────────────────────────────
 let _loadedNoQuo = null;   // null = new record; string = editing existing
+let _loadedRev   = 0;      // Rev. ของแถวที่กำลังแก้ไข (0 = งานใหม่ → จะเซฟเป็น Rev.1)
 
 function setLoadedJob(noQuo) {
   _loadedNoQuo = noQuo ? String(noQuo) : null;
+  if (noQuo) {
+    _loadedDraftId = null; // โหลดงานจริงจาก DATA → ไม่ผูกกับแบบร่างใดๆ
+  } else {
+    _loadedRev = 0; // ไม่ได้แก้ไขแถวเดิม → งานนี้จะเซฟเป็น Rev.1
+    if ($('f_rev')) $('f_rev').value = '1';
+    if ($('revField')) $('revField').style.display = 'none';
+  }
   // mobile badge
   const badge = $('editingBadge');
   if (badge) {
@@ -5366,6 +5451,166 @@ function setLoadedJob(noQuo) {
   const txt = _loadedNoQuo ? '💾 บันทึกทับแถวเดิม' : '💾 บันทึกลง Sheets';
   if (btn)   btn.textContent   = txt;
   if (btnSP) btnSP.textContent = txt;
+}
+
+// ── DRAFTS (แบบร่าง — รองาน/รอราคาจากร้านภายนอก) ─────────
+const DRAFTS_KEY = 'ptts_drafts';
+let _loadedDraftId = null; // เก็บ id แบบร่างที่กำลังโหลดอยู่ในฟอร์ม (ใช้ลบทิ้งเมื่อ Save สำเร็จ)
+
+function _getDrafts() {
+  try { return JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]'); } catch(e) { return []; }
+}
+function _setDrafts(arr) {
+  localStorage.setItem(DRAFTS_KEY, JSON.stringify(arr));
+  _updateDraftBadge();
+}
+function _updateDraftBadge() {
+  const n = _getDrafts().length;
+  document.querySelectorAll('.draftCountBadge').forEach(el => {
+    el.textContent = n;
+    el.style.display = n > 0 ? 'inline-flex' : 'none';
+  });
+}
+function _fmtDraftDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'2-digit'})
+    + ' ' + d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+}
+
+// เก็บค่าทุกช่อง (id ขึ้นต้นด้วย f_ หรือ r_) ในฟอร์มปัจจุบัน
+function _snapshotForm() {
+  const data = {};
+  document.querySelectorAll('input[id], select[id], textarea[id]').forEach(el => {
+    if (!/^(f_|r_)/.test(el.id)) return;
+    if (el.type === 'checkbox' || el.type === 'radio') data[el.id] = el.checked;
+    else data[el.id] = el.value;
+  });
+  return data;
+}
+// คืนค่าทุกช่องจาก snapshot กลับเข้าฟอร์ม
+function _restoreForm(data) {
+  Object.keys(data).forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    if (el.type === 'checkbox' || el.type === 'radio') el.checked = data[id];
+    else el.value = data[id];
+  });
+}
+
+// บันทึกฟอร์มปัจจุบันเป็นแบบร่าง (ใช้กับงานที่ยังไม่พร้อมบันทึกจริง เช่น รอราคาจากร้านภายนอก)
+function saveDraft() {
+  const data = _snapshotForm();
+  const od = data.f_od || '', id_ = data.f_id || '', h = data.f_h || '';
+  const sizeLabel = (od && id_ && h) ? `${od}×${id_}×${h}` : '—';
+  const cust = (data.f_contact || '').trim() || '—';
+  Swal.fire({
+    title: '📝 บันทึกแบบร่าง',
+    input: 'text',
+    inputLabel: 'ชื่อ/หมายเหตุแบบร่าง (ไม่บังคับ)',
+    inputPlaceholder: `${cust} • ${sizeLabel}`,
+    showCancelButton: true,
+    confirmButtonText: '💾 บันทึก', cancelButtonText: 'ยกเลิก',
+    background: '#0a1c2e', color: '#f1f5f9',
+    confirmButtonColor: '#2563eb', cancelButtonColor: '#475569'
+  }).then(r => {
+    if (!r.isConfirmed) return;
+    const drafts = _getDrafts();
+    drafts.unshift({
+      id: 'd' + Date.now(),
+      savedAt: new Date().toISOString(),
+      label: (r.value || '').trim() || `${cust} • ${sizeLabel}`,
+      size: sizeLabel, cust,
+      data
+    });
+    _setDrafts(drafts);
+    Swal.fire({icon:'success', title:'บันทึกแบบร่างแล้ว ✅', toast:true, position:'top-end',
+      timer:1300, showConfirmButton:false, background:'#0a1c2e', color:'#f1f5f9'});
+  });
+}
+
+// แสดงรายการแบบร่างทั้งหมด พร้อมปุ่มโหลด/ลบ
+function openDrafts() {
+  const drafts = _getDrafts();
+  const listHtml = drafts.length ? drafts.map(d => `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;
+      padding:8px 10px;margin-bottom:6px">
+      <div style="text-align:left;flex:1;min-width:0">
+        <div style="font-size:.82rem;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.label}</div>
+        <div style="font-size:.7rem;color:#94a3b8">📅 ${_fmtDraftDate(d.savedAt)} · 📐 ${d.size}</div>
+      </div>
+      <button onclick="loadDraft('${d.id}')" style="padding:6px 10px;border:none;border-radius:7px;
+        background:#2563eb;color:#fff;font-size:.75rem;cursor:pointer;font-weight:700;flex-shrink:0">📂 โหลด</button>
+      <button onclick="deleteDraft('${d.id}')" style="padding:6px 10px;border:none;border-radius:7px;
+        background:rgba(239,68,68,.15);color:#f87171;font-size:.75rem;cursor:pointer;font-weight:700;flex-shrink:0">🗑️</button>
+    </div>
+  `).join('') : '<div style="text-align:center;color:#94a3b8;font-size:.85rem;padding:16px 0">ยังไม่มีแบบร่าง</div>';
+
+  Swal.fire({
+    title: '📂 แบบร่างที่บันทึกไว้',
+    width: 480,
+    html: `
+      <div style="text-align:left">
+        <div style="font-size:.75rem;color:#64748b;margin-bottom:10px">
+          สำหรับงานที่ยังไม่พร้อมบันทึกจริง เช่น รอราคาจากร้านภายนอก/ผู้รับเหมาช่วง —
+          กรอกข้อมูลเท่าที่มี แล้วกดบันทึกแบบร่างไว้ก่อนได้
+        </div>
+        <button onclick="Swal.close(); saveDraft();" style="width:100%;margin-bottom:10px;padding:9px;border:none;
+          border-radius:9px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-weight:700;
+          cursor:pointer;font-family:Sarabun,sans-serif;font-size:.82rem">
+          📝 บันทึกฟอร์มปัจจุบันเป็นแบบร่างใหม่
+        </button>
+        <div style="max-height:46vh;overflow-y:auto">${listHtml}</div>
+      </div>`,
+    showConfirmButton: true, confirmButtonText: 'ปิด',
+    background: '#0a1c2e', color: '#f1f5f9', confirmButtonColor: '#475569'
+  });
+}
+
+// โหลดแบบร่างกลับเข้าฟอร์ม (แทนที่ข้อมูลในฟอร์มปัจจุบันทั้งหมด)
+function loadDraft(id) {
+  const d = _getDrafts().find(x => x.id === id);
+  if (!d) return;
+  Swal.fire({
+    title: 'โหลดแบบร่างนี้?', text: 'ข้อมูลในฟอร์มปัจจุบันจะถูกแทนที่ด้วยข้อมูลในแบบร่าง',
+    icon: 'question', showCancelButton: true,
+    confirmButtonText: '📂 โหลด', cancelButtonText: 'ยกเลิก',
+    background: '#0a1c2e', color: '#f1f5f9',
+    confirmButtonColor: '#2563eb', cancelButtonColor: '#475569'
+  }).then(r => {
+    if (!r.isConfirmed) return;
+    _restoreForm(d.data);
+    _loadedDraftId = id; // จำไว้ว่าโหลดแบบร่างนี้ → ถ้า Save สำเร็จจะลบแบบร่างนี้ทิ้ง
+    if ($('f_hasOd2') && typeof toggleOd2Panel === 'function') toggleOd2Panel();
+    if (typeof updateSize === 'function') updateSize();
+    if (typeof syncRemarkChips === 'function') syncRemarkChips();
+    setLoadedJob(null); // แบบร่าง → บันทึกเป็นรายการใหม่เสมอ
+    computeNextNo();    // คำนวณเลขที่ใบเสนอราคาใหม่ตามปัจจุบัน กันเลขซ้ำกับที่บันทึกไปแล้ว
+    if (typeof initRefId === 'function') initRefId(); // สร้างเลขอ้างอิงใหม่ ไม่ใช้ของแบบร่างเดิม
+    calcAll();
+    if (typeof updateSummaryPanel === 'function') updateSummaryPanel();
+    switchTab('breakdown');
+    setTimeout(() => {
+      Swal.fire({icon:'success', title:'โหลดแบบร่างแล้ว ✅', timer:1200, showConfirmButton:false,
+        background:'#0a1c2e', color:'#f1f5f9'});
+    }, 200);
+  });
+}
+
+// ลบแบบร่าง
+function deleteDraft(id) {
+  Swal.fire({
+    title: 'ลบแบบร่างนี้?', icon: 'warning', showCancelButton: true,
+    confirmButtonText: '🗑️ ลบ', cancelButtonText: 'ยกเลิก',
+    background: '#0a1c2e', color: '#f1f5f9',
+    confirmButtonColor: '#ef4444', cancelButtonColor: '#475569'
+  }).then(r => {
+    if (!r.isConfirmed) return;
+    _setDrafts(_getDrafts().filter(x => x.id !== id));
+    Swal.fire({icon:'success', title:'ลบแบบร่างแล้ว', toast:true, position:'top-end',
+      timer:1000, showConfirmButton:false, background:'#0a1c2e', color:'#f1f5f9'});
+    openDrafts();
+  });
 }
 
 // ── SUBMIT ───────────────────────────────────────────
@@ -5539,6 +5784,8 @@ function submitForm() {
     /* 56 */ ($('f_hasOd2')?.checked ? ($('f_matOd2')?.value||'') : ''),         // BD = MAT ฝา2
     /* 57 */ ($('f_hasOd2')?.checked ? num('f_costOd2') : 0),                    // BE = cost ฝา2
     /* 58 */ ($('f_hasOd2')?.checked ? ($('r_od2calc_yes')?.checked ? 1 : 0) : 0), // BF = flag
+    /* 59 */ $('f_aiSale')?.value || '', // BG = AI Sale (ผลวิเคราะห์ AI เคาะราคา)
+    /* 60 */ (_loadedNoQuo ? (_loadedRev || 1) + 1 : 1), // BH = Rev. (เริ่ม 1, +1 เมื่อบันทึกทับแถวเดิม)
   ];
 
   const isUpdate = !!_loadedNoQuo;
@@ -5549,12 +5796,14 @@ function submitForm() {
     : '—';
   const _cfCust = ($('f_contact') && $('f_contact').value) ? $('f_contact').value : '—';
   const _cfNo   = isUpdate ? _loadedNoQuo : $('f_noQuo').value;
+  const _cfRev  = isUpdate ? (_loadedRev || 1) + 1 : 1;
   const confirmHtml = `
     <div style="text-align:left;font-size:.83rem;line-height:2;margin-top:4px">
       <div>📋 <b>No.Quo:</b> ${_cfNo}</div>
       <div>👤 <b>ลูกค้า:</b> ${_cfCust}</div>
       <div>📐 <b>Size:</b> ${_cfSize}</div>
       <div>🔢 <b>จำนวน:</b> ${num('f_unit').toLocaleString('th-TH')} ชิ้น</div>
+      <div>🔁 <b>Rev.:</b> ${_cfRev}</div>
       ${isUpdate ? '<div style="color:#f59e0b;font-size:.78rem">⚠️ จะบันทึกทับแถวเดิม</div>' : ''}
     </div>`;
 
@@ -5591,6 +5840,12 @@ function submitForm() {
         // อัปเดต row ที่มีอยู่ใน cache
         const idx = _dtCache.findIndex(r => String(r[DT.noQuo]||'').replace(/^Q-/i,'') === String(_loadedNoQuo));
         if (idx !== -1) _dtCache[idx] = row;
+      }
+      // ── ถ้าโหลดมาจากแบบร่าง และบันทึกสำเร็จ → ลบแบบร่างนั้นทิ้ง ──
+      if (_loadedDraftId) {
+        _setDrafts(_getDrafts().filter(x => x.id !== _loadedDraftId));
+        if (typeof _updateDraftBadge === 'function') _updateDraftBadge();
+        _loadedDraftId = null;
       }
       setLoadedJob(null);
       _lastSavedRow   = row;
@@ -5671,6 +5926,8 @@ function _resetFormSilent() {
   _clearRemarkChips();
   computeNextNo();   // เลขที่ใบถัดไป
   initRefId();       // เลขอ้างอิงใหม่
+  if ($('f_rev')) $('f_rev').value = '1';
+  _loadedRev = 0;
   calcAll();
 }
 
@@ -6511,6 +6768,143 @@ async function callAiText(prompt, maxTokens = 1800) {
   }
 }
 
+// ── คำอธิบายเกณฑ์การจัดกลุ่ม A/B/C สำหรับวิเคราะห์ราคา ──────────────
+function showPricingInfo() {
+  Swal.fire({
+    title: 'ℹ️ วิธีคิดกลุ่ม A/B/C',
+    width: 480,
+    background: '#0a1c2e', color: '#cce4ff',
+    confirmButtonText: 'เข้าใจแล้ว',
+    confirmButtonColor: '#4f46e5',
+    html: `
+      <div style="text-align:left;font-family:Sarabun,sans-serif;font-size:.82rem;line-height:1.7;color:#cbd5e1">
+        <p style="margin:0 0 8px">
+          ระบบจะค้นหา <b>งานเก่าที่เคยบันทึกไว้ (3 ปีย้อนหลัง)</b> แล้วให้คะแนนความ "คล้าย" กับงานปัจจุบัน
+          (เต็ม ~110 คะแนน) จากปัจจัยเหล่านี้:
+        </p>
+        <ul style="margin:0 0 10px;padding-left:20px">
+          <li><b>ขนาด OD (สูงสุด 35 คะแนน)</b> — ยิ่งใกล้เคียงยิ่งได้คะแนนเยอะ ถ้าต่างกันเกิน 20% จะตัดทิ้ง ไม่นำมาคิดเลย</li>
+          <li><b>ขนาด ID (สูงสุด 15 คะแนน)</b> — ต่างกันไม่เกิน 5% ได้เต็ม</li>
+          <li><b>ความสูง H (สูงสุด 15 คะแนน)</b> — ต่างกันไม่เกิน 5% ได้เต็ม</li>
+          <li><b>วัสดุ MAT ฝาบน (สูงสุด 20 คะแนน)</b> — ตรงกันเป๊ะ 20 คะแนน, ตรงแค่ตระกูลเดียวกัน (เช่น SPCC) ได้ 12</li>
+          <li><b>ตะแกรงนอก (10 คะแนน)</b> — มี/ไม่มี ตรงกัน</li>
+          <li><b>ตะแกรงใน (8 คะแนน)</b> — มี/ไม่มี ตรงกัน</li>
+          <li><b>จำนวนลูก (สูงสุด 7 คะแนน)</b> — อยู่ในช่วงเดียวกัน เช่น ≤5 / 6–20 / 21–50 / 51–200 / มากกว่า 200</li>
+        </ul>
+        <p style="margin:0 0 6px;font-weight:700;color:#a5b4fc">แบ่งกลุ่มตามคะแนนรวม:</p>
+        <ul style="margin:0;padding-left:20px">
+          <li><b style="color:#34d399">กลุ่ม A เหมือนมาก</b> — คะแนน ≥ 65 (ขนาด/วัสดุ/ตะแกรง/จำนวน ใกล้เคียงกันมาก)</li>
+          <li><b style="color:#fbbf24">กลุ่ม B คล้ายกัน</b> — คะแนน 35–64</li>
+          <li><b style="color:#94a3b8">กลุ่ม C ขนาดใกล้เคียง</b> — คะแนน 15–34</li>
+          <li>คะแนนต่ำกว่า 15 หรือ OD ต่างเกิน 20% → ไม่นำมาใช้วิเคราะห์</li>
+        </ul>
+        <p style="margin:10px 0 0;font-size:.75rem;color:#64748b">
+          แต่ละกลุ่มจะแสดง: ราคาต่ำสุด/เฉลี่ย/สูงสุด, Win rate, Margin เฉลี่ย, ต้นทุนเฉลี่ย,
+          และแนวโน้มราคา 12 เดือนล่าสุด ให้ AI ใช้ประกอบการแนะนำราคา
+        </p>
+      </div>`
+  });
+}
+
+// ── ประวัติผลวิเคราะห์ AI เคาะราคา (เก็บไว้ดูซ้ำ ไม่ต้องยิง AI ใหม่) ──
+const PRICING_HIST_KEY = 'ptts_pricing_history';
+const PRICING_HIST_MAX = 20;
+
+function _getPricingHistory() {
+  try { return JSON.parse(localStorage.getItem(PRICING_HIST_KEY) || '[]'); } catch(e) { return []; }
+}
+function _savePricingResult(cur, result) {
+  const hist = _getPricingHistory();
+  hist.unshift({ time: new Date().toISOString(), cur, result });
+  if (hist.length > PRICING_HIST_MAX) hist.length = PRICING_HIST_MAX;
+  localStorage.setItem(PRICING_HIST_KEY, JSON.stringify(hist));
+}
+function _pricingToHtml(txt) {
+  return txt
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
+    .replace(/\n/g,'<br>');
+}
+const B_ = n => '฿' + Math.round(n).toLocaleString('th-TH');
+function _fmtPricingDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'2-digit'})
+    + ' ' + d.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+}
+
+// แสดงผลวิเคราะห์ (ทั้งของใหม่และของเก่าจากประวัติ) — มีปุ่ม "📜 ประวัติ" ท้ายกล่อง
+function _showPricingResultModal(cur, result, time) {
+  Swal.fire({
+    title: '🎯 AI เคาะราคา',
+    html: `
+      <div style="text-align:left;font-family:Sarabun,sans-serif;font-size:.88rem;line-height:2;color:#cbd5e1;padding:4px 2px">
+        <div style="background:rgba(99,102,241,.12);border-radius:8px;padding:7px 12px;margin-bottom:12px;font-size:.75rem;color:#94a3b8">
+          OD${cur.od}×ID${cur.id}×H${cur.h} · ${cur.unit} ลูก · ต้นทุน ${B_(cur.costPerUnit)}/ลูก
+          ${time ? `<br>🕐 วิเคราะห์เมื่อ ${_fmtPricingDate(time)}` : ''}
+        </div>
+        ${_pricingToHtml(result)}
+      </div>`,
+    background: '#0d1b2a', color: '#cce4ff',
+    width: 480,
+    showCloseButton: true,
+    showDenyButton: true,
+    denyButtonText: '📜 ประวัติทั้งหมด',
+    denyButtonColor: '#475569',
+    confirmButtonText: '✅ ปิด',
+    confirmButtonColor: '#4f46e5',
+  }).then(r => {
+    if (r.isDenied) showPricingHistory();
+  });
+}
+
+// แสดงผลวิเคราะห์ล่าสุด (ไม่เรียก AI ใหม่) — ถ้ายังไม่เคยวิเคราะห์ จะเรียก AI ให้เลย
+function showLastPricingResult() {
+  const hist = _getPricingHistory();
+  if (!hist.length) {
+    Swal.fire({icon:'info', title:'ยังไม่เคยวิเคราะห์', text:'กดปุ่ม "AI เคาะราคา" เพื่อวิเคราะห์ครั้งแรก',
+      background:'#0d1b2a', color:'#cce4ff', confirmButtonColor:'#4f46e5'});
+    return;
+  }
+  const e = hist[0];
+  _showPricingResultModal(e.cur, e.result, e.time);
+}
+
+// แสดงประวัติผลวิเคราะห์ทั้งหมด (สูงสุด 20 รายการล่าสุด) — กดดูซ้ำได้ ไม่เสียโควต้า
+function showPricingHistory() {
+  const hist = _getPricingHistory();
+  const listHtml = hist.length ? hist.map((e, i) => {
+    const m = e.result.match(/ราคาที่แนะนำ[:\s]*฿?\s*([\d,]+)/);
+    const recPrice = m ? `฿${m[1]}` : '—';
+    return `
+    <div onclick="_showPricingResultModal(_getPricingHistory()[${i}].cur,_getPricingHistory()[${i}].result,_getPricingHistory()[${i}].time)"
+      style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;
+      padding:8px 10px;margin-bottom:6px;text-align:left">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.8rem;font-weight:700;color:#e2e8f0">
+          OD${e.cur.od}×ID${e.cur.id}×H${e.cur.h} · ${e.cur.unit} ลูก
+        </div>
+        <div style="font-size:.7rem;color:#94a3b8">🕐 ${_fmtPricingDate(e.time)} · ต้นทุน ${B_(e.cur.costPerUnit)}/ลูก</div>
+      </div>
+      <div style="font-size:.85rem;font-weight:800;color:#a5b4fc;flex-shrink:0">${recPrice}</div>
+    </div>`;
+  }).join('') : '<div style="text-align:center;color:#94a3b8;font-size:.85rem;padding:16px 0">ยังไม่มีประวัติการวิเคราะห์</div>';
+
+  Swal.fire({
+    title: '📜 ประวัติ AI เคาะราคา',
+    width: 480,
+    html: `
+      <div style="text-align:left">
+        <div style="font-size:.75rem;color:#64748b;margin-bottom:10px">
+          เก็บผลวิเคราะห์ล่าสุดไว้ ${PRICING_HIST_MAX} รายการ — กดรายการเพื่อดูซ้ำโดยไม่ต้องวิเคราะห์ใหม่
+        </div>
+        <div style="max-height:50vh;overflow-y:auto">${listHtml}</div>
+      </div>`,
+    background: '#0d1b2a', color: '#cce4ff',
+    showConfirmButton: true, confirmButtonText: 'ปิด', confirmButtonColor: '#475569'
+  });
+}
+
 // ── Pricing Analysis AI ──────────────────────────────────────────────
 async function showPricingAnalysis() {
   // ── ดึงข้อมูลฟอร์ม ──────────────────────────────────
@@ -6623,27 +7017,12 @@ ${grpTxt('กลุ่ม C ขนาดใกล้เคียง', sC)}
 
   try {
     const result = await callAiText(prompt, 400);
-
-    const toHtml = txt => txt
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')
-      .replace(/\n/g,'<br>');
-
-    Swal.fire({
-      title: '🎯 AI เคาะราคา',
-      html: `
-        <div style="text-align:left;font-family:Sarabun,sans-serif;font-size:.88rem;line-height:2;color:#cbd5e1;padding:4px 2px">
-          <div style="background:rgba(99,102,241,.12);border-radius:8px;padding:7px 12px;margin-bottom:12px;font-size:.75rem;color:#94a3b8">
-            OD${cur.od}×ID${cur.id}×H${cur.h} · ${cur.unit} ลูก · ต้นทุน ${B(cur.costPerUnit)}/ลูก
-          </div>
-          ${toHtml(result)}
-        </div>`,
-      background: '#0d1b2a', color: '#cce4ff',
-      width: 480,
-      showCloseButton: true,
-      confirmButtonText: '✅ ปิด',
-      confirmButtonColor: '#4f46e5',
-    });
+    const _now = new Date().toISOString();
+    _savePricingResult(cur, result);
+    // เก็บผลวิเคราะห์ล่าสุดไว้แนบกับ "งานนี้" เพื่อบันทึกลง DATA (คอลัมน์ BG = AI Sale)
+    if ($('f_aiSale')) $('f_aiSale').value = result;
+    if ($('aiSaleHint')) $('aiSaleHint').style.display = 'block';
+    _showPricingResultModal(cur, result, _now);
   } catch(e) {
     Swal.fire({ icon:'error', title:'AI ไม่ตอบสนอง', text: e.message,
       background:'#0d1b2a', color:'#f1f5f9' });
@@ -6950,11 +7329,11 @@ function fillFromTextAi(p) {
   set('f_remark', p.note);
   // แบบงาน
   if (p.workType) {
-    const wSel = $('f_workType');
+    const wSel = $('f_workType'), wDl = $('workTypeList');
     if (wSel) {
-      const opt = Array.from(wSel.options).find(o =>
-        o.value.includes(p.workType) || p.workType.includes(o.value));
-      if (opt) wSel.value = opt.value; else set('f_workType', p.workType);
+      const opt = wDl ? Array.from(wDl.options).find(o =>
+        o.value.includes(p.workType) || p.workType.includes(o.value)) : null;
+      wSel.value = opt ? opt.value : p.workType;
     }
   }
   // ตะแกรง
@@ -7728,6 +8107,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Apply saved logo หลัง renderTabBar เพื่อให้ครบทุก element
   _applyLogoAll();
   switchTab('breakdown');
+  _updateDraftBadge(); // แสดงจำนวนแบบร่างที่บันทึกไว้
 
   // Init labor fingerprint (baseline = ค่าที่โหลดมาตอนเปิดฟอร์ม)
   _saveLaborFingerprint();
@@ -8455,5 +8835,175 @@ function closeDocCfg() { $('docCfgModal').style.display = 'none'; }
     </div>
   </div>
 </div>
+
+<!-- ===== Dev Logs (ประวัติการแก้ไขงาน) ===== -->
+<button id="devLogsBtn" onclick="openDevLogs()"
+  style="position:fixed;right:16px;bottom:16px;z-index:9990;padding:10px 16px;border:none;border-radius:999px;
+  cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.8rem;font-weight:700;
+  display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0f172a,#1e293b);
+  color:#cbd5e1;border:1px solid rgba(255,255,255,.12);box-shadow:0 4px 14px rgba(0,0,0,.35)">
+  📋 Dev Logs
+</button>
+
+<div id="devLogsModal" style="display:none;position:fixed;inset:0;z-index:9991;background:rgba(0,0,0,.5);
+  align-items:center;justify-content:center">
+  <div style="background:#0a1c2e;border:1px solid rgba(255,255,255,.12);border-radius:14px;
+    width:min(520px,92vw);max-height:80vh;display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 10px 40px rgba(0,0,0,.5)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;
+      border-bottom:1px solid rgba(255,255,255,.08)">
+      <h2 style="margin:0;font-size:.95rem;color:#f1f5f9;display:flex;align-items:center;gap:8px">
+        🛠️ PROJECT DEVELOPMENT LOG
+      </h2>
+      <button onclick="closeDevLogs()" style="background:none;border:none;color:#94a3b8;
+        font-size:1.2rem;cursor:pointer;line-height:1">✕</button>
+    </div>
+    <div id="devLogsBody" style="overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px"></div>
+  </div>
+</div>
+
+<script>
+// ===== ประวัติการแก้ไขงาน (Dev Logs) =====
+// เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
+const DEV_LOGS = [
+  {
+    ref: '#REV-20260610-N',
+    date: '2026-06-10',
+    current: true,
+    items: [
+      'เปลี่ยนช่อง "แบบงาน" จาก dropdown ยาวๆ เป็นช่องพิมพ์ค้นหา (พิมพ์คำที่ต้องการ ระบบจะกรองรายการให้เลือกทันที)',
+    ],
+  },
+  {
+    ref: '#REV-20260610-M',
+    date: '2026-06-10',
+    items: [
+      'ตาราง DATA: ไฮไลต์แถวที่วัตถุดิบ (AW) เป็นสแตนเลส/SUS304 ด้วยพื้นสีเหลืองอ่อน+เส้นขอบซ้าย เพื่อเตือนงานที่ราคาสูงพิเศษ',
+    ],
+  },
+  {
+    ref: '#REV-20260610-L',
+    date: '2026-06-10',
+    items: [
+      'เปลี่ยนช่อง "หมายเหตุ" จาก input บรรทัดเดียว เป็น textarea หลายบรรทัด อ่าน/เลื่อนง่ายขึ้นบนมือถือ',
+    ],
+  },
+  {
+    ref: '#REV-20260610-K',
+    date: '2026-06-10',
+    items: [
+      'ช่อง Rev. ในฟอร์ม จะแสดงเฉพาะตอนโหลดจ๊อบเก่าเข้ามาแก้ไขเท่านั้น (งานใหม่จะซ่อนไว้)',
+    ],
+  },
+  {
+    ref: '#REV-20260610-J',
+    date: '2026-06-10',
+    items: [
+      'เพิ่มระบบ Rev. (เลขแก้ไข) เก็บในคอลัมน์ใหม่ BH ของ DATA gsheet — งานใหม่ = Rev.1',
+      'ทุกครั้งที่บันทึกทับแถวเดิม (อัปเดตงาน) เลข Rev. จะ +1 อัตโนมัติ',
+      'แสดงเลข Rev. ปัจจุบันในฟอร์ม และเลข Rev. ที่จะบันทึกในกล่องยืนยันก่อนกด Save',
+    ],
+  },
+  {
+    ref: '#REV-20260610-I',
+    date: '2026-06-10',
+    items: [
+      'แก้บัค: โหลดแบบร่างมาแล้ว Save ไม่ได้เพราะเลขที่ใบเสนอราคา (No.Quo) ซ้ำกับของเดิมที่บันทึกไปแล้ว',
+      'โหลดแบบร่าง → คำนวณเลขที่ใบเสนอราคาและเลขอ้างอิงใหม่ตามปัจจุบันให้อัตโนมัติ ไม่ใช้เลขเดิมในแบบร่าง',
+    ],
+  },
+  {
+    ref: '#REV-20260610-H',
+    date: '2026-06-10',
+    items: [
+      'โหลดแบบร่างมาทำต่อ แล้วกด Save สำเร็จ → ระบบลบแบบร่างนั้นออกจากรายการให้อัตโนมัติ',
+    ],
+  },
+  {
+    ref: '#REV-20260610-G',
+    date: '2026-06-10',
+    items: [
+      'บันทึกผลวิเคราะห์ "AI เคาะราคา" ล่าสุดแนบไปกับงานตอนกด Save ลงคอลัมน์ BG "AI Sale" ใน DATA gsheet',
+      'โหลดงานเดิม จะดึงผลวิเคราะห์ AI ที่เคยบันทึกไว้กลับมาด้วย พร้อมแสดงป้ายแจ้งเตือน 🤖',
+    ],
+  },
+  {
+    ref: '#REV-20260610-F',
+    date: '2026-06-10',
+    items: [
+      'เพิ่มระบบจำผลวิเคราะห์ "AI เคาะราคา" ไว้ใน localStorage (สูงสุด 20 รายการล่าสุด)',
+      'เพิ่มไอคอน 🕐 ดูผลวิเคราะห์ล่าสุดซ้ำได้โดยไม่ต้องเรียก AI ใหม่ (ไม่เสียเวลา/โควต้า)',
+      'เพิ่มปุ่ม "📜 ประวัติทั้งหมด" ในกล่องผลวิเคราะห์ ดูย้อนหลังและกดดูซ้ำแต่ละรายการได้',
+    ],
+  },
+  {
+    ref: '#REV-20260610-E',
+    date: '2026-06-10',
+    items: [
+      'เพิ่มระบบ "แบบร่าง" สำหรับงานที่ยังไม่พร้อมบันทึก เช่น รองานรอราคาจากร้านภายนอก',
+      'เพิ่มปุ่ม "📂 แบบร่าง (รองาน/รอราคา)" ทั้งมือถือและเดสก์ท็อป เปิดดู/บันทึก/โหลด/ลบแบบร่าง',
+      'แบบร่างเก็บค่าทุกช่องในฟอร์มไว้ใน localStorage เครื่องนี้ พร้อมตั้งชื่อ/หมายเหตุได้',
+    ],
+  },
+  {
+    ref: '#REV-20260610-D',
+    date: '2026-06-10',
+    items: [
+      'เพิ่มไอคอน ⓘ อธิบายเกณฑ์การจัดกลุ่ม A/B/C ในส่วนวิเคราะห์ราคา (ทั้งเดสก์ท็อปและมือถือ)',
+    ],
+  },
+  {
+    ref: '#REV-20260610-C',
+    date: '2026-06-10',
+    items: [
+      'เพิ่มปุ่ม "🤖 AI เคาะราคา" ใต้ช่องราคาเสนอขาย เพื่อให้ใช้งานได้ในโหมดมือถือ',
+      'เพิ่มกล่อง "Dev Logs" มุมล่างขวา สำหรับแสดงประวัติการแก้ไขงานบนหน้าเว็บ',
+    ],
+  },
+  {
+    ref: '#REV-20260609-B',
+    date: '2026-06-09',
+    items: [
+      'แก้ไขการแสดง OD ฝา2 ในการ์ดแชร์ ข้อความเทเลแกรม และตาราง DATA (ลบคำว่า "OD ฝา2:" ออก รูปแบบใหม่ 350/300×200×500 mm)',
+      'แก้ไขกล่องยืนยันก่อนบันทึก ให้แสดง OD ฝา2 ด้วย',
+      'แก้ไขรูปแบบราคาในข้อความเทเลแกรม จาก @1,340.00. เป็น @ 1,340.-',
+      'เปลี่ยนปุ่ม "วิเคราะห์ละเอียด (AI)" เป็น "🤖 AI เคาะราคา" — คำตอบสั้นกระชับ 3 บรรทัด เร็วขึ้น',
+      'แก้บั๊ก AI: ฟังก์ชัน callAiText ชนกัน 2 ตัว ทำให้วิเคราะห์ราคาพัง',
+      'เพิ่มระบบสลับ Gemini model อัตโนมัติเมื่อ Quota เต็ม พร้อมแจ้งเตือน',
+      'AI อ่านแบบ/อ่านข้อความ: ถ้าไม่ระบุ MAT ฝาบน/ฝาล่าง ใส่ค่าเริ่มต้น SPCC-0.6 ให้อัตโนมัติ',
+      'แก้บั๊กช่อง "หมายเหตุ" จาก AI ที่ใส่ผิดช่อง (f_note → f_remark)',
+      'แก้ไข syncRemarkChips ให้ต่อข้อความใหม่ ไม่ลบข้อความที่พิมพ์ไว้เดิม',
+    ],
+  },
+];
+
+function renderDevLogs() {
+  const body = $('devLogsBody');
+  if (!body) return;
+  body.innerHTML = DEV_LOGS.map((log, idx) => `
+    <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+      border-radius:10px;padding:10px 12px">
+      <div style="font-size:.8rem;font-weight:700;color:#e2e8f0;margin-bottom:6px;display:flex;
+        align-items:center;gap:6px;flex-wrap:wrap">
+        <span>📋 ENTRY ${DEV_LOGS.length - idx}:</span>
+        <span style="color:#94a3b8;font-weight:500">📅 ${log.date}</span>
+        <span style="color:#a5b4fc">${log.ref}</span>
+        ${log.current ? '<span style="color:#34d399;font-weight:700">(Current)</span>' : ''}
+      </div>
+      <ul style="margin:0;padding-left:18px;font-size:.78rem;color:#cbd5e1;line-height:1.6">
+        ${log.items.map(it => `<li>${it}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('');
+}
+
+function openDevLogs() {
+  renderDevLogs();
+  $('devLogsModal').style.display = 'flex';
+}
+function closeDevLogs() {
+  $('devLogsModal').style.display = 'none';
+}
+</script>
 </body>
 </html>
