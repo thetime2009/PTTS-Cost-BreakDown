@@ -1155,7 +1155,7 @@ select option { background: var(--sel-bg); color: var(--t1); }
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v5.2</span>
+      <span class="ph-chip ver">v5.4</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2033,8 +2033,13 @@ select option { background: var(--sel-bg); color: var(--t1); }
 <!-- TAB: API KEYS                                     -->
 <!-- ══════════════════════════════════════════════════ -->
 <div id="tab-api" class="tab-content">
-  <div class="tab-title" style="padding-top:16px">
-    <div class="ticon ic-blue">🔧</div>ตั้งค่า
+  <div class="tab-title" style="padding-top:16px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px"><div class="ticon ic-blue">🔧</div>ตั้งค่า</div>
+    <button onclick="openDevLogs()"
+      style="padding:8px 14px;border:1px solid rgba(255,255,255,.12);border-radius:999px;
+      cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.78rem;font-weight:700;
+      display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0f172a,#1e293b);
+      color:#cbd5e1">📋 Dev Logs</button>
   </div>
 
   <!-- Google Apps Script URL -->
@@ -3217,6 +3222,12 @@ function matSaveRow(type, i) {
   if(typeof _saveLocalSpecMat==='function') _saveLocalSpecMat();
   if(typeof renderSpecMatTable==='function') renderSpecMatTable();
   renderMatTable(type);
+  if (SCRIPT_URL) {
+    fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'updateMat', type, code, name, price, priceBuy }) })
+      .catch(()=>{});
+  }
   Swal.fire({icon:'success',title:'บันทึกแล้ว ✅',background:'#0d1b2a',color:'#cce4ff',
     timer:1200,showConfirmButton:false,toast:true,position:'top-end'});
 }
@@ -3246,6 +3257,12 @@ function matDeleteRow(type, i) {
     if (_matEditIdx[type] >= arr.length) _matEditIdx[type] = -1;
     _saveLocalMat(type);
     renderMatTable(type);
+    if (SCRIPT_URL && code) {
+      fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'deleteMat', type, code }) })
+        .catch(()=>{});
+    }
     Swal.fire({icon:'success',title:`ลบ "${code}" แล้ว`,background:'#0d1b2a',color:'#cce4ff',
       timer:1300,showConfirmButton:false,toast:true,position:'top-end'});
   });
@@ -5037,41 +5054,29 @@ async function loadAllData(showResult) {
       fetchJSON('getModl'),
     ]);
 
-    // MAT — seed local from server (first load only), then always use local
+    // MAT — server เป็นข้อมูลหลักเสมอ (sync ข้ามเครื่อง) คงค่า w/l เดิมไว้ถ้ามี
     if (matData.status === 'ok') {
       const seedMat = (serverItems, type) => {
         if (!Array.isArray(serverItems)) return;
+        const oldArr = _getMatArr(type);
+        const oldMap = new Map(oldArr.map(x => [x.code, x]));
+        const newArr = serverItems.map(m => {
+          const old  = oldMap.get(m.code);
+          const spec = specMatData[m.code] || {};
+          return {
+            code: m.code,
+            name: m.name || '',
+            price: +m.price || 0,
+            priceBuy: +m.priceBuy || 0,
+            w: old?.w || spec.w || 1219,
+            l: old?.l || spec.l || 2438,
+            unit: 'มิล',
+          };
+        });
         const arr = _getMatArr(type);
-        if (arr.length === 0) {
-          // ครั้งแรก: seed จาก server
-          serverItems.forEach(m => {
-            const spec = specMatData[m.code] || {};
-            arr.push({ code: m.code, name: m.name||'', price: +m.price||0, priceBuy: +m.priceBuy||0, w: spec.w||1219, l: spec.l||2438, unit:'มิล' });
-          });
-          _saveLocalMat(type);
-        } else {
-          // เพิ่มรายการใหม่ + อัปเดต priceBuy/name ของรายการเดิม
-          const localMap = new Map(arr.map((x,i) => [x.code, i]));
-          let changed = false;
-          serverItems.forEach(m => {
-            if (!localMap.has(m.code)) {
-              const spec = specMatData[m.code] || {};
-              arr.push({ code: m.code, name: m.name||'', price: +m.price||0, priceBuy: +m.priceBuy||0, w: spec.w||1219, l: spec.l||2438, unit:'มิล' });
-              changed = true;
-            } else if (+m.priceBuy > 0) {
-              // อัปเดต priceBuy และ price จาก server ถ้า local ยังเป็นข้อมูลเก่า
-              // (สังเกตจาก priceBuy==0 หรือ price==priceBuy ซึ่งแสดงว่า seed มาจาก column เดิม)
-              const idx = localMap.get(m.code);
-              const entry = arr[idx];
-              if (!entry.priceBuy || entry.priceBuy === entry.price) {
-                entry.priceBuy = +m.priceBuy;
-                entry.price    = +m.price;
-                changed = true;
-              }
-            }
-          });
-          if (changed) _saveLocalMat(type);
-        }
+        arr.length = 0;
+        newArr.forEach(x => arr.push(x));
+        _saveLocalMat(type);
         _getMatSel(type).forEach(id => fillSelect(id, arr));
         arr.forEach(m => { matPriceMap[m.code] = +m.price||0; if(m.name) matNameMap[m.code] = m.name; });
       };
@@ -9243,14 +9248,6 @@ function closeDocCfg() { $('docCfgModal').style.display = 'none'; }
 </div>
 
 <!-- ===== Dev Logs (ประวัติการแก้ไขงาน) ===== -->
-<button id="devLogsBtn" onclick="openDevLogs()"
-  style="position:fixed;right:16px;bottom:16px;z-index:9990;padding:10px 16px;border:none;border-radius:999px;
-  cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.8rem;font-weight:700;
-  display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0f172a,#1e293b);
-  color:#cbd5e1;border:1px solid rgba(255,255,255,.12);box-shadow:0 4px 14px rgba(0,0,0,.35)">
-  📋 Dev Logs
-</button>
-
 <div id="devLogsModal" style="display:none;position:fixed;inset:0;z-index:9991;background:rgba(0,0,0,.5);
   align-items:center;justify-content:center">
   <div style="background:#0a1c2e;border:1px solid rgba(255,255,255,.12);border-radius:14px;
@@ -9273,9 +9270,25 @@ function closeDocCfg() { $('docCfgModal').style.display = 'none'; }
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260610-AH',
+    ref: '#REV-20260610-AJ',
     date: '2026-06-10',
     current: true,
+    items: [
+      'ย้ายปุ่ม "Dev Logs" ออกจากมุมล่างขวา (ลอยทับแท็บมือถือ) ไปไว้ในแท็บ "ตั้งค่า" แทน',
+    ],
+  },
+  {
+    ref: '#REV-20260610-AI',
+    date: '2026-06-10',
+    items: [
+      'ซิงค์ราคาวัตถุดิบ (MAT-ฝา / MAT-ตะแกรง) ขึ้น Google Sheets — แก้ไข/เพิ่ม/ลบในเครื่องไหนก็ตาม จะอัปเดตให้ทุกเครื่องเมื่อโหลดหน้าใหม่',
+      'เพิ่ม action "updateMat" และ "deleteMat" ใน Apps Script (Code.gs) สำหรับบันทึก/ลบราคาวัตถุดิบ',
+      'แก้ปุ่ม "Dev Logs" บนมือถือ — ย้ายขึ้นไม่ให้บังแท็บ "ตั้งค่า"/"MAT" ที่แถบล่าง',
+    ],
+  },
+  {
+    ref: '#REV-20260610-AH',
+    date: '2026-06-10',
     items: [
       'ตาราง DATA — ถ้า "เสนอขาย/ลูก" น้อยกว่า "ต้นทุนรวม" ของแถวนั้น แสดงตัวเลขเสนอขายเป็นสีแดงเพื่อเตือนว่าขาดทุน',
     ],
