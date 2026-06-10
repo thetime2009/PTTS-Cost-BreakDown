@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>PTS — Cost Breakdown</title>
+
+<!-- PWA: ติดตั้งเป็นแอปบนมือถือ/แท็บเล็ต -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3b82f6">
+<link rel="icon" type="image/png" href="PTS.png">
+<link rel="apple-touch-icon" href="PTS.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PTS Cost">
+
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=optional" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1155,7 +1166,7 @@ select option { background: var(--sel-bg); color: var(--t1); }
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v5.4</span>
+      <span class="ph-chip ver">v5.5</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -9270,9 +9281,17 @@ function closeDocCfg() { $('docCfgModal').style.display = 'none'; }
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260610-AJ',
+    ref: '#REV-20260610-AK',
     date: '2026-06-10',
     current: true,
+    items: [
+      'เพิ่มระบบ PWA — ติดตั้งแอปลงหน้าจอหลักของมือถือ/แท็บเล็ตได้เหมือนแอปทั่วไป (เพิ่ม manifest.json, sw.js, ไอคอน, meta tag)',
+      'รองรับการเปิดใช้งานแบบ standalone (ไม่มีแถบ URL) และแคชไฟล์หลักไว้ใช้งานออฟไลน์',
+    ],
+  },
+  {
+    ref: '#REV-20260610-AJ',
+    date: '2026-06-10',
     items: [
       'ย้ายปุ่ม "Dev Logs" ออกจากมุมล่างขวา (ลอยทับแท็บมือถือ) ไปไว้ในแท็บ "ตั้งค่า" แทน',
     ],
@@ -9569,6 +9588,13 @@ function openDevLogs() {
 }
 function closeDevLogs() {
   $('devLogsModal').style.display = 'none';
+}
+
+// ===== PWA: ลงทะเบียน Service Worker (ติดตั้งแอปบนมือถือ/แท็บเล็ต) =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
 }
 </script>
 </body>
