@@ -19,7 +19,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=5.88">
+<link rel="stylesheet" href="style.css?v=5.91">
 </head>
 <body>
 
@@ -36,7 +36,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v5.88</span>
+      <span class="ph-chip ver">v5.91</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -1618,9 +1618,9 @@
       <h2>ติดตามสถานะงาน</h2>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-      <input type="text" id="trkSearch" placeholder="🔍 ค้นหา No.PO / No.Quo / ลูกค้า / สินค้า" oninput="renderTrackDashboard()"
+      <input type="text" id="trkSearch" placeholder="🔍 ค้นหา No.PO / No.Quo / ลูกค้า / สินค้า" oninput="_trkResetPage()"
         style="flex:1;min-width:200px;padding:8px 12px;font-size:.82rem;border-radius:8px;border:1px solid var(--bc-div);background:var(--bg1,#fff)">
-      <select id="trkFilter" onchange="renderTrackDashboard()"
+      <select id="trkFilter" onchange="_trkResetPage()"
         style="padding:8px 12px;font-size:.82rem;border-radius:8px;border:1px solid var(--bc-div);background:var(--bg1,#fff)">
         <option value="active" selected>กำลังดำเนินการ</option>
         <option value="">ทุกสถานะ</option>
@@ -1635,7 +1635,9 @@
         <option value="proc:เรียบร้อย">เรียบร้อย</option>
       </select>
     </div>
+    <div id="trkSummary" class="trk-summary"></div>
     <div id="trackBody" class="track-grid"></div>
+    <div id="trkPager" class="trk-pager"></div>
   </div>
 </div>
 </div><!-- end tab-track -->
@@ -1905,13 +1907,13 @@
   </div>
 </div>
 
-<script src="core.js?v=5.88"></script>
-<script src="data.js?v=5.88"></script>
-<script src="formcalc.js?v=5.88"></script>
-<script src="aifeatures.js?v=5.88"></script>
-<script src="theme.js?v=5.88"></script>
-<script src="order.js?v=5.88"></script>
-<script src="purchase.js?v=5.88"></script>
+<script src="core.js?v=5.91"></script>
+<script src="data.js?v=5.91"></script>
+<script src="formcalc.js?v=5.91"></script>
+<script src="aifeatures.js?v=5.91"></script>
+<script src="theme.js?v=5.91"></script>
+<script src="order.js?v=5.91"></script>
+<script src="purchase.js?v=5.91"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -2040,9 +2042,38 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260611-BD',
+    ref: '#REV-20260611-BG',
     date: '2026-06-11',
     current: true,
+    items: [
+      'เพิ่มคอลัมน์ G (กว้าง) และ H (ยาว) ใน Sheet MAT-ฝา / MAT-ตะแกรง สำหรับเก็บขนาดแผ่น',
+      'getMAT/updateMat (Code.gs) อ่าน-เขียนค่าขนาดแผ่นจากชีต ทำให้ข้อมูลตรงกันทุกเครื่อง',
+      'แก้ไขขนาดแผ่นในตาราง MAT แล้วบันทึก → sync ขึ้นชีตทันที',
+    ],
+  },
+  {
+    ref: '#REV-20260611-BF',
+    date: '2026-06-11',
+    current: false,
+    items: [
+      'แท็บ "ติดตามงาน" — แบ่งหน้ารายการ 10 รายการ/หน้า พร้อมปุ่มเปลี่ยนหน้า',
+      'เปิดโปรแกรมครั้งแรก (ยังไม่มีประวัติ) → เปิดที่แท็บ "ติดตามงาน" เสมอ',
+      'กดรีเฟรช/เปิดแอปใหม่ครั้งต่อไป → กลับไปแท็บและหน้าที่ใช้งานล่าสุดอัตโนมัติ',
+    ],
+  },
+  {
+    ref: '#REV-20260611-BE',
+    date: '2026-06-11',
+    current: false,
+    items: [
+      'แท็บ "ติดตามงาน" — เพิ่มการ์ดสรุปจำนวนงาน 8 สถานะ ใต้ช่องค้นหา/ตัวกรอง',
+      'คลิกการ์ดสรุปเพื่อกรองรายการตามสถานะนั้นทันที (คลิกซ้ำเพื่อยกเลิกตัวกรอง)',
+    ],
+  },
+  {
+    ref: '#REV-20260611-BD',
+    date: '2026-06-11',
+    current: false,
     items: [
       'แท็บ "ติดตามงาน" — งานที่เลยกำหนดส่ง วงกลมนับถอยหลังเปลี่ยนเป็นสีแดงเข้มเต็มวง พร้อมไอคอนเตือน ⚠️',
     ],
@@ -2564,14 +2595,4 @@ const DEV_LOGS = [
     date: '2026-06-10',
     items: [
       'จัดเลย์เอาต์การ์ด "สร้าง Order" ใหม่อีกครั้ง: รวมข้อมูลฝั่งซ้ายเป็นกล่องเดียว (ข้อมูลอ้างอิง + แม่พิมพ์ + สถานะงาน + วัตถุดิบ + หมายเหตุ) เรียงต่อกันในกล่องเดียว',
-      'ฝั่งขวาเหลือเฉพาะรูปตัวอย่างไฟล์ PO ขนาดใหญ่ (ขยายความสูงเต็มกล่อง) + ปุ่มแนบไฟล์ PO ด้านล่าง',
-      'ลบแถว 2fr/1fr/1fr เดิมที่แยกหมายเหตุ/สถานะงาน/วัตถุดิบออกไป (ย้ายเข้ากล่องซ้ายแทน)',
-    ],
-  },
-  {
-    ref: '#REV-20260610-BF',
-    date: '2026-06-10',
-    items: [
-      'จัดเลย์เอาต์การ์ด "สร้าง Order" ใหม่: กล่องข้อมูลซ้ายเพิ่มช่อง "แม่พิมพ์" แบบแก้ไขได้ (ดึงจากฟอร์มอัตโนมัติ), ขวาเป็นรูปตัวอย่างไฟล์ PO ขนาดใหญ่ + ปุ่มแนบไฟล์',
-      'เพิ่มแถวใหม่: หมายเหตุ (ดึงจาก DATA แก้ไขได้, เป็น textarea), สถานะงาน, วัตถุดิบ อยู่แถวเดียวกัน',
-      'เพิ่ม helper _ordAutoFill() สำหรับเติมค่าอัตโนมัติจากฟอร์ม
+      'ฝั่งขวาเหลือเฉพาะรูปตัวอย่าง�

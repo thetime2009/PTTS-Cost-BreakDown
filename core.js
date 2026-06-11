@@ -206,6 +206,7 @@ function switchTab(name) {
   if (tabEl)  tabEl.classList.add('active');
   if (tbtnEl) tbtnEl.classList.add('active');
   _activeTab = name;
+  localStorage.setItem('ptts_active_tab', name);
   // แท็บ Order: ซ่อน summary panel ฝั่งขวา ให้ตารางเต็มจอ (เดสก์ท็อป)
   document.body.classList.toggle('no-summary-tab', name === 'order');
   if (name === 'calc')      refreshCalcTab();
@@ -735,7 +736,7 @@ function matSaveRow(type, i) {
   if (SCRIPT_URL) {
     fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'updateMat', type, code, name, price, priceBuy }) })
+      body: JSON.stringify({ action:'updateMat', type, code, name, price, priceBuy, w, l }) })
       .catch(()=>{});
   }
   Swal.fire({icon:'success',title:'บันทึกแล้ว ✅',background:'#0d1b2a',color:'#cce4ff',

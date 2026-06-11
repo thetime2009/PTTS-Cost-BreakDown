@@ -20,6 +20,8 @@ const ORDER_COLS = {
 const ORDER_NUM_COLS = 28;
 let _orderCache = [];
 let _ordEditNoPO = null;
+let _trkPage = parseInt(localStorage.getItem('ptts_trk_page')) || 1;
+const TRK_PAGE_SIZE = 10;
 
 function _todayStr() {
   const d = new Date();
@@ -1111,10 +1113,68 @@ function _trkToggle(idx) {
   if (btn) btn.textContent = open ? '🔽 แสดงรายละเอียด' : '🔼 ซ่อนรายละเอียด';
 }
 
+// ── การ์ดสรุปจำนวนงานแยกตามสถานะ (Process) ทั้ง 8 สถานะ ──
+const TRK_STATUS_DEFS = [
+  { key:'รอConfirm',                icon:'⏳', label:'รอ Confirm',          color:'#94a3b8' },
+  { key:'กำลังผลิต',                 icon:'🔧', label:'กำลังผลิต',           color:'#f59e0b' },
+  { key:'ส่งซุป',                    icon:'✨', label:'ส่งซุป',              color:'#fbbf24' },
+  { key:'ส่งตัวอย่างเทส+รอสรุป',       icon:'🧪', label:'ส่งตัวอย่าง+รอสรุป',  color:'#38bdf8' },
+  { key:'ส่งยังไม่ครบ',               icon:'📤', label:'ส่งยังไม่ครบ',        color:'#fb923c' },
+  { key:'FG รอเรียก',                icon:'📦', label:'FG รอเรียก',          color:'#6366f1' },
+  { key:'Stock',                    icon:'🏬', label:'Stock',               color:'#9b8fff' },
+  { key:'เรียบร้อย',                  icon:'✅', label:'เรียบร้อย',           color:'#22c55e' },
+];
+
+function _trkRenderSummary() {
+  const wrap = $('trkSummary');
+  if (!wrap) return;
+  const curFilter = $('trkFilter')?.value || '';
+  wrap.innerHTML = TRK_STATUS_DEFS.map(s => {
+    const count = _orderCache.filter(r => String(r[ORDER_COLS.process]||'').trim() === s.key).length;
+    const active = curFilter === ('proc:' + s.key);
+    return `
+      <div class="trk-sum-card${active ? ' active' : ''}" style="--sc:${s.color}" onclick="_trkSetFilter('proc:${s.key.replace(/'/g,"\\'")}')">
+        <div class="trk-sum-top">
+          <span class="trk-sum-lbl">${s.label}</span>
+          <span class="trk-sum-icon">${s.icon}</span>
+        </div>
+        <div class="trk-sum-num">${count}</div>
+        <div class="trk-sum-sub">รายการ</div>
+      </div>`;
+  }).join('');
+}
+
+// คลิกการ์ดสรุป → ตั้งค่าตัวกรองตามสถานะ (คลิกซ้ำ = ยกเลิกตัวกรอง)
+function _trkSetFilter(val) {
+  const sel = $('trkFilter');
+  if (!sel) return;
+  sel.value = (sel.value === val) ? '' : val;
+  _trkPage = 1;
+  localStorage.setItem('ptts_trk_page', 1);
+  renderTrackDashboard();
+}
+
+// รีเซ็ตกลับหน้า 1 (เมื่อเปลี่ยนคำค้นหา/ตัวกรอง) โดยไม่เลื่อนจอ
+function _trkResetPage() {
+  _trkPage = 1;
+  localStorage.setItem('ptts_trk_page', 1);
+  renderTrackDashboard();
+}
+
+// เปลี่ยนหน้า pagination
+function _trkGoPage(p) {
+  _trkPage = p;
+  localStorage.setItem('ptts_trk_page', p);
+  renderTrackDashboard();
+  const wrap = $('trackBody');
+  if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 // ── เรนเดอร์แดชบอร์ดติดตามงาน ──
 function renderTrackDashboard() {
   const wrap = $('trackBody');
   if (!wrap) return;
+  _trkRenderSummary();
 
   const search = ($('trkSearch')?.value || '').trim().toLowerCase();
   const filter = $('trkFilter')?.value || '';
@@ -1135,12 +1195,38 @@ function renderTrackDashboard() {
     return true;
   });
 
+  const pager = $('trkPager');
+
   if (!rows.length) {
     wrap.innerHTML = `<div style="padding:30px;text-align:center;color:var(--t3);font-size:.85rem">ไม่พบข้อมูล Order</div>`;
+    if (pager) pager.innerHTML = '';
     return;
   }
 
-  wrap.innerHTML = rows.map((r, idx) => {
+  // ── Pagination: หน้าละ 10 รายการ ──
+  const totalPages = Math.max(1, Math.ceil(rows.length / TRK_PAGE_SIZE));
+  if (_trkPage > totalPages) _trkPage = totalPages;
+  if (_trkPage < 1) _trkPage = 1;
+  const startIdx = (_trkPage - 1) * TRK_PAGE_SIZE;
+  const pageRows = rows.slice(startIdx, startIdx + TRK_PAGE_SIZE);
+
+  if (pager) {
+    if (totalPages <= 1) {
+      pager.innerHTML = '';
+    } else {
+      let btns = '';
+      for (let p = 1; p <= totalPages; p++) {
+        btns += `<button class="trk-page-btn${p === _trkPage ? ' active' : ''}" onclick="_trkGoPage(${p})">${p}</button>`;
+      }
+      pager.innerHTML = `
+        <button class="trk-page-btn" ${_trkPage<=1?'disabled':''} onclick="_trkGoPage(${_trkPage-1})">‹</button>
+        ${btns}
+        <button class="trk-page-btn" ${_trkPage>=totalPages?'disabled':''} onclick="_trkGoPage(${_trkPage+1})">›</button>
+        <span class="trk-page-info">ทั้งหมด ${rows.length} รายการ</span>`;
+    }
+  }
+
+  wrap.innerHTML = pageRows.map((r, idx) => {
     const g = (k) => {
       const v = r[ORDER_COLS[k]];
       const s = String(v ?? '').trim();

@@ -95,8 +95,9 @@ async function loadAllData(showResult) {
             name: m.name || '',
             price: +m.price || 0,
             priceBuy: +m.priceBuy || 0,
-            w: old?.w || spec.w || 1219,
-            l: old?.l || spec.l || 2438,
+            // ขนาดแผ่น: ใช้ค่าจาก Sheet (คอลัมน์ G/H) เป็นหลัก เพื่อให้ตรงกันทุกเครื่อง
+            w: (+m.w || 0) || old?.w || spec.w || 1219,
+            l: (+m.l || 0) || old?.l || spec.l || 2438,
             unit: 'มิล',
           };
         });

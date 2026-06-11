@@ -775,7 +775,10 @@ document.addEventListener('DOMContentLoaded', () => {
   renderTabBar();
   // Apply saved logo หลัง renderTabBar เพื่อให้ครบทุก element
   _applyLogoAll();
-  switchTab('breakdown');
+  // เปิดโปรแกรมครั้งแรก (ไม่มีค่าบันทึกไว้) → Active แท็บ "ติดตามงาน" เสมอ
+  // ครั้งต่อๆ ไป (กดรีเฟรช/เปิดใหม่) → กลับไปหน้า/แท็บเดิมที่ใช้งานอยู่
+  const savedTab = localStorage.getItem('ptts_active_tab');
+  switchTab(savedTab || 'track');
   _updateDraftBadge(); // แสดงจำนวนแบบร่างที่บันทึกไว้
 
   // Init labor fingerprint (baseline = ค่าที่โหลดมาตอนเปิดฟอร์ม)
