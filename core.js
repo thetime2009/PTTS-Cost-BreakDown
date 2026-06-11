@@ -77,6 +77,7 @@ const TAB_DEFS = [
   { id:'mold',      icon:'🔩', label:'แม่พิมพ์' },
   { id:'data',      icon:'🗂️', label:'DATA'     },
   { id:'order',     icon:'📦', label:'Order'    },
+  { id:'po',        icon:'🧾', label:'ใบสั่งซื้อ' },
   { id:'api',       icon:'🔧', label:'ตั้งค่า'  },
   { id:'mat',       icon:'🧱', label:'MAT'      },
 ];
@@ -96,7 +97,7 @@ function _saveTabCfg(order, hidden) {
 let _activeTab = 'breakdown';
 
 // แท็บย่อยที่ถูกรวมไว้ใต้ปุ่ม "เพิ่มเติม" (ลดจำนวนปุ่มในแถบแท็บ)
-const SUB_TAB_IDS = ['labor', 'mold', 'api', 'mat'];
+const SUB_TAB_IDS = ['labor', 'mold', 'api', 'mat', 'po'];
 
 function renderTabBar() {
   const bar = $('mainTabBar');
@@ -214,6 +215,7 @@ function switchTab(name) {
   if (name === 'api')       { initCfgTheme(); renderTabManager(); }
   if (name === 'mat')       { renderMatTable('flap'); renderMatTable('mesh'); }
   if (name === 'order')     { updateOrderPreview(); fetchOrders(); }
+  if (name === 'po')        { fetchSuppliers(); fetchPurchaseOrders(); if (!_poEditingNo && !_poItems.length) _poNewForm(); }
 }
 
 // ── Tab Manager UI ───────────────────────────────────

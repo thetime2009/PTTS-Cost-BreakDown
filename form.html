@@ -19,7 +19,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=5.75">
+<link rel="stylesheet" href="style.css?v=5.77">
 </head>
 <body>
 
@@ -36,7 +36,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v5.75</span>
+      <span class="ph-chip ver">v5.77</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -1649,6 +1649,141 @@
 </div><!-- end tab-mat -->
 
 <!-- ══════════════════════════════════════════════════ -->
+<!-- TAB: PO (ใบสั่งซื้อ)                              -->
+<!-- ══════════════════════════════════════════════════ -->
+<div id="tab-po" class="tab-content">
+<div style="max-width:1100px;margin:0 auto;padding:12px 8px 80px">
+
+  <!-- ฟอร์มสร้าง/แก้ไขใบสั่งซื้อ -->
+  <div class="card">
+    <div class="card-header">
+      <div class="icon ic-ext">🧾</div>
+      <h2 id="po_formTitle">🧾 สร้างใบสั่งซื้อใหม่</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px 14px;margin-bottom:12px">
+      <div class="field"><label>เลขที่ PO</label>
+        <input type="text" id="po_poNo" readonly style="opacity:.8">
+      </div>
+      <div class="field"><label>วันที่ออก</label>
+        <input type="date" id="po_issueDate">
+      </div>
+      <div class="field"><label>วันที่ต้องการรับของ</label>
+        <input type="date" id="po_wantDate">
+      </div>
+      <div class="field"><label>Supplier</label>
+        <select id="po_supplier">
+          <option value="">— เลือก Supplier —</option>
+        </select>
+      </div>
+      <div class="field"><label>อ้างอิง No.PO/No.Quo</label>
+        <input type="text" id="po_refOrders" placeholder="เช่น PO-1234, Q-5678">
+      </div>
+      <div class="field"><label>เงื่อนไขชำระเงิน</label>
+        <input type="text" id="po_payTerm" placeholder="เช่น เครดิต 30 วัน">
+      </div>
+      <div class="field"><label>เงื่อนไขส่งมอบ</label>
+        <input type="text" id="po_deliverTerm" placeholder="เช่น ส่งถึงโรงงาน">
+      </div>
+      <div class="field"><label>สถานะ</label>
+        <select id="po_status">
+          <option value="ร่าง">ร่าง</option>
+          <option value="ส่งแล้ว">ส่งแล้ว</option>
+          <option value="ได้รับของแล้ว">ได้รับของแล้ว</option>
+          <option value="ยกเลิก">ยกเลิก</option>
+        </select>
+      </div>
+      <div class="field"><label>ผู้จัดทำ</label>
+        <input type="text" id="po_createdBy" placeholder="ชื่อผู้จัดทำ">
+      </div>
+      <div class="field" style="grid-column:1/-1"><label>หมายเหตุ</label>
+        <input type="text" id="po_note">
+      </div>
+    </div>
+
+    <!-- ตารางรายการสินค้า -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:.82rem;font-weight:700;color:var(--c1)">📋 รายการสินค้า/วัตถุดิบ</div>
+      <button type="button" class="btn-fx" onclick="_poAddItemRow()"
+        style="padding:5px 14px;border-radius:8px;border:1px solid rgba(52,211,153,.4);
+        background:rgba(52,211,153,.1);color:#34d399;font-family:'Sarabun',sans-serif;
+        font-size:.8rem;cursor:pointer">➕ เพิ่มรายการ</button>
+    </div>
+    <div style="overflow-x:auto;margin-bottom:12px">
+      <table style="width:100%;border-collapse:collapse;min-width:760px">
+        <thead>
+          <tr style="border-bottom:2px solid var(--bc-div)">
+            <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:center;width:40px">ลำดับ</th>
+            <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:left">ชื่อรายการ</th>
+            <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:left">สเปค</th>
+            <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:center;width:80px">จำนวน</th>
+            <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:center;width:80px">หน่วย</th>
+            <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:right;width:110px">ราคา/หน่วย</th>
+            <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:right;width:110px">รวม</th>
+            <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:center;width:40px"></th>
+          </tr>
+        </thead>
+        <tbody id="poItemsBody"></tbody>
+      </table>
+    </div>
+
+    <!-- สรุปยอด -->
+    <div style="display:flex;justify-content:flex-end">
+      <div style="min-width:260px;font-size:.82rem">
+        <div style="display:flex;justify-content:space-between;padding:4px 0">
+          <span style="color:var(--t3)">รวมเป็นเงิน</span>
+          <span id="po_subtotal" style="font-weight:600;color:var(--t1)">0.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0">
+          <span style="color:var(--t3)">ภาษีมูลค่าเพิ่ม 7%</span>
+          <span id="po_vat" style="font-weight:600;color:var(--t1)">0.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--bc-div);margin-top:4px">
+          <span style="color:var(--c1);font-weight:700">รวมสุทธิ</span>
+          <span id="po_total" style="font-weight:700;color:var(--c1);font-size:1rem">0.00</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px">
+      <button class="btn btn-primary" id="po_saveBtn" onclick="_poSave()" style="padding:10px 18px;font-size:.88rem">💾 บันทึกใบสั่งซื้อ</button>
+      <button class="btn" onclick="_poNewForm()" style="padding:10px 18px;font-size:.88rem">📄 ใบใหม่</button>
+    </div>
+  </div>
+
+  <!-- รายการใบสั่งซื้อทั้งหมด -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-header">
+      <div class="icon ic-ext">📑</div>
+      <h2>รายการใบสั่งซื้อ</h2>
+    </div>
+    <div style="margin-bottom:10px">
+      <input type="text" id="poSearch" placeholder="ค้นหา เลขที่ PO / Supplier / อ้างอิง Order..."
+        oninput="renderPOTable()" style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;
+        border:1px solid var(--bc-input);background:var(--bg-input);color:var(--t1);font-size:.85rem;font-family:Sarabun,sans-serif">
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;min-width:760px">
+        <thead>
+          <tr style="border-bottom:2px solid var(--bc-div)">
+            <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:left">เลขที่ PO</th>
+            <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:left">วันที่ออก</th>
+            <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:left">Supplier</th>
+            <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:left">อ้างอิง Order</th>
+            <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:right">ยอดสุทธิ</th>
+            <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:left">สถานะ</th>
+            <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:center">ปฏิบัติการ</th>
+          </tr>
+        </thead>
+        <tbody id="poBody"></tbody>
+      </table>
+    </div>
+    <div id="poPager" style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:12px;font-size:.78rem;color:var(--t3)"></div>
+  </div>
+
+</div>
+</div><!-- end tab-po -->
+
+<!-- ══════════════════════════════════════════════════ -->
 <!-- BOTTOM TAB BAR                                    -->
 <!-- ══════════════════════════════════════════════════ -->
 <div class="tab-bar" id="mainTabBar">
@@ -1739,12 +1874,13 @@
   </div>
 </div>
 
-<script src="core.js?v=5.75"></script>
-<script src="data.js?v=5.75"></script>
-<script src="formcalc.js?v=5.75"></script>
-<script src="aifeatures.js?v=5.75"></script>
-<script src="theme.js?v=5.75"></script>
-<script src="order.js?v=5.75"></script>
+<script src="core.js?v=5.77"></script>
+<script src="data.js?v=5.77"></script>
+<script src="formcalc.js?v=5.77"></script>
+<script src="aifeatures.js?v=5.77"></script>
+<script src="theme.js?v=5.77"></script>
+<script src="order.js?v=5.77"></script>
+<script src="purchase.js?v=5.77"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -1873,9 +2009,30 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260611-AP',
+    ref: '#REV-20260611-AR',
     date: '2026-06-11',
     current: true,
+    items: [
+      'หน้า PO: เพิ่ม feedback ตอนกดปุ่ม (เอฟเฟกต์กดของปุ่มเล็กในตาราง/รายการสินค้า)',
+      'บันทึก/ลบ PO: แสดง popup "กำลังบันทึก/กำลังลบ..." ระหว่างทำงาน และ popup ยืนยันเมื่อเสร็จชัดเจนขึ้น',
+    ],
+  },
+  {
+    ref: '#REV-20260611-AQ',
+    date: '2026-06-11',
+    current: false,
+    items: [
+      'เพิ่มแท็บใหม่ "ใบสั่งซื้อ" (PO) — ออกใบสั่งซื้อ ผูกกับ Supplier และอ้างอิง Order',
+      'ฟอร์ม PO: รายการสินค้า/วัตถุดิบ คำนวณยอดรวม+VAT7%+สุทธิอัตโนมัติ',
+      'ตารางรายการ PO: ค้นหา, แบ่งหน้า, แก้ไข/พิมพ์/ลบ',
+      'พิมพ์ใบสั่งซื้อ A4 (เปิดหน้าต่างใหม่ + พิมพ์อัตโนมัติ)',
+      'เพิ่มไฟล์ purchase.js และเชื่อมกับ Code.gs (savePurchaseOrder, deletePurchaseOrder, getPurchaseOrders, getSuppliers, getNextPONo)',
+    ],
+  },
+  {
+    ref: '#REV-20260611-AP',
+    date: '2026-06-11',
+    current: false,
     items: [
       'ตาราง Order: ปรับสไตล์ให้เหมือนตาราง DATA — ไม่ตัดข้อความ (ไม่มี ... ), แถบสีสลับ, ปุ่มสีสด',
       'คอลัมน์ No.Quo ของตาราง Order เพิ่ม badge แสดงสถานะ Process กำกับไว้ด้านบน (เหมือน DATA)',

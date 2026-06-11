@@ -372,6 +372,11 @@ select option { background: var(--sel-bg); color: var(--t1); }
   transition: transform .15s, box-shadow .15s;
 }
 .btn:active { transform: scale(.97); }
+
+/* ปุ่มเล็กแบบ inline (ตาราง Order/PO ฯลฯ) — เพิ่ม feedback ตอนกด */
+.btn-fx { transition: transform .12s, opacity .12s, filter .12s; }
+.btn-fx:active { transform: scale(.92); opacity: .8; filter: brightness(.92); }
+.btn-fx:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 .btn-primary { background: var(--grad); color:#fff; box-shadow: 0 4px 18px var(--c1-28); }
 .btn-clear { background:rgba(210,80,80,.09); border:1px solid rgba(210,80,80,.25); color:#e08080; }
 .btn-calc  { background:rgba(200,170,80,.09); border:1px solid rgba(200,170,80,.25); color:#c9a85c; transition:all .3s; }
