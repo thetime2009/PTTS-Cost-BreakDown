@@ -89,6 +89,9 @@ body {
 body.trk-fullscreen-mode .page-header,
 body.trk-fullscreen-mode .tab-bar { display: none !important; }
 body.trk-fullscreen-mode #tab-track > div { max-width: 100% !important; }
+/* โหมดเต็มจอ: ซ่อนปุ่ม "เปิดเต็มจอ" สลับเป็นปุ่ม "ปิดหน้านี้" (สำหรับมือถือที่ไม่มีปุ่มปิดแท็บ) */
+body.trk-fullscreen-mode #trkFullBtn { display: none !important; }
+body.trk-fullscreen-mode #trkCloseBtn { display: inline-flex !important; }
 
 /* ── "เพิ่มเติม" floating menu (รวมแท็บย่อย) ────────── */
 .more-menu {
@@ -304,10 +307,9 @@ body.trk-fullscreen-mode #tab-track > div { max-width: 100% !important; }
 .divider { height: 1px; background: var(--bc-div); margin: 6px 0 10px; }
 
 /* ── ดรอปดาวน์เลือกลูกค้า (ออกใบกำกับภาษี): ขยายให้กว้างขึ้นบนเดสทอป เพื่ออ่านข้อความ "รอเปิด N PO" ได้สุด ── */
-#inv_customer { width: 100%; }
+#inv_customer { width: 100%; max-width: 100%; box-sizing: border-box; }
 @media (min-width: 768px) {
-  .inv-cust-field { grid-column: span 2; }
-  #inv_customer { min-width: 420px; }
+  .inv-top-grid { grid-template-columns: 3fr 1fr !important; }
 }
 /* แสดงตัวเลือกที่มี PO รอเปิด เป็นตัวหนาสีแดง (เด่นชัด) */
 #inv_customer option.has-pending { color: #ef4444; font-weight: 700; }
@@ -1199,11 +1201,17 @@ body.trk-fullscreen-mode .trk-fs-toolbar {
 .trk-fs-toolbar .trk-fs-clock { margin-left: auto; font-weight: 700; color: var(--t1); }
 
 /* การ์ดสรุปจำนวนงานแยกตามสถานะ */
-.trk-summary {
+.trk-summary { margin-bottom: 14px; }
+.trk-sum-group { margin-bottom: 10px; }
+.trk-sum-group:last-child { margin-bottom: 0; }
+.trk-sum-group-title {
+  font-size: .74rem; font-weight: 700; color: var(--t3);
+  margin-bottom: 6px; padding-left: 2px;
+}
+.trk-sum-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 10px;
-  margin-bottom: 14px;
 }
 .trk-sum-card {
   background: var(--bg-card, var(--bc-div));
@@ -1221,6 +1229,16 @@ body.trk-fullscreen-mode .trk-fs-toolbar {
 .trk-sum-icon { font-size: .9rem; }
 .trk-sum-num { font-size: 1.5rem; font-weight: 800; color: var(--t1); line-height: 1.3; margin-top: 2px; }
 .trk-sum-sub { font-size: .66rem; color: var(--t3); }
+
+/* การ์ด BackOrder (เลยกำหนดส่ง) เมื่อมีรายการ > 0 ให้กระพริบสีแดงเตือน */
+@keyframes trkBlinkRed {
+  0%, 100% { background: var(--bg-card, var(--bc-div)); box-shadow: 0 0 0 0 rgba(239,68,68,.6); }
+  50%      { background: rgba(239,68,68,.18); box-shadow: 0 0 0 4px rgba(239,68,68,.25); }
+}
+.trk-sum-card.trk-blink {
+  animation: trkBlinkRed 1.1s ease-in-out infinite;
+  border-left-color: #ef4444;
+}
 
 /* Pagination ของแท็บติดตามงาน */
 .trk-pager {

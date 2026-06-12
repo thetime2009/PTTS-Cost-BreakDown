@@ -199,6 +199,16 @@ function renderCustomerTable() {
 // ══════════════════════════════════════════════════════
 let _invSelectedPOs = new Set();
 
+// ยอดรวมของ Order (รวม VAT) — คอลัมน์ totalTax (X) บางแถวยังไม่มีค่า (สูตรในชีตยังไม่คำนวณ)
+// จึงคำนวณสำรองจาก จำนวน × ราคา × 1.07
+function _invOrderTotal(r) {
+  const t = parseFloat(r[ORDER_COLS.totalTax]) || 0;
+  if (t) return t;
+  const qty = parseFloat(r[ORDER_COLS.qty]) || 0;
+  const price = parseFloat(r[ORDER_COLS.price]) || 0;
+  return qty * price * 1.07;
+}
+
 // นับจำนวน PO ที่ยังไม่ออกใบกำกับของลูกค้ารายนี้ (จับคู่ด้วย contact/name เหมือน renderInvOrderList)
 function _invCountPendingPOs(cust) {
   const matchKeys = [cust.contact, cust.name].map(s => (s||'').trim()).filter(Boolean);
@@ -270,7 +280,7 @@ function renderInvOrderList() {
     const noPO  = String(r[ORDER_COLS.noPO] || '');
     const prod  = r[ORDER_COLS.productList] || '';
     const date  = r[ORDER_COLS.orderDate] || '';
-    const total = parseFloat(r[ORDER_COLS.totalTax]) || 0;
+    const total = _invOrderTotal(r);
     const checked = _invSelectedPOs.has(noPO) ? 'checked' : '';
     return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;
       border:1px solid var(--bc-card);margin-bottom:6px;cursor:pointer;background:var(--bg-input2)">
@@ -298,7 +308,7 @@ function _invUpdateSummary() {
   if (!sumEl) return;
   let total = 0;
   _orderCache.forEach(r => {
-    if (_invSelectedPOs.has(String(r[ORDER_COLS.noPO]||''))) total += parseFloat(r[ORDER_COLS.totalTax]) || 0;
+    if (_invSelectedPOs.has(String(r[ORDER_COLS.noPO]||''))) total += _invOrderTotal(r);
   });
   const subtotal = total / 1.07;
   const vat = total - subtotal;
@@ -376,10 +386,9 @@ async function invGeneratePreview() {
 // ── สร้างรายการสินค้า (items) แบบโครงสร้างข้อมูล จากแถว Order ที่เลือก ──
 function _invBuildItemsFromOrders(orderRows) {
   return orderRows.map(r => {
-    const t   = parseFloat(r[ORDER_COLS.totalTax]) || 0;
     const qty = parseFloat(r[ORDER_COLS.qty]) || 0;
     const priceExVat = parseFloat(r[ORDER_COLS.price]) || 0;
-    const lineTotal = t || (qty * priceExVat * 1.07);
+    const lineTotal = _invOrderTotal(r);
     const sizeParts = String(r[ORDER_COLS.productList]||'').split(/[x×X]/).map(s=>s.trim()).filter(Boolean);
     return {
       poNo:     String(r[ORDER_COLS.noPO]||''),
@@ -410,8 +419,8 @@ function _invRenderItemRows(itemsArr, isFull) {
     const detailLines = [];
     if (it.workType) detailLines.push(`แบบงาน: ${it.workType}`);
     if (sizeLine) detailLines.push(sizeLine);
-    if (it.meshOut) detailLines.push(`ตะแกรงนอก: ${it.meshOut}`);
-    if (it.meshIn) detailLines.push(`ตะแกรงใน: ${it.meshIn}`);
+    if (it.meshOut) detailLines.push(`ตะแกรงนอก: ${matLabel(it.meshOut)}`);
+    if (it.meshIn) detailLines.push(`ตะแกรงใน: ${matLabel(it.meshIn)}`);
     if (it.note) detailLines.push(`หมายเหตุ: ${it.note}`);
     const detailHtml = detailLines.length
       ? `<div style="font-size:.71rem;color:#666;margin-top:3px;line-height:1.5">${detailLines.join('<br>')}</div>`
@@ -976,6 +985,22 @@ function _invEditRecalcAll() {
   $('invEdit_subtotal').value = sub.toFixed(2);
   $('invEdit_vat').value = vat.toFixed(2);
   $('invEdit_total').value = (sub + vat).toFixed(2);
+}
+
+// ── ดูตัวอย่างใบกำกับจากข้อมูลที่กำลังแก้ไข (ยังไม่บันทึก) ──
+function _invPreviewEditDoc() {
+  _invEditRecalcAll();
+  const items = _invCollectEditItems();
+  const inv = {
+    invoiceNo: $('invEdit_invoiceNo').value,
+    type: $('invEdit_type').value,
+    customerCode: $('invEdit_customer').value,
+    date: _invDateFromInput($('invEdit_date').value),
+    subtotal: $('invEdit_subtotal').value,
+    vat: $('invEdit_vat').value,
+    total: $('invEdit_total').value,
+  };
+  _invReprintInvoice(inv, items);
 }
 
 async function saveInvoiceEdit(thenReprint) {

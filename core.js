@@ -1,4 +1,13 @@
 const $ = id => document.getElementById(id);
+
+// ── ซ่อน/แสดงเนื้อหาการ์ด (การ์ดที่พับเก็บไว้ เรียกดูเมื่อต้องการ) ──
+function _toggleCardBody(id, btn) {
+  const el = $(id);
+  if (!el) return;
+  const show = el.style.display === 'none';
+  el.style.display = show ? '' : 'none';
+  if (btn) btn.textContent = show ? '▲ ซ่อน' : '▼ แสดง';
+}
 const num = id => parseFloat(String($(id).value).replace(/,/g,'')) || 0;
 const fmt = n => '฿' + n.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
 
@@ -218,7 +227,7 @@ function switchTab(name) {
   if (name === 'data')      dtRefresh(false);
   if (name === 'api')       { initCfgTheme(); renderTabManager(); }
   if (name === 'mat')       { renderMatTable('flap'); renderMatTable('mesh'); }
-  if (name === 'order')     { updateOrderPreview(); fetchOrders(); }
+  if (name === 'order')     { updateOrderPreview(); fetchOrders(); fetchCustomers().then(()=>_gordRefreshCustomerList()); fetchItemMaster(); }
   if (name === 'track')     { fetchOrders(); renderTrackDashboard(); }
   // รีเฟรชอัตโนมัติเฉพาะตอนอยู่แท็บติดตามงาน (อัตราตั้งค่าได้ในโหมดเต็มจอ)
   if (name === 'track') {

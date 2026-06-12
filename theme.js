@@ -974,6 +974,14 @@ function closeDocExport() {
     if (swapBtn) swapBtn.style.display = '';
     if ($('invConfirmBtn')) $('invConfirmBtn').style.display = 'none';
   }
+  if (typeof _gquoPreviewMode !== 'undefined' && _gquoPreviewMode) {
+    _gquoPreviewMode = false;
+    if ($('dtabQuo'))  $('dtabQuo').style.display  = '';
+    if ($('dtabCost')) $('dtabCost').style.display = '';
+    if ($('docGenQuo')) $('docGenQuo').classList.add('dp-hidden');
+    const swapBtn = document.querySelector('.doc-bottombar .doc-tab-btn[onclick*="_docActiveTab"]');
+    if (swapBtn) swapBtn.style.display = '';
+  }
 }
 function switchDocTab(tab) {
   _docActiveTab = tab;
@@ -994,6 +1002,153 @@ function fmtDate(str) {
   const d = new Date(str);
   if (isNaN(d)) return str;
   return d.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+}
+
+// ── ใบเสนอราคาทั่วไป (กรอกหลายรายการเอง) — render เป็น doc แยก ใน docExportOverlay ──
+let _gquoPreviewMode = false;
+
+function _gquoRenderDoc(data) {
+  const cfg = _companyInfoCache || {};
+  const co = {
+    name:    cfg.name    || 'บริษัท ปทิตตา ไส้กรองและวิศวกรรม จำกัด',
+    nameEn:  cfg.nameEn  || 'PATITTA FILTER ENGINEERING CO., LTD.',
+    addr:    cfg.address || 'เลขที่ 589/12 แขวงบางนาใต้ เขตบางนา กรุงเทพมหานคร 10260',
+    tel:     cfg.phone   || '02-345-6789, 081-999-8888',
+    email:   cfg.email   || 'sales@patitta-engine.co.th',
+    taxId:   cfg.taxId   || '0105574001897',
+  };
+
+  const rows = data.items.map(it => {
+    const qty   = parseFloat(it.qty)   || 0;
+    const price = parseFloat(it.price) || 0;
+    const total = qty * price;
+    return { desc: it.desc || '—', unit: it.unit || 'ชิ้น', qty, price, total };
+  });
+  const subtotal = rows.reduce((s,r) => s + r.total, 0);
+  const vatAmt   = subtotal * 0.07;
+  const grand    = subtotal + vatAmt;
+
+  const itemRows = rows.map(r => `
+    <tr style="border-bottom:1px solid #e8ecf2">
+      <td style="padding:10px 10px;line-height:1.5">${_escH(r.desc)}</td>
+      <td style="padding:10px;text-align:center;font-weight:700">${r.qty.toLocaleString('th-TH')}</td>
+      <td style="padding:10px;text-align:center;color:#555">${_escH(r.unit)}</td>
+      <td style="padding:10px;text-align:right">${fmtB(r.price)}</td>
+      <td style="padding:10px;text-align:right;font-weight:600">${fmtB(r.total)}</td>
+    </tr>`).join('');
+
+  const html = `
+<div class="doc-paper" style="overflow:hidden">
+  <!-- ── Header ── -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;
+    padding:22px 28px 14px;border-bottom:3px solid #2563eb;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:56px;height:56px;border-radius:10px;flex-shrink:0;overflow:hidden;
+        display:flex;align-items:center;justify-content:center">
+        <img src="${_getLogoSrc()}" alt="PTS" style="width:100%;height:100%;object-fit:contain"
+          onerror="this.parentNode.style.background='#2563eb';this.style.display='none';this.parentNode.innerHTML='<span style=color:#fff;font-weight:800;font-size:1.05rem>PT</span>'">
+      </div>
+      <div>
+        <div style="font-weight:800;font-size:.95rem;color:#1a2232">${co.name}</div>
+        <div style="font-size:.65rem;color:#888;letter-spacing:.5px">${co.nameEn}</div>
+        <div style="font-size:.68rem;color:#555;margin-top:3px;line-height:1.6">
+          ${co.addr}<br>โทร: ${co.tel} | อีเมล์: ${co.email}<br>TAX ID: ${co.taxId}
+        </div>
+      </div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:1.6rem;font-weight:800;color:#2563eb;line-height:1">ใบเสนอราคา</div>
+      <div style="font-size:.65rem;color:#888;letter-spacing:2.5px;margin-bottom:10px">QUOTATION</div>
+      <table style="font-size:.78rem;margin-left:auto">
+        <tr><td style="color:#666;padding:2px 6px 2px 0">เลขที่ / No:</td>
+            <td style="font-weight:700;color:#2563eb">${_escH(data.refNo)}</td></tr>
+        <tr><td style="color:#666;padding:2px 6px 2px 0">วันที่ / Date:</td>
+            <td>${fmtDate(data.dateVal)}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Customer ── -->
+  <div style="display:flex;gap:0;border-bottom:1px solid #e8ecf2">
+    <div style="flex:1;padding:14px 28px">
+      <div style="font-size:.62rem;font-weight:700;color:#2563eb;letter-spacing:1.2px;margin-bottom:7px">
+        ลูกค้าผู้ติดต่อ / CLIENT BILL TO</div>
+      <div style="font-size:.9rem;font-weight:700;margin-bottom:2px">${_escH(data.customer) || '—'}</div>
+      ${data.remark ? `<div style="font-size:.72rem;color:#7a6a00;background:#fefce8;padding:5px 8px;
+        border-radius:4px;border-left:3px solid #fbbf24;margin-top:6px">หมายเหตุ: ${_escH(data.remark)}</div>` : ''}
+    </div>
+  </div>
+
+  <!-- ── Product Table ── -->
+  <div style="padding:16px 28px">
+    <table style="width:100%;border-collapse:collapse;font-size:.79rem">
+      <thead>
+        <tr style="background:#2563eb;color:#fff">
+          <th style="padding:8px 10px;text-align:left;border-radius:4px 0 0 0">รายละเอียดสินค้า/บริการ / Description</th>
+          <th style="padding:8px 10px;text-align:center;width:10%">จำนวน</th>
+          <th style="padding:8px 10px;text-align:center;width:8%">หน่วย</th>
+          <th style="padding:8px 10px;text-align:right;width:16%">ราคา/หน่วย</th>
+          <th style="padding:8px 10px;text-align:right;width:16%;border-radius:0 4px 0 0">ยอดรวม (฿)</th>
+        </tr>
+      </thead>
+      <tbody>${itemRows}</tbody>
+      <tfoot>
+        <tr><td colspan="4" style="padding:7px 10px;text-align:right;color:#555;border-top:1px solid #e8ecf2">
+            รวมก่อน VAT / Subtotal</td>
+          <td style="padding:7px 10px;text-align:right;font-weight:700;border-top:1px solid #e8ecf2">${fmtB(subtotal)}</td></tr>
+        <tr><td colspan="4" style="padding:5px 10px;text-align:right;color:#888">ภาษีมูลค่าเพิ่ม VAT 7%</td>
+          <td style="padding:5px 10px;text-align:right;color:#888">${fmtB(vatAmt)}</td></tr>
+        <tr style="background:#1d4ed8;color:#fff">
+          <td colspan="4" style="padding:9px 10px;text-align:right;font-weight:700;font-size:.9rem;border-radius:0 0 0 4px">
+            ยอดรวมทั้งสิ้น / GRAND TOTAL</td>
+          <td style="padding:9px 10px;text-align:right;font-weight:800;font-size:.9rem;border-radius:0 0 4px 0">
+            ฿ ${fmtB(grand)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- ── Signature ── -->
+  <div style="display:flex;gap:0;border-top:1px solid #e8ecf2;padding:14px 28px 22px;flex-wrap:wrap;gap:12px">
+    <div style="flex:1;min-width:160px;text-align:center">
+      <div style="border-top:1px solid #ccc;margin-top:32px;padding-top:6px;font-size:.73rem;color:#555">
+        ลงชื่อ ผู้เสนอราคา</div>
+      <div style="font-size:.68rem;color:#888;margin-top:3px">( __________________ )<br>ตำแหน่ง: ________________</div>
+      <div style="font-size:.68rem;color:#aaa;margin-top:2px">วันที่: ${fmtDate(data.dateVal)}</div>
+    </div>
+    <div style="flex:1;min-width:160px;text-align:center">
+      <div style="border-top:1px solid #ccc;margin-top:32px;padding-top:6px;font-size:.73rem;color:#555">
+        ลงชื่อ ผู้อนุมัติ</div>
+      <div style="font-size:.68rem;color:#888;margin-top:3px">( __________________ )<br>ตำแหน่ง: ________________</div>
+    </div>
+    <div style="flex:1;min-width:160px;text-align:center">
+      <div style="border-top:1px solid #ccc;margin-top:32px;padding-top:6px;font-size:.73rem;color:#555">
+        ลงชื่อ ผู้รับใบเสนอราคา</div>
+      <div style="font-size:.68rem;color:#888;margin-top:3px">( __________________ )<br>บจก./บริษัท: ________________</div>
+      <div style="font-size:.68rem;color:#aaa;margin-top:2px">วันที่: ________________</div>
+    </div>
+  </div>
+</div>`;
+
+  _gquoPreviewMode = true;
+
+  let docGenQuo = $('docGenQuo');
+  if (!docGenQuo) {
+    docGenQuo = document.createElement('div');
+    docGenQuo.id = 'docGenQuo';
+    $('docQuo').parentNode.appendChild(docGenQuo);
+  }
+  $('docQuo').classList.add('dp-hidden');
+  $('docCost').classList.add('dp-hidden');
+  docGenQuo.classList.remove('dp-hidden');
+  docGenQuo.innerHTML = html;
+
+  if ($('dtabQuo'))  $('dtabQuo').style.display  = 'none';
+  if ($('dtabCost')) $('dtabCost').style.display = 'none';
+  const swapBtn = document.querySelector('.doc-bottombar .doc-tab-btn[onclick*="_docActiveTab"]');
+  if (swapBtn) swapBtn.style.display = 'none';
+
+  $('docExportOverlay').classList.add('open');
 }
 
 function buildDocuments() {
