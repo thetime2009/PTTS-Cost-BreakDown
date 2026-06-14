@@ -37,7 +37,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v8.09</span>
+      <span class="ph-chip ver">v8.10</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -1671,10 +1671,6 @@
       <div class="icon ic-ext">🗂️</div>
       <h2>รายการ Order</h2>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-        <button onclick="_ordBackfillMatTopBot()" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(245,158,11,.35);
-          background:rgba(245,158,11,.1);color:#f59e0b;font-size:.75rem;cursor:pointer;font-family:Sarabun,sans-serif">
-          🧩 ดึงฝาบน/ฝาล่าง (1 ครั้ง)
-        </button>
         <button onclick="fetchOrders()" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(52,211,153,.3);
           background:rgba(52,211,153,.1);color:#6ecfad;font-size:.75rem;cursor:pointer;font-family:Sarabun,sans-serif">
           🔄 รีเฟรช
@@ -2639,15 +2635,15 @@
   </div>
 </div>
 
-<script src="core.js?v=8.09"></script>
-<script src="data.js?v=8.09"></script>
-<script src="formcalc.js?v=8.09"></script>
-<script src="aifeatures.js?v=8.09"></script>
-<script src="theme.js?v=8.09"></script>
-<script src="order.js?v=8.09"></script>
-<script src="purchase.js?v=8.09"></script>
-<script src="invoice.js?v=8.09"></script>
-<script src="plating.js?v=8.09"></script>
+<script src="core.js?v=8.10"></script>
+<script src="data.js?v=8.10"></script>
+<script src="formcalc.js?v=8.10"></script>
+<script src="aifeatures.js?v=8.10"></script>
+<script src="theme.js?v=8.10"></script>
+<script src="order.js?v=8.10"></script>
+<script src="purchase.js?v=8.10"></script>
+<script src="invoice.js?v=8.10"></script>
+<script src="plating.js?v=8.10"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -2786,9 +2782,17 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260614-CN',
+    ref: '#REV-20260614-CO',
     date: '2026-06-14',
     current: true,
+    items: [
+      'การ์ด "รายการ Order": ลบปุ่ม "ดึงฝาบน/ฝาล่าง (1 ครั้ง)" ออก (ไม่ใช้งานแล้ว ป้องกันการกดพลาด)',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CN',
+    date: '2026-06-14',
+    current: false,
     items: [
       'เมนูฝ่ายผลิต: เปลี่ยนรายการ "WorkOrder" (placeholder) เป็น "Job Order" และเชื่อมลิงก์ไปยังหน้า Order',
     ],
