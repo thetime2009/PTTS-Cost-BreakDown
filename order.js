@@ -92,6 +92,9 @@ function updateOrderPreview() {
   if ($('ord_previewWorkType')) $('ord_previewWorkType').textContent = r[DT.workType] || '—';
   if ($('ord_previewQty'))      $('ord_previewQty').textContent      = r[DT.unit] || '—';
   if ($('ord_previewPrice'))    $('ord_previewPrice').textContent    = r[DT.sellPrice] || '—';
+  // จำนวน/ราคา — ดึงจากใบเสนอราคามาให้อัตโนมัติ แต่แก้ไขให้ตรงกับ PO จริงได้ (ไม่ทับค่าที่แก้เอง)
+  _ordAutoFill('ord_qty',   r[DT.unit]      || '');
+  _ordAutoFill('ord_price', r[DT.sellPrice] || '');
 
   // รายการสินค้า = ขนาด (OD×ID×H) จาก DATA — ห้ามแก้ไขในการ์ด Order
   const od = r[DT.od]||'', id2 = r[DT.id]||'', h = r[DT.h]||'';
@@ -110,12 +113,12 @@ function updateOrderPreview() {
   if ($('ord_material')) $('ord_material').textContent = r[DT.rawMat] || '—';
 
   // ตะแกรงนอก/ตะแกรงใน — ดึงจาก DATA มาให้อัตโนมัติ แต่แก้ไขเพิ่มเติมได้ (ไม่ทับค่าที่แก้เอง)
-  _ordAutoFill('ord_meshOut', r[DT.meshOut] || '');
-  _ordAutoFill('ord_meshIn',  r[DT.meshIn]  || '');
+  _ordAutoFillSelect('ord_meshOut', r[DT.meshOut] || '');
+  _ordAutoFillSelect('ord_meshIn',  r[DT.meshIn]  || '');
 
   // ฝาบน/ฝาล่าง — ดึงจาก DATA มาให้อัตโนมัติ แต่แก้ไขเพิ่มเติมได้ (ไม่ทับค่าที่แก้เอง)
-  _ordAutoFill('ord_matTop', r[DT.matTop] || '');
-  _ordAutoFill('ord_matBot', r[DT.matBot] || '');
+  _ordAutoFillSelect('ord_matTop', r[DT.matTop] || '');
+  _ordAutoFillSelect('ord_matBot', r[DT.matBot] || '');
 
   _ordUpdateCreateBtn();
 }
@@ -154,6 +157,39 @@ function _ordAutoFill(id, val) {
   }
 }
 
+// เติมตัวเลือกในช่อง select ของฝาบน/ฝาล่าง/ตะแกรงนอก/ตะแกรงใน จากรายการ MAT (ฝา/ตะแกรง ที่ตั้งไว้ในแท็บ MAT)
+function _ordPopulateMatMeshDatalists() {
+  const matCodes  = (_localMatFlap || []).map(m => String(m.code || '').trim()).filter(Boolean);
+  const meshCodes = (_localMatMesh || []).map(m => String(m.code || '').trim()).filter(Boolean);
+  const matOpts  = ['', ...Array.from(new Set(matCodes)).sort()];
+  const meshOpts = ['', ...Array.from(new Set(meshCodes)).sort()];
+  ['ord_matTop', 'ord_matBot'].forEach(id => _ordFillSelectOptions(id, matOpts));
+  ['ord_meshOut', 'ord_meshIn'].forEach(id => _ordFillSelectOptions(id, meshOpts));
+}
+
+// เติม <option> ให้ select โดยคงค่าที่เลือกอยู่ไว้ (ถ้าค่าเดิมไม่อยู่ในลิสต์ ให้เพิ่มเป็น option พิเศษ)
+function _ordFillSelectOptions(id, opts) {
+  const el = $(id);
+  if (!el) return;
+  const cur = el.value;
+  el.innerHTML = opts.map(v => `<option value="${_escH(v)}">${v ? _escH(v) : '—'}</option>`).join('');
+  if (cur && !opts.includes(cur)) el.appendChild(new Option(cur, cur));
+  el.value = cur;
+}
+
+// เติมค่าอัตโนมัติลงช่อง select โดยไม่ทับค่าที่ผู้ใช้แก้ไขเองแล้ว (เพิ่ม option ใหม่ถ้ายังไม่มีในลิสต์)
+function _ordAutoFillSelect(id, val) {
+  const el = $(id);
+  if (!el) return;
+  if (el.value === '' || el.value === el.dataset.autoVal) {
+    if (val && !Array.from(el.options).some(o => o.value === val)) {
+      el.appendChild(new Option(val, val));
+    }
+    el.value = val;
+    el.dataset.autoVal = val;
+  }
+}
+
 // เคลียร์การ์ด "สร้าง Order" กลับสู่สถานะว่าง (ใช้ทั้งตอนสร้างสำเร็จ และตอนพบ No.Quo+No.PO ซ้ำ)
 function _ordResetCard() {
   if ($('ord_noPO')) $('ord_noPO').value = '';
@@ -163,6 +199,8 @@ function _ordResetCard() {
   if ($('ord_meshIn'))  { $('ord_meshIn').value = '';  delete $('ord_meshIn').dataset.autoVal; }
   if ($('ord_matTop')) { $('ord_matTop').value = ''; delete $('ord_matTop').dataset.autoVal; }
   if ($('ord_matBot')) { $('ord_matBot').value = ''; delete $('ord_matBot').dataset.autoVal; }
+  if ($('ord_qty'))   { $('ord_qty').value = '';   delete $('ord_qty').dataset.autoVal; }
+  if ($('ord_price')) { $('ord_price').value = ''; delete $('ord_price').dataset.autoVal; }
   if ($('ord_workStatus')) $('ord_workStatus').value = 'ปรกติ';
   _ordSourceRow = null;
   updateOrderPreview();
@@ -383,9 +421,9 @@ async function createOrder() {
   row[ORDER_COLS.mold]        = $('ord_mold')?.value || '';
   row[ORDER_COLS.workType]    = _ordSourceRow[DT.workType] || '';
   row[ORDER_COLS.productList] = $('ord_productList').value || '';
-  row[ORDER_COLS.qty]         = _ordSourceRow[DT.unit] || '';
+  row[ORDER_COLS.qty]         = ($('ord_qty')?.value || '').trim() || _ordSourceRow[DT.unit] || '';
   row[ORDER_COLS.material]    = ($('ord_material')?.textContent || '').trim().replace(/^—$/, '') || '';
-  row[ORDER_COLS.price]       = _ordSourceRow[DT.sellPrice] || '';
+  row[ORDER_COLS.price]       = ($('ord_price')?.value || '').trim() || _ordSourceRow[DT.sellPrice] || '';
   row[ORDER_COLS.note]        = $('ord_note').value || '';
   row[ORDER_COLS.process]     = $('ord_status').value || 'กำลังผลิต';
   row[ORDER_COLS.status]      = $('ord_workStatus')?.value || 'ปรกติ';
@@ -939,6 +977,7 @@ async function fetchOrders(showAll) {
     _orderCache = (data.rows || []).filter(r => String(r[ORDER_COLS.noPO]||'').trim()).slice().reverse(); // ใหม่สุดก่อน
     _initSeenIfEmpty(SEEN_KEY_ORDER, _orderCache.map(r => r[ORDER_COLS.noPO]));
     _ordPage = 1;
+    _ordPopulateMatMeshDatalists();
     renderOrderTable();
     renderOrdLoadBanner(data.total || _orderCache.length, data.limited);
     if (typeof renderTrackDashboard === 'function') renderTrackDashboard();

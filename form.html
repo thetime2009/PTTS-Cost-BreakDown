@@ -37,7 +37,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v8.10</span>
+      <span class="ph-chip ver">v8.14</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -1423,8 +1423,14 @@
         <div>ลูกค้า: <b id="ord_previewCustomer">—</b></div>
         <div>แบบงาน: <b id="ord_previewWorkType">—</b></div>
         <div>รายการสินค้า: <b id="ord_previewProductList">—</b></div>
-        <div>จำนวน: <b id="ord_previewQty">—</b></div>
-        <div>ราคา: <b id="ord_previewPrice">—</b></div>
+        <div style="display:flex;align-items:center;gap:6px">จำนวน (ตามใบเสนอราคา <b id="ord_previewQty">—</b>):
+          <input type="text" id="ord_qty" placeholder="จำนวนตาม PO จริง"
+            style="flex:1;min-width:0;padding:3px 8px;font-size:.78rem;font-weight:700;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg1,#fff)">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">ราคา (ตามใบเสนอราคา <b id="ord_previewPrice">—</b>):
+          <input type="text" id="ord_price" placeholder="ราคาตาม PO จริง"
+            style="flex:1;min-width:0;padding:3px 8px;font-size:.78rem;font-weight:700;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg1,#fff)">
+        </div>
         <div style="display:flex;align-items:center;gap:6px">แม่พิมพ์:
           <input type="text" id="ord_mold" placeholder="แม่พิมพ์"
             style="flex:1;min-width:0;padding:3px 8px;font-size:.78rem;font-weight:700;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg1,#fff)">
@@ -1438,20 +1444,28 @@
         </div>
         <div>วัตถุดิบ: <b id="ord_material">—</b></div>
         <div style="display:flex;align-items:center;gap:6px">ฝาบน:
-          <input type="text" id="ord_matTop" placeholder="ฝาบน"
+          <select id="ord_matTop"
             style="flex:1;min-width:0;padding:3px 8px;font-size:.78rem;font-weight:700;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg1,#fff)">
+            <option value="">—</option>
+          </select>
         </div>
         <div style="display:flex;align-items:center;gap:6px">ฝาล่าง:
-          <input type="text" id="ord_matBot" placeholder="ฝาล่าง"
+          <select id="ord_matBot"
             style="flex:1;min-width:0;padding:3px 8px;font-size:.78rem;font-weight:700;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg1,#fff)">
+            <option value="">—</option>
+          </select>
         </div>
         <div style="display:flex;align-items:center;gap:6px">ตะแกรงนอก:
-          <input type="text" id="ord_meshOut" placeholder="ตะแกรงนอก"
+          <select id="ord_meshOut"
             style="flex:1;min-width:0;padding:3px 8px;font-size:.78rem;font-weight:700;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg1,#fff)">
+            <option value="">—</option>
+          </select>
         </div>
         <div style="display:flex;align-items:center;gap:6px">ตะแกรงใน:
-          <input type="text" id="ord_meshIn" placeholder="ตะแกรงใน"
+          <select id="ord_meshIn"
             style="flex:1;min-width:0;padding:3px 8px;font-size:.78rem;font-weight:700;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg1,#fff)">
+            <option value="">—</option>
+          </select>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;flex:1">
           <span>หมายเหตุ:</span>
@@ -2635,15 +2649,15 @@
   </div>
 </div>
 
-<script src="core.js?v=8.10"></script>
-<script src="data.js?v=8.10"></script>
-<script src="formcalc.js?v=8.10"></script>
-<script src="aifeatures.js?v=8.10"></script>
-<script src="theme.js?v=8.10"></script>
-<script src="order.js?v=8.10"></script>
-<script src="purchase.js?v=8.10"></script>
-<script src="invoice.js?v=8.10"></script>
-<script src="plating.js?v=8.10"></script>
+<script src="core.js?v=8.11"></script>
+<script src="data.js?v=8.11"></script>
+<script src="formcalc.js?v=8.11"></script>
+<script src="aifeatures.js?v=8.11"></script>
+<script src="theme.js?v=8.11"></script>
+<script src="order.js?v=8.11"></script>
+<script src="purchase.js?v=8.11"></script>
+<script src="invoice.js?v=8.11"></script>
+<script src="plating.js?v=8.11"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -2782,9 +2796,41 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260614-CO',
+    ref: '#REV-20260614-CS',
     date: '2026-06-14',
     current: true,
+    items: [
+      'การ์ด "สร้าง Order จากใบเสนอราคา": select ฝาบน/ฝาล่าง/ตะแกรงนอก/ตะแกรงใน เปลี่ยนแหล่งตัวเลือกจากประวัติ Order เป็นรายการ MAT (ฝา/ตะแกรง) ที่ตั้งไว้ในแท็บ MAT',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CR',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'การ์ด "สร้าง Order จากใบเสนอราคา": เปลี่ยนช่องฝาบน/ฝาล่าง/ตะแกรงนอก/ตะแกรงใน จากกรอกข้อความเป็น select กดเลือกจากค่าที่เคยใช้ใน Order ก่อนหน้า',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CQ',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'การ์ด "สร้าง Order จากใบเสนอราคา": ช่องฝาบน/ฝาล่าง/ตะแกรงนอก/ตะแกรงใน เพิ่ม datalist ให้กดเลือกจากค่าที่เคยใช้ใน Order ก่อนหน้าได้ (พิมพ์เองได้เช่นเดิม)',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CP',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'การ์ด "สร้าง Order จากใบเสนอราคา": เพิ่มช่องแก้ไข "จำนวน" และ "ราคา" ให้แก้ให้ตรงกับ PO จริงได้ก่อนบันทึก (ค่าเริ่มต้นดึงจากใบเสนอราคา แต่แก้ไขทับได้)',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CO',
+    date: '2026-06-14',
+    current: false,
     items: [
       'การ์ด "รายการ Order": ลบปุ่ม "ดึงฝาบน/ฝาล่าง (1 ครั้ง)" ออก (ไม่ใช้งานแล้ว ป้องกันการกดพลาด)',
     ],
