@@ -173,7 +173,7 @@ const GROUP_DEFS = [
     { tab:'supplier' },
   ]},
   { id:'production', icon:'🏭', label:'ฝ่ายผลิต', items: [
-    { ph:true, label:'WorkOrder', icon:'📋' },
+    { tab:'order', label:'Job Order', icon:'📋' },
     { tab:'calc', label:'คำนวณตัดเหล็ก' },
     { tab:'mold' },
     { tab:'track', view:'reduced' },

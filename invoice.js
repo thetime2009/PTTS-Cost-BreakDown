@@ -611,6 +611,13 @@ async function _invShowPreview(invoiceNo, type, cust) {
   confirmBtn.textContent = '✅ ยืนยันออกใบกำกับ ' + invoiceNo;
   confirmBtn.style.display = '';
 
+  _invCurrentDocData = {
+    invoiceNo, cust, dateStr, isFull,
+    poText: [..._invSelectedPOs].join(', '),
+    itemsArr, subtotal, vat, total,
+  };
+  _invAddOverlayButtons();
+
   $('docExportOverlay').classList.add('open');
 }
 
@@ -661,7 +668,9 @@ let _invPreviewData = null;
 function _invThaiDate(d) {
   const p = String(d||'').split('/');
   if (p.length !== 3) return d || '';
-  const dt = new Date(parseInt(p[2],10), parseInt(p[1],10) - 1, parseInt(p[0],10));
+  let y = parseInt(p[2],10);
+  if (y > 2400) y -= 543; // เก็บเป็น พ.ศ. (เช่น 2569) -> แปลงเป็น ค.ศ. ก่อนสร้าง Date กัน toLocaleDateString บวก 543 ซ้ำ
+  const dt = new Date(y, parseInt(p[1],10) - 1, parseInt(p[0],10));
   if (isNaN(dt.getTime())) return d || '';
   return dt.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
 }
@@ -701,7 +710,267 @@ function _invReprintInvoice(inv, itemsArr) {
   const confirmBtn = $('invConfirmBtn');
   if (confirmBtn) confirmBtn.style.display = 'none';
 
+  const poText = (inv.poList && inv.poList.length) ? inv.poList.join(', ')
+    : [...new Set(items.map(it => it.poNo).filter(Boolean))].join(', ');
+  _invCurrentDocData = {
+    invoiceNo: inv.invoiceNo, cust, dateStr, isFull,
+    poText, itemsArr: items, subtotal, vat, total: grand,
+  };
+  _invAddOverlayButtons();
+
   $('docExportOverlay').classList.add('open');
+}
+
+// ══════════════════════════════════════════════════════
+// ══ พิมพ์บนฟอร์มสำเร็จ (กระดาษ A4 ต่อเนื่องที่พิมพ์หัวกระดาษไว้แล้ว) ══
+// ══════════════════════════════════════════════════════
+let _invCurrentDocData = null;
+
+// ตำแหน่งเริ่มต้น (มม. จากมุมบนซ้ายของกระดาษ A4 210x297) — ปรับได้ที่ "⚙️ ตำแหน่ง"
+const _INV_OVERLAY_DEFAULT_POS = {
+  custName:    {x:18,  y:50},
+  custAddr:    {x:18,  y:56},
+  custTaxId:   {x:18,  y:62},
+  invoiceNo:   {x:178, y:30},
+  date:        {x:178, y:38},
+  poNo:        {x:178, y:46},
+  itemNo:      {x:12,  y:80},
+  itemDesc:    {x:24,  y:80},
+  itemQty:     {x:128, y:80},
+  itemPrice:   {x:150, y:80},
+  itemTotal:   {x:178, y:80},
+  rowHeight:   {x:7,   y:0},
+  amountWords: {x:18,  y:238},
+  subtotal:    {x:178, y:238},
+  vat:         {x:178, y:246},
+  total:       {x:178, y:254},
+};
+const _INV_OVERLAY_FIELD_LABELS = {
+  custName:'ชื่อลูกค้า', custAddr:'ที่อยู่ลูกค้า', custTaxId:'เลขผู้เสียภาษีลูกค้า',
+  invoiceNo:'เลขที่ใบกำกับ', date:'วันที่', poNo:'เลขที่ PO/เอกสาร',
+  itemNo:'ลำดับ (แถวแรก)', itemDesc:'รายละเอียดสินค้า (แถวแรก)', itemQty:'จำนวน+หน่วย (แถวแรก)',
+  itemPrice:'ราคาต่อหน่วย (แถวแรก)', itemTotal:'จำนวนเงิน (แถวแรก)', rowHeight:'ความสูงต่อแถว (มม.)',
+  amountWords:'จำนวนเงินเป็นตัวอักษร', subtotal:'รวมก่อน VAT', vat:'ภาษีมูลค่าเพิ่ม VAT', total:'ยอดรวมทั้งสิ้น',
+};
+
+function _invOverlayGetPos() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('_invOverlayPos') || '{}'); } catch(e) {}
+  const merged = {};
+  Object.keys(_INV_OVERLAY_DEFAULT_POS).forEach(k => {
+    merged[k] = Object.assign({}, _INV_OVERLAY_DEFAULT_POS[k], saved[k] || {});
+  });
+  return merged;
+}
+function _invOverlaySavePos(pos) {
+  localStorage.setItem('_invOverlayPos', JSON.stringify(pos));
+}
+
+// ── เพิ่มปุ่ม "พิมพ์บนฟอร์มสำเร็จ" + "⚙️ ตำแหน่ง" ใน bottombar ของ preview ──
+function _invAddOverlayButtons() {
+  const bar = document.querySelector('.doc-bottombar > div');
+  if (!bar) return;
+
+  let cfgBtn = $('invOverlaySettingsBtn');
+  if (!cfgBtn) {
+    cfgBtn = document.createElement('button');
+    cfgBtn.id = 'invOverlaySettingsBtn';
+    cfgBtn.className = 'doc-tab-btn no-print';
+    cfgBtn.style = 'padding:8px 12px;border-radius:8px;border:none;background:#374151;' +
+      'color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;font-family:Sarabun,sans-serif;margin-right:8px';
+    cfgBtn.textContent = '⚙️ ตำแหน่ง';
+    cfgBtn.onclick = _invOverlaySettings;
+    bar.prepend(cfgBtn);
+  }
+  cfgBtn.style.display = '';
+
+  let btn = $('invOverlayPrintBtn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'invOverlayPrintBtn';
+    btn.className = 'doc-tab-btn no-print';
+    btn.style = 'padding:8px 14px;border-radius:8px;border:none;background:#16a34a;' +
+      'color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;font-family:Sarabun,sans-serif;margin-right:8px';
+    btn.textContent = '🖨 พิมพ์บนฟอร์มสำเร็จ';
+    btn.onclick = _invPrintOverlayCurrent;
+    bar.prepend(btn);
+  }
+  btn.style.display = '';
+}
+
+// ── อ่านจำนวนเงินเป็นข้อความภาษาไทย เช่น "หนึ่งหมื่นสี่ร้อยแปดสิบหกบาทถ้วน" ──
+const _TH_DIGIT_WORDS = ['ศูนย์','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+const _TH_PLACE_WORDS = ['','สิบ','ร้อย','พัน','หมื่น','แสน','ล้าน'];
+function _thaiNumReadInt(n) {
+  n = Math.floor(n);
+  if (n === 0) return 'ศูนย์';
+  let result = '';
+  // จัดการหลักล้านขึ้นไปแบบวนซ้ำ (1,000,000 ขึ้นไป)
+  if (n >= 10000000) {
+    const millions = Math.floor(n / 1000000);
+    result += _thaiNumReadInt(millions) + 'ล้าน';
+    n = n % 1000000;
+    if (n === 0) return result;
+  }
+  const digits = String(n).split('').map(d => parseInt(d,10));
+  const len = digits.length;
+  digits.forEach((d, i) => {
+    const place = len - i - 1;
+    if (d === 0) return;
+    if (place === 0 && d === 1 && len > 1) result += 'เอ็ด';
+    else if (place === 1 && d === 1) result += 'สิบ';
+    else if (place === 1 && d === 2) result += 'ยี่สิบ';
+    else result += _TH_DIGIT_WORDS[d] + (_TH_PLACE_WORDS[place] || '');
+  });
+  return result;
+}
+function _thaiBahtText(num) {
+  num = Math.round((parseFloat(num)||0) * 100) / 100;
+  const neg = num < 0;
+  num = Math.abs(num);
+  const baht = Math.floor(num);
+  const satang = Math.round((num - baht) * 100);
+  let text = _thaiNumReadInt(baht) + 'บาท';
+  text += satang === 0 ? 'ถ้วน' : (_thaiNumReadInt(satang) + 'สตางค์');
+  return (neg ? 'ลบ' : '') + text;
+}
+
+// ── เปิดหน้าต่างพิมพ์เฉพาะข้อมูล (overlay) ทับฟอร์มกระดาษที่พิมพ์ไว้แล้ว ──
+function _invPrintOverlayCurrent() {
+  if (!_invCurrentDocData) {
+    Swal.fire({icon:'warning', title:'ไม่มีข้อมูลใบกำกับให้พิมพ์', background:'#0d1b2a', color:'#cce4ff', confirmButtonColor:'#1d65cc'});
+    return;
+  }
+  _invPrintOverlay(_invCurrentDocData);
+}
+
+function _invPrintOverlay(data) {
+  const { invoiceNo, cust, dateStr, poText, itemsArr, subtotal, vat, total, isFull } = data;
+  const pos = _invOverlayGetPos();
+  const rowH = pos.rowHeight.x || 7;
+  let html = '';
+
+  const addField = (key, text, extraStyle) => {
+    const p = pos[key];
+    if (!p || text === '' || text == null) return;
+    html += `<div style="position:absolute;left:${p.x}mm;top:${p.y}mm;font-size:10pt;white-space:nowrap;${extraStyle||''}">${text}</div>`;
+  };
+
+  addField('custName', cust.name || '');
+  addField('custAddr', cust.address || '');
+  if (isFull && cust.taxId) addField('custTaxId', 'เลขผู้เสียภาษี: ' + cust.taxId);
+  addField('invoiceNo', invoiceNo || '');
+  addField('date', dateStr || '');
+  addField('poNo', poText || '');
+
+  let _ovY = pos.itemNo.y;
+  (itemsArr || []).forEach((it, idx) => {
+    const y = _ovY;
+    const qty = parseFloat(it.qty) || 0;
+    const priceExVat = parseFloat(it.priceExVat) || 0;
+    const lineTotal = (it.lineTotal != null && it.lineTotal !== '') ? (parseFloat(it.lineTotal)||0) : (qty * priceExVat * 1.07);
+    const unitPrice = isFull ? priceExVat : priceExVat * 1.07;
+    const amount = isFull ? lineTotal / 1.07 : lineTotal;
+
+    const descLines = [];
+    if (it.workType) descLines.push(it.workType);
+    if (it.od || it.id || it.h) descLines.push(`SIZE: OD${it.od||''}xID${it.id||''}xH${it.h||''} mm`);
+    if (it.meshOut) descLines.push(`ตะแกรงนอก: ${matLabel(it.meshOut)}`);
+    if (it.meshIn) descLines.push(`ตะแกรงใน: ${matLabel(it.meshIn)}`);
+    if (it.note) descLines.push(it.note);
+    descLines.forEach((l,i) => {
+      html += `<div style="position:absolute;left:${pos.itemDesc.x}mm;top:${y + i*4}mm;font-size:8.5pt;white-space:nowrap">${l}</div>`;
+    });
+
+    html += `<div style="position:absolute;left:${pos.itemNo.x}mm;top:${y}mm;font-size:10pt">${idx+1}</div>`;
+    html += `<div style="position:absolute;left:${pos.itemQty.x}mm;top:${y}mm;font-size:10pt;white-space:nowrap">${qty ? fmtB(qty, qty%1?2:0)+' '+(it.unit||'EA') : ''}</div>`;
+    html += `<div style="position:absolute;left:${pos.itemPrice.x}mm;top:${y}mm;font-size:10pt;text-align:right;white-space:nowrap">${fmtB(unitPrice)}</div>`;
+    html += `<div style="position:absolute;left:${pos.itemTotal.x}mm;top:${y}mm;font-size:10pt;text-align:right;white-space:nowrap">${fmtB(amount)}</div>`;
+
+    // เว้นระยะแถวถัดไปตามจำนวนบรรทัดรายละเอียด (กันทับกัน) อย่างน้อย rowH
+    _ovY += Math.max(rowH, descLines.length * 4 + 3);
+  });
+
+  addField('amountWords', _thaiBahtText(total));
+  addField('subtotal', fmtB(subtotal), 'text-align:right');
+  if (isFull) addField('vat', fmtB(vat), 'text-align:right');
+  addField('total', fmtB(total), 'text-align:right');
+
+  const docHtml = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8">
+<title>พิมพ์บนฟอร์มสำเร็จ — ${invoiceNo||''}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap">
+<style>
+  @page { size: A4; margin: 0; }
+  html,body { margin:0; padding:0; }
+  body { font-family:'Sarabun',sans-serif; color:#000; }
+  .ov-page { position:relative; width:210mm; height:297mm; }
+  .ov-page div { line-height:1.25; }
+  @media print { .ov-page { page-break-after: avoid; } }
+</style>
+</head><body>
+<div class="ov-page">${html}</div>
+</body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) {
+    Swal.fire({icon:'error', title:'เปิดหน้าต่างไม่ได้', text:'กรุณาอนุญาต popup สำหรับเว็บไซต์นี้',
+      background:'#0d1b2a', color:'#cce4ff', confirmButtonColor:'#1d65cc'});
+    return;
+  }
+  w.document.open();
+  w.document.write(docHtml);
+  w.document.close();
+  setTimeout(() => { try { w.focus(); w.print(); } catch(e) {} }, 350);
+}
+
+// ── ตั้งค่าตำแหน่งฟิลด์ (มม.) สำหรับพิมพ์บนฟอร์มสำเร็จ — เก็บใน localStorage ──
+function _invOverlaySettings() {
+  const pos = _invOverlayGetPos();
+  const rows = Object.keys(_INV_OVERLAY_DEFAULT_POS).map(k => {
+    const label = _INV_OVERLAY_FIELD_LABELS[k] || k;
+    if (k === 'rowHeight') {
+      return `<tr><td style="padding:3px 8px;text-align:left;color:#cce4ff">${label}</td>
+        <td colspan="2" style="padding:3px"><input type="number" step="0.5" id="ovp_${k}_x" value="${pos[k].x}" style="width:60px;font-family:Sarabun,sans-serif"></td></tr>`;
+    }
+    return `<tr><td style="padding:3px 8px;text-align:left;color:#cce4ff">${label}</td>
+      <td style="padding:3px;color:#8b8aaa">X:<input type="number" step="0.5" id="ovp_${k}_x" value="${pos[k].x}" style="width:55px;font-family:Sarabun,sans-serif;margin-left:4px"></td>
+      <td style="padding:3px;color:#8b8aaa">Y:<input type="number" step="0.5" id="ovp_${k}_y" value="${pos[k].y}" style="width:55px;font-family:Sarabun,sans-serif;margin-left:4px"></td></tr>`;
+  }).join('');
+
+  Swal.fire({
+    title: '⚙️ ตั้งค่าตำแหน่งพิมพ์บนฟอร์มสำเร็จ',
+    html: `<div style="max-height:55vh;overflow:auto;text-align:left">
+      <div style="font-size:.76rem;color:#8b8aaa;margin-bottom:8px;line-height:1.5">
+        ระบุตำแหน่ง X/Y เป็นมิลลิเมตร นับจากมุมบนซ้ายของกระดาษ A4 (210×297 มม.)<br>
+        พิมพ์ทดสอบแล้ววางทับฟอร์มจริงเพื่อเทียบตำแหน่ง จากนั้นปรับค่าทีละน้อยจนตรง</div>
+      <table style="font-size:.8rem;width:100%"><tbody>${rows}</tbody></table>
+    </div>`,
+    width: 480,
+    background:'#0d1b2a', color:'#cce4ff',
+    showCancelButton:true, showDenyButton:true,
+    confirmButtonText:'💾 บันทึก', confirmButtonColor:'#2563eb',
+    denyButtonText:'↺ คืนค่าเริ่มต้น', denyButtonColor:'#6b7280',
+    cancelButtonText:'ยกเลิก', cancelButtonColor:'#374151',
+    preConfirm: () => {
+      const newPos = {};
+      Object.keys(_INV_OVERLAY_DEFAULT_POS).forEach(k => {
+        const xEl = document.getElementById(`ovp_${k}_x`);
+        const yEl = document.getElementById(`ovp_${k}_y`);
+        newPos[k] = { x: parseFloat(xEl.value)||0, y: yEl ? (parseFloat(yEl.value)||0) : 0 };
+      });
+      return newPos;
+    }
+  }).then(r => {
+    if (r.isConfirmed) {
+      _invOverlaySavePos(r.value);
+      Swal.fire({icon:'success', title:'บันทึกตำแหน่งแล้ว', background:'#0d1b2a', color:'#cce4ff',
+        timer:1300, showConfirmButton:false, toast:true, position:'top-end'});
+    } else if (r.isDenied) {
+      localStorage.removeItem('_invOverlayPos');
+      Swal.fire({icon:'info', title:'คืนค่าเริ่มต้นแล้ว', background:'#0d1b2a', color:'#cce4ff',
+        timer:1300, showConfirmButton:false, toast:true, position:'top-end'});
+    }
+  });
 }
 
 // ══════════════════════════════════════════════════════
@@ -1347,7 +1616,6 @@ function _invRepShowPreview(list, month, year) {
       <tbody>${rows || `<tr><td colspan="9" style="padding:18px;text-align:center;color:#999">ไม่มีใบกำกับในเดือนนี้</td></tr>`}</tbody>
       <tfoot>
         <tr style="background:#e0f2f1;color:#0f4f49;border-top:2px solid #0d9488;-webkit-print-color-adjust:exact;print-color-adjust:exact">
-          <td colspan="6" style="padding:8px;text-align:right;font-weight:700;border-radius:0 0 0 4px">สรุปยอดขาย ณ สิ้นเดือน</td>
           <td colspan="6" style="padding:8px;text-align:right;font-weight:700;border-radius:0 0 0 4px">สรุปยอดขาย ณ สิ้นเดือน</td>
           <td style="padding:8px;text-align:right;font-weight:800">${fmtB(sumSubtotal)}</td>
           <td style="padding:8px;text-align:right;font-weight:800">${fmtB(sumVat)}</td>

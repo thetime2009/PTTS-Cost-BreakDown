@@ -995,6 +995,8 @@ function closeDocExport() {
     if ($('invConfirmBtn')) $('invConfirmBtn').style.display = 'none';
     if ($('billConfirmBtn')) $('billConfirmBtn').style.display = 'none';
     if ($('platingConfirmBtn')) $('platingConfirmBtn').style.display = 'none';
+    if ($('invOverlayPrintBtn')) $('invOverlayPrintBtn').style.display = 'none';
+    if ($('invOverlaySettingsBtn')) $('invOverlaySettingsBtn').style.display = 'none';
   }
   if (typeof _gquoPreviewMode !== 'undefined' && _gquoPreviewMode) {
     _gquoPreviewMode = false;
@@ -1012,8 +1014,56 @@ function switchDocTab(tab) {
   $('dtabQuo').className  = 'doc-tab-btn' + (tab==='quo'  ? ' dact-blue'  : '');
   $('dtabCost').className = 'doc-tab-btn' + (tab==='cost' ? ' dact-green' : '');
 }
+// ── พิมพ์/บันทึก PDF: เปิดเอกสารที่กำลังแสดงอยู่เป็นแท็บใหม่แยกเฉพาะ ──
+// (แทนการ window.print() หน้าเว็บทั้งหน้า เพื่อให้จัดหน้ากระดาษ/ขนาดได้อิสระต่อเอกสาร และไม่มีโครง UI ติดไปด้วย)
+// ใช้ Blob URL + ฝัง CSS ของ style.css ทั้งไฟล์ลงไปตรงๆ (กัน path/CORS ของ external stylesheet ในแท็บใหม่)
 function printDoc() {
-  window.print();
+  const el = _getActiveDocEl();
+  if (!el || !el.innerHTML.trim()) { window.print(); return; }
+
+  // เปิดหน้าต่างใหม่ทันที (sync) ขณะที่ยังอยู่ใน user-gesture ของปุ่มที่กด
+  // — เป็น about:blank ที่ยังอยู่ origin เดียวกับหน้าหลัก จึงเรียก document.write/print ได้โดยไม่ติด cross-origin
+  const w = window.open('', '_blank');
+  if (!w) {
+    Swal.fire({icon:'error', title:'เปิดหน้าต่างไม่ได้', text:'กรุณาอนุญาต popup สำหรับเว็บไซต์นี้',
+      background:'#0d1b2a', color:'#cce4ff', confirmButtonColor:'#1d65cc'});
+    return;
+  }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="font-family:Sarabun,sans-serif;color:#888;padding:20px">กำลังโหลดเอกสาร...</body></html>');
+  w.document.close();
+
+  const fontHref = 'https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap';
+  const innerHtml = el.innerHTML;
+
+  const render = (cssText) => {
+    const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เอกสาร</title>
+<link rel="stylesheet" href="${fontHref}">
+<style>${cssText}</style>
+<style>
+  body{margin:0;padding:16px;background:#fff;font-family:'Sarabun',sans-serif}
+  .doc-paper{max-width:100% !important;margin:0 auto !important;box-shadow:none !important;border-radius:0 !important;font-size:1.15em}
+  .doc-paper,.doc-paper *{color:#000 !important}
+  .doc-paper th{color:#fff !important}
+  .no-print,.dp-hidden{display:none !important}
+  @media print{ body{padding:0} }
+</style>
+</head><body>${innerHtml}</body></html>`;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    setTimeout(() => { try { w.focus(); w.print(); } catch (e) {} }, 300);
+  };
+
+  try {
+    const styleLink = document.querySelector('link[rel="stylesheet"][href*="style.css"]');
+    if (styleLink) {
+      fetch(styleLink.href).then(r => r.text()).then(render).catch(() => render(''));
+    } else {
+      render('');
+    }
+  } catch (e) { render(''); }
 }
 
 // ── หาเอกสารที่กำลังแสดงอยู่ใน docExportOverlay (สำหรับบันทึก/แชร์ภาพ) ──

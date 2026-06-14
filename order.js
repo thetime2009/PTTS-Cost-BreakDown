@@ -167,6 +167,7 @@ function _ordResetCard() {
   _ordSourceRow = null;
   updateOrderPreview();
   _ordClearPoFile('ord');
+  _ordClearJobImg('ord');
 }
 
 // ปุ่ม "📦 Order" จากตาราง DATA — ใช้ได้ทุกสถานะ (อาจดึงใบเสนอราคาเดิมมาเปิด Order เลขที่ PO ใหม่)
@@ -230,6 +231,38 @@ function _ordClearPoFile(prefix) {
   const nameEl = $(prefix + '_poFileName');
   const clearEl = $(prefix + '_poFileClear');
   const imgEl  = $(prefix + '_poFilePreview');
+  if (input)  input.value = '';
+  if (nameEl) nameEl.textContent = 'ยังไม่ได้เลือกไฟล์ใด';
+  if (clearEl) clearEl.style.display = 'none';
+  if (imgEl) { imgEl.style.display = 'none'; imgEl.removeAttribute('src'); }
+}
+
+// เมื่อเลือกไฟล์รูป Drawing (แบบงาน) ใหม่ — แสดงรูปตัวอย่าง + ปุ่มลบ
+function _ordJobImgChanged(prefix) {
+  const input = $(prefix + '_jobImg1');
+  const file  = input?.files?.[0];
+  const nameEl  = $(prefix + '_jobImg1Name');
+  const clearEl = $(prefix + '_jobImg1Clear');
+  const imgEl   = $(prefix + '_jobImg1Preview');
+  if (!file) { _ordClearJobImg(prefix); return; }
+  if (nameEl)  nameEl.textContent = file.name;
+  if (clearEl) clearEl.style.display = 'inline-block';
+  if (imgEl) {
+    if (file.type && file.type.startsWith('image/')) {
+      imgEl.src = URL.createObjectURL(file);
+      imgEl.style.display = 'block';
+    } else {
+      imgEl.style.display = 'none';
+      imgEl.removeAttribute('src');
+    }
+  }
+}
+// ลบรูป Drawing ที่เลือกไว้
+function _ordClearJobImg(prefix) {
+  const input  = $(prefix + '_jobImg1');
+  const nameEl = $(prefix + '_jobImg1Name');
+  const clearEl = $(prefix + '_jobImg1Clear');
+  const imgEl  = $(prefix + '_jobImg1Preview');
   if (input)  input.value = '';
   if (nameEl) nameEl.textContent = 'ยังไม่ได้เลือกไฟล์ใด';
   if (clearEl) clearEl.style.display = 'none';
@@ -376,6 +409,13 @@ async function createOrder() {
       row[ORDER_COLS.poFilePath] = up.path;
     }
 
+    const jobImg1 = $('ord_jobImg1')?.files?.[0];
+    if (jobImg1) {
+      if (statusEl) statusEl.textContent = '⏳ กำลังอัปโหลดรูป Drawing...';
+      const up = await _ordUploadPoFile(jobImg1, noPO);
+      row[ORDER_COLS.jobImg1] = up.url;
+    }
+
     await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ action:'addOrder', row }) });
@@ -453,6 +493,7 @@ function _gordResetCard() {
   if ($('gord_unit'))   $('gord_unit').value = 'ชิ้น';
   if ($('gord_status')) $('gord_status').value = 'กำลังผลิต';
   _ordClearPoFile('gord');
+  _ordClearJobImg('gord');
 }
 
 // สร้าง Order ใหม่แบบทั่วไป (สินค้า/บริการอื่นๆ) — ไม่ต้องมีข้อมูลจาก DATA
@@ -548,6 +589,13 @@ async function createGeneralOrder() {
       const up = await _ordUploadPoFile(poFile, noPO);
       row[ORDER_COLS.poFile]     = up.url;
       row[ORDER_COLS.poFilePath] = up.path;
+    }
+
+    const jobImg1 = $('gord_jobImg1')?.files?.[0];
+    if (jobImg1) {
+      if (statusEl) statusEl.textContent = '⏳ กำลังอัปโหลดรูป Drawing...';
+      const up = await _ordUploadPoFile(jobImg1, noPO);
+      row[ORDER_COLS.jobImg1] = up.url;
     }
 
     if (statusEl) statusEl.textContent = '⏳ กำลังบันทึก...';
@@ -1057,10 +1105,10 @@ function renderOrderTable() {
       <td style="padding:8px 10px;font-size:.78rem;color:var(--t1)">${customer||'—'}</td>
       <td style="padding:8px 10px;font-size:.72rem;color:var(--t3);white-space:nowrap">${r[ORDER_COLS.orderDate]||'—'}</td>
       <td style="padding:8px 10px;font-size:.72rem;color:var(--t3);white-space:nowrap">${r[ORDER_COLS.wantDate]||'—'}</td>
+      <td style="padding:8px 10px;font-size:.72rem;color:var(--t1)">${String(r[ORDER_COLS.workType]||'')||'—'}</td>
       <td style="padding:8px 10px;font-size:.78rem;color:var(--t1)">${productList||'—'}</td>
       <td style="padding:8px 10px;text-align:center;font-size:.8rem;color:var(--t1)">${r[ORDER_COLS.qty]||'—'}</td>
-      <td style="padding:8px 10px;font-size:.72rem;color:var(--t2)">${note||'—'}</td>
-      <td style="padding:8px 10px;font-size:.72rem;color:var(--t2)">${note2||'—'}</td>
+      <td style="padding:8px 10px;font-size:.72rem;color:var(--t2)">${[note, note2].filter(Boolean).join(' / ') || '—'}</td>
       <td style="padding:8px 10px;text-align:right;font-size:.78rem;font-weight:600;color:var(--c1);white-space:nowrap">${price ? price.toLocaleString('th-TH',{minimumFractionDigits:2}) : '—'} <span style="font-size:.65rem">฿</span></td>
       <td style="padding:8px 10px;white-space:nowrap">${_ordStatusBadge(process)}</td>
       <td style="padding:8px 10px;text-align:center;white-space:nowrap">
@@ -1073,6 +1121,11 @@ function renderOrderTable() {
           style="padding:5px 10px;border-radius:7px;border:none;background:#f59e0b;color:#fff;
                  font-size:.7rem;cursor:pointer;font-family:Sarabun,sans-serif;margin:1px">
           ✂️ ตัดเหล็ก
+        </button>
+        <button onclick="_ordPrintWorkOrder('${noPO.replace(/'/g,"\\'")}')"
+          style="padding:5px 10px;border-radius:7px;border:none;background:#7c3aed;color:#fff;
+                 font-size:.7rem;cursor:pointer;font-family:Sarabun,sans-serif;margin:1px">
+          📋 Job Order
         </button>
       </td>
     </tr>`;
@@ -1430,6 +1483,265 @@ async function _ordPrintCutting(noPO) {
   printCuttingReportFromDataRow(dtRow, noPO);
 }
 
+// ── พิมพ์ใบสั่งงานผลิต (Work Order) ของ Order ──
+async function _ordPrintWorkOrder(noPO) {
+  const ord = _orderCache.find(row => String(row[ORDER_COLS.noPO]) === String(noPO));
+  if (!ord) return;
+  const g = (k) => String(ord[ORDER_COLS[k]] ?? '').trim();
+  const noQuo = g('noQuo');
+
+  // ถ้ายังไม่เคยโหลดข้อมูล DATA ให้โหลดก่อน (ต้องใช้ OD/ID/H/ตะแกรง/ฝา)
+  if (!_dtCache || !_dtCache.length) {
+    Swal.fire({title:'⏳ กำลังโหลดข้อมูล DATA...', allowOutsideClick:false, background:'#0d1b2a', color:'#cce4ff', didOpen:()=>Swal.showLoading()});
+    await dtRefresh(false);
+    Swal.close();
+  }
+  const dtRow = (_dtCache || []).find(row => String(row[DT.noQuo] || '').trim() === noQuo);
+
+  const od = dtRow ? (dtRow[DT.od]||'') : '';
+  const id_ = dtRow ? (dtRow[DT.id]||'') : '';
+  const h  = dtRow ? (dtRow[DT.h]||'')  : '';
+  const meshOut = g('meshOut') || (dtRow ? matLabel(dtRow[DT.meshOut]) : '');
+  const meshIn  = g('meshIn')  || (dtRow ? matLabel(dtRow[DT.meshIn])  : '');
+  const matTop  = g('matTop')  || (dtRow ? matLabel(dtRow[DT.matTop])  : '');
+  const matBot  = g('matBot')  || (dtRow ? matLabel(dtRow[DT.matBot])  : '');
+
+  const drawingImg = String(ord[ORDER_COLS.jobImg1]||'').trim() || String(ord[ORDER_COLS.jobImg2]||'').trim();
+  const poImg = String(ord[ORDER_COLS.poFile]||'').trim();
+
+  const html = _renderWorkOrderHtml({
+    noPO, noQuo,
+    customer: g('customer'),
+    productList: g('productList') || '—',
+    workType: g('workType') || '—',
+    qty: g('qty') || '—',
+    od, id_, h, meshOut, meshIn, matTop, matBot,
+    orderDate: g('orderDate'),
+    wantDate: g('wantDate'),
+    note: g('note'),
+    drawingImg,
+    poImg,
+  });
+  _openCuttingReport(html);
+}
+
+// ── สร้างแผนภาพ SVG แบบโครงตะกร้าตาม workType (อ้างอิงแพทเทิลที่ผู้ใช้ส่งมา) ──
+function _workTypeDiagramSvg(workType) {
+  const wt = String(workType||'');
+  let type = null;
+  if (/บุ๋ม|เจาะรู/.test(wt)) type = 'dimple';
+  else if (/ทะลุ/.test(wt)) type = 'through';
+  if (!type) return '';
+
+  const meshDots = (cx, cy) => {
+    let dots = '';
+    const cols = 5, rows = 4, sp = 10;
+    const startX = cx - (cols-1)*sp/2;
+    const startY = cy - (rows-1)*sp/2;
+    for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) {
+      dots += `<circle cx="${startX+c*sp}" cy="${startY+r*sp}" r="3.5" fill="none" stroke="#222" stroke-width="1"/>`;
+    }
+    return dots;
+  };
+
+  if (type === 'through') {
+    return `
+    <div style="text-align:center">
+      <div style="font-weight:700;font-size:.85rem;margin-bottom:6px">โครง หัว-ท้าย ทะลุ</div>
+      <svg viewBox="0 0 220 240" width="100%" style="max-height:240px">
+        <line x1="50" y1="20" x2="50" y2="220" stroke="#222" stroke-width="2"/>
+        <line x1="170" y1="20" x2="170" y2="220" stroke="#222" stroke-width="2"/>
+        <line x1="50" y1="20" x2="65" y2="20" stroke="#222" stroke-width="2"/>
+        <line x1="170" y1="20" x2="155" y2="20" stroke="#222" stroke-width="2"/>
+        <line x1="50" y1="220" x2="65" y2="220" stroke="#222" stroke-width="2"/>
+        <line x1="170" y1="220" x2="155" y2="220" stroke="#222" stroke-width="2"/>
+        ${meshDots(110,120)}
+      </svg>
+    </div>`;
+  }
+
+  // dimple (หัวทะลุ-ท้ายบุ๋มเจาะรู)
+  return `
+  <div style="text-align:center">
+    <div style="font-weight:700;font-size:.85rem;margin-bottom:6px">โครงหัวทะลุ-ท้ายบุ๋มเจาะรู</div>
+    <svg viewBox="0 0 220 260" width="100%" style="max-height:240px">
+      <line x1="50" y1="20" x2="50" y2="210" stroke="#222" stroke-width="2"/>
+      <line x1="170" y1="20" x2="170" y2="210" stroke="#222" stroke-width="2"/>
+      <line x1="50" y1="20" x2="65" y2="20" stroke="#222" stroke-width="2"/>
+      <line x1="170" y1="20" x2="155" y2="20" stroke="#222" stroke-width="2"/>
+      <path d="M50,210 Q110,236 170,210" fill="none" stroke="#222" stroke-width="2"/>
+      <ellipse cx="110" cy="219" rx="17" ry="7" fill="none" stroke="#222" stroke-width="2"/>
+      <text x="110" y="252" text-anchor="middle" font-size="14" font-weight="700" fill="#222">เจาะรู</text>
+      ${meshDots(110,112)}
+    </svg>
+  </div>`;
+}
+
+// ── สร้าง HTML เอกสารใบสั่งงานผลิต (Work Order) — เอกสารปกติมีหัวกระดาษ/โลโก้บริษัท ──
+function _renderWorkOrderHtml(d) {
+  const co = _companyInfoCache || {};
+  const now = new Date();
+  const printDateStr = now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+
+  const specRows = [
+    ['ขนาด OD × ID × H (มม.)', (d.od||d.id_||d.h) ? `${d.od||'-'} × ${d.id_||'-'} × ${d.h||'-'}` : '—'],
+    ['แบบงาน', d.workType || '—'],
+    ['ตะแกรงนอก', d.meshOut || '—'],
+    ['ตะแกรงใน', d.meshIn || '—'],
+    ['ฝาบน', d.matTop || '—'],
+    ['ฝาล่าง', d.matBot || '—'],
+  ].map(([label, val]) => `
+    <tr><td style="padding:6px 10px;color:#666;border-bottom:1px solid #eee;width:35%">${label}</td>
+        <td style="padding:6px 10px;font-weight:600;border-bottom:1px solid #eee">${val}</td></tr>`).join('');
+
+  const checklistSteps = ['ตัดเหล็ก','ขึ้นรูป/เชื่อม','ส่งชุบ','ตรวจสอบ/QC','แพ็ค/พร้อมส่ง'];
+  const checklistRows = checklistSteps.map(step => `
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;width:28px;text-align:center">
+        <div style="width:16px;height:16px;border:1.5px solid #999;border-radius:3px;display:inline-block"></div>
+      </td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee">${step}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;width:25%">ผู้ทำ: ____________________</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #eee;width:20%">วันที่เสร็จ: __________</td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8">
+<title>ใบสั่งงานผลิต — ${d.noPO}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap">
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Sarabun',sans-serif; color:#1a2232; font-size:13px; }
+  table { width:100%; border-collapse:collapse; }
+</style>
+</head><body>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;
+    padding-bottom:14px;border-bottom:3px solid #2563eb;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:56px;height:56px;border-radius:10px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center">
+        <img src="${_getLogoSrc()}" alt="PTS" style="width:100%;height:100%;object-fit:contain"
+          onerror="this.parentNode.style.background='#2563eb';this.style.display='none';this.parentNode.innerHTML='<span style=color:#fff;font-weight:800;font-size:1.05rem>PT</span>'">
+      </div>
+      <div>
+        <div style="font-weight:800;font-size:.95rem">${co.name||''}</div>
+        <div style="font-size:.65rem;color:#888;letter-spacing:.5px">${co.nameEn||''}</div>
+        <div style="font-size:.68rem;color:#555;margin-top:3px;line-height:1.6">
+          ${co.address||''}<br>โทร: ${co.phone||''} | อีเมล์: ${co.email||''}
+        </div>
+      </div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:1.6rem;font-weight:800;color:#2563eb;line-height:1">ใบสั่งงานผลิต</div>
+      <div style="font-size:.65rem;color:#888;letter-spacing:2.5px;margin-bottom:10px">JOB ORDER</div>
+      <table style="font-size:.78rem;margin-left:auto">
+        <tr><td style="color:#666;padding:2px 6px 2px 0">เลขที่ PO:</td>
+            <td style="font-weight:700;color:#2563eb">${d.noPO||'—'}</td></tr>
+        <tr><td style="color:#666;padding:2px 6px 2px 0">No.Quo:</td>
+            <td>${d.noQuo||'—'}</td></tr>
+        <tr><td style="color:#666;padding:2px 6px 2px 0">วันที่พิมพ์:</td>
+            <td>${printDateStr}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div style="padding:14px 0;border-bottom:1px solid #e8ecf2">
+    <div style="font-size:.62rem;font-weight:700;color:#2563eb;letter-spacing:1.2px;margin-bottom:6px">ลูกค้า / CUSTOMER</div>
+    <div style="font-size:.95rem;font-weight:700">${d.customer||'—'}</div>
+  </div>
+
+  <div style="padding:14px 0;border-bottom:1px solid #e8ecf2">
+    <div style="border:2px solid #2563eb;border-radius:10px;padding:14px 20px;
+      display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:#f5f8ff">
+      <div>
+        <div style="font-size:.65rem;color:#2563eb;font-weight:700;letter-spacing:1.5px;margin-bottom:4px">รายการ</div>
+        <div style="font-weight:800;font-size:2rem;line-height:1.25">${typeof _platingFormatDimDesc === 'function' ? _platingFormatDimDesc(d.productList) : (d.productList||'—')}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:.65rem;color:#2563eb;font-weight:700;letter-spacing:1.5px;margin-bottom:4px">จำนวน</div>
+        <div style="font-weight:800;font-size:2.4rem;line-height:1.2;color:#2563eb">${d.qty}<span style="font-size:1.1rem;font-weight:700;margin-left:6px">ลูก</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:14px 0;border-bottom:1px solid #e8ecf2;display:flex;gap:16px;flex-wrap:wrap">
+    <div style="flex:0 0 260px">
+      <div style="font-size:.62rem;font-weight:700;color:#2563eb;letter-spacing:1.2px;margin-bottom:6px">ข้อมูลงาน / สเปก</div>
+      <table style="font-size:.85rem">${specRows}</table>
+    </div>
+    <div style="flex:1;min-width:240px">
+      <div style="font-size:.62rem;font-weight:700;color:#2563eb;letter-spacing:1.2px;margin-bottom:6px">แบบงาน / DRAWING</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1;min-width:200px">
+          ${(() => {
+            if (d.drawingImg) {
+              return `<img src="${d.drawingImg}" onerror="this.style.display='none'" style="max-width:100%;max-height:260px;width:auto;height:auto;
+                object-fit:contain;border:1px solid #ddd;border-radius:6px;background:#fafafa">`;
+            }
+            const diagramSvg = _workTypeDiagramSvg(d.workType);
+            if (diagramSvg) {
+              return `<div style="border:1px solid #ddd;border-radius:6px;background:#fafafa;padding:8px">${diagramSvg}</div>`;
+            }
+            return `
+              <div style="border:1.5px dashed #bbb;border-radius:8px;min-height:200px;
+                display:flex;align-items:center;justify-content:center;color:#bbb;font-size:.8rem;text-align:center">
+                (พื้นที่สำหรับวาด/แนบแบบงาน)
+              </div>
+            `;
+          })()}
+        </div>
+        <div style="flex:1;min-width:200px">
+          ${d.poImg ? `
+            <img src="${d.poImg}" style="max-width:100%;max-height:260px;width:auto;height:auto;
+              object-fit:contain;border:1px solid #ddd;border-radius:6px;background:#fafafa">
+          ` : `
+            <div style="border:1.5px dashed #bbb;border-radius:8px;min-height:200px;
+              display:flex;align-items:center;justify-content:center;color:#bbb;font-size:.8rem;text-align:center">
+              (ไม่มีไฟล์ PO แนบ)
+            </div>
+          `}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:14px 0;border-bottom:1px solid #e8ecf2">
+    <table style="font-size:.85rem">
+      <tr>
+        <td style="padding:6px 10px 6px 0;color:#666;width:25%">วันที่รับงาน</td>
+        <td style="padding:6px 10px;font-weight:600">${d.orderDate || '—'}</td>
+        <td style="padding:6px 10px 6px 0;color:#666;width:25%">กำหนดส่ง</td>
+        <td style="padding:6px 0;font-weight:600;color:#dc2626">${d.wantDate || '—'}</td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="padding:14px 0;border-bottom:1px solid #e8ecf2">
+    <div style="font-size:.62rem;font-weight:700;color:#2563eb;letter-spacing:1.2px;margin-bottom:6px">ขั้นตอนการผลิต / CHECKLIST</div>
+    <table style="font-size:.85rem">${checklistRows}</table>
+  </div>
+
+  <div style="padding:14px 0;border-bottom:1px solid #e8ecf2">
+    <div style="font-size:.62rem;font-weight:700;color:#2563eb;letter-spacing:1.2px;margin-bottom:6px">หมายเหตุ</div>
+    <div style="font-size:.85rem;min-height:40px;white-space:pre-wrap">${d.note || '—'}</div>
+  </div>
+
+  <div style="display:flex;gap:12px;padding-top:28px;flex-wrap:wrap">
+    <div style="flex:1;text-align:center;min-width:140px">
+      <div style="border-top:1px solid #bbb;padding-top:5px;font-size:.7rem;color:#555">ผู้สั่งงาน</div>
+      <div style="font-size:.65rem;color:#aaa;margin-top:2px">( ______________ )</div>
+    </div>
+    <div style="flex:1;text-align:center;min-width:140px">
+      <div style="border-top:1px solid #bbb;padding-top:5px;font-size:.7rem;color:#555">ผู้ตรวจสอบ / QC</div>
+      <div style="font-size:.65rem;color:#aaa;margin-top:2px">( ______________ )</div>
+    </div>
+    <div style="flex:1;text-align:center;min-width:140px">
+      <div style="border-top:1px solid #bbb;padding-top:5px;font-size:.7rem;color:#555">ผู้อนุมัติ</div>
+      <div style="font-size:.65rem;color:#aaa;margin-top:2px">( ______________ )</div>
+    </div>
+  </div>
+</body></html>`;
+}
+
 // ── คัดลอกสเปกงานของ Order (สำหรับแจ้งฝ่ายผลิต/ลูกค้า) ──
 async function _ordCopySpec(noPO) {
   const ord = _orderCache.find(row => String(row[ORDER_COLS.noPO]) === String(noPO));
@@ -1587,6 +1899,13 @@ function openEditOrder(noPO) {
       ? `<a href="${poUrl}" target="_blank" rel="noopener">📎 ดูไฟล์ PO เดิม</a>`
       : '';
   }
+  _ordClearJobImg('ordEdit');
+  const jobImg1Url = r[ORDER_COLS.jobImg1] || '';
+  if ($('ordEdit_jobImg1LinkWrap')) {
+    $('ordEdit_jobImg1LinkWrap').innerHTML = jobImg1Url
+      ? `<a href="${jobImg1Url}" target="_blank" rel="noopener">📎 ดูรูป Drawing เดิม</a>`
+      : '';
+  }
   $('orderEditModal').style.display = 'flex';
 }
 function closeOrderEdit() {
@@ -1616,6 +1935,7 @@ async function saveOrderEdit() {
   row[ORDER_COLS.note]        = $('ordEdit_note').value;
   row[ORDER_COLS.poFile]      = r[ORDER_COLS.poFile] || '';
   row[ORDER_COLS.poFilePath]  = r[ORDER_COLS.poFilePath] || '';
+  row[ORDER_COLS.jobImg1]     = r[ORDER_COLS.jobImg1] || '';
 
   const saveBtn  = $('ordEdit_saveBtn');
   const statusEl = $('ordEdit_status_msg');
@@ -1635,6 +1955,13 @@ async function saveOrderEdit() {
       const up = await _ordUploadPoFile(poFile, _ordEditNoPO);
       row[ORDER_COLS.poFile]     = up.url;
       row[ORDER_COLS.poFilePath] = up.path;
+    }
+
+    const jobImg1 = $('ordEdit_jobImg1')?.files?.[0];
+    if (jobImg1) {
+      if (statusEl) statusEl.textContent = '⏳ กำลังอัปโหลดรูป Drawing...';
+      const up = await _ordUploadPoFile(jobImg1, _ordEditNoPO);
+      row[ORDER_COLS.jobImg1] = up.url;
     }
 
     await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',

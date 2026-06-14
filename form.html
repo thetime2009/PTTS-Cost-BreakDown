@@ -37,7 +37,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v7.91</span>
+      <span class="ph-chip ver">v8.09</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -1470,6 +1470,17 @@
               style="display:none;border:none;background:none;color:#ef4444;font-size:1rem;cursor:pointer;line-height:1;padding:2px 4px">✕</button>
           </div>
         </div>
+        <div class="field" style="margin-top:8px">
+          <label>รูป Drawing (แบบงาน)</label>
+          <img id="ord_jobImg1Preview" style="display:none;width:100%;max-height:200px;object-fit:contain;border-radius:10px;border:1px solid var(--bc-div);margin-bottom:8px;background:var(--bg1,#fff)">
+          <input type="file" id="ord_jobImg1" accept="image/*" style="display:none" onchange="_ordJobImgChanged('ord')">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn" onclick="$('ord_jobImg1').click()" style="padding:6px 14px;font-size:.78rem">เลือกไฟล์</button>
+            <span id="ord_jobImg1Name" style="font-size:.76rem;color:var(--t3)">ยังไม่ได้เลือกไฟล์ใด</span>
+            <button type="button" id="ord_jobImg1Clear" onclick="_ordClearJobImg('ord')" title="ลบไฟล์"
+              style="display:none;border:none;background:none;color:#ef4444;font-size:1rem;cursor:pointer;line-height:1;padding:2px 4px">✕</button>
+          </div>
+        </div>
       </div>
     </div>
     <input type="hidden" id="ord_productList">
@@ -1558,6 +1569,18 @@
         <button type="button" class="btn" onclick="$('gord_poFile').click()" style="padding:6px 14px;font-size:.78rem">เลือกไฟล์</button>
         <span id="gord_poFileName" style="font-size:.76rem;color:var(--t3)">ยังไม่ได้เลือกไฟล์ใด</span>
         <button type="button" id="gord_poFileClear" onclick="_ordClearPoFile('gord')" title="ลบไฟล์"
+          style="display:none;border:none;background:none;color:#ef4444;font-size:1rem;cursor:pointer;line-height:1;padding:2px 4px">✕</button>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:12px">
+      <label>รูป Drawing (แบบงาน) (ถ้ามี)</label>
+      <img id="gord_jobImg1Preview" style="display:none;width:100%;max-height:200px;object-fit:contain;border-radius:10px;border:1px solid var(--bc-div);margin-bottom:8px;background:var(--bg1,#fff)">
+      <input type="file" id="gord_jobImg1" accept="image/*" style="display:none" onchange="_ordJobImgChanged('gord')">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn" onclick="$('gord_jobImg1').click()" style="padding:6px 14px;font-size:.78rem">เลือกไฟล์</button>
+        <span id="gord_jobImg1Name" style="font-size:.76rem;color:var(--t3)">ยังไม่ได้เลือกไฟล์ใด</span>
+        <button type="button" id="gord_jobImg1Clear" onclick="_ordClearJobImg('gord')" title="ลบไฟล์"
           style="display:none;border:none;background:none;color:#ef4444;font-size:1rem;cursor:pointer;line-height:1;padding:2px 4px">✕</button>
       </div>
     </div>
@@ -1726,10 +1749,10 @@
             <th onclick="_ordSortBy('customer')" style="width:8%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div);cursor:pointer;user-select:none">ลูกค้า<span id="ordSortIcon_customer"></span></th>
             <th onclick="_ordSortBy('orderDate')" style="width:6%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div);cursor:pointer;user-select:none">วันที่สั่งซื้อ<span id="ordSortIcon_orderDate"></span></th>
             <th onclick="_ordSortBy('wantDate')" style="width:6%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div);cursor:pointer;user-select:none">วันที่ต้องการ<span id="ordSortIcon_wantDate"></span></th>
-            <th style="width:15%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div)">รายการสินค้า</th>
+            <th style="width:9%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div)">แบบงาน</th>
+            <th style="width:13%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div)">รายการสินค้า</th>
             <th onclick="_ordSortBy('qty')" style="width:5%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:center;border-bottom:1px solid var(--bc-div);cursor:pointer;user-select:none">จำนวน<span id="ordSortIcon_qty"></span></th>
-            <th style="width:9%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div)">หมายเหตุ</th>
-            <th style="width:9%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div)">Note</th>
+            <th style="width:13%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div)">หมายเหตุ</th>
             <th onclick="_ordSortBy('price')" style="width:7%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:right;border-bottom:1px solid var(--bc-div);cursor:pointer;user-select:none">ราคาขาย<span id="ordSortIcon_price"></span></th>
             <th onclick="_ordSortBy('process')" style="width:8%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:left;border-bottom:1px solid var(--bc-div);cursor:pointer;user-select:none">Process<span id="ordSortIcon_process"></span></th>
             <th style="width:15%;padding:9px 8px;font-size:.7rem;color:var(--t2);font-weight:600;text-align:center;border-bottom:1px solid var(--bc-div)">ปฏิบัติการ</th>
@@ -1798,6 +1821,17 @@
         </div>
         <img id="ordEdit_poFilePreview" style="display:none;max-width:120px;max-height:120px;margin-top:6px;border-radius:6px;border:1px solid var(--bc-div)">
         <div id="ordEdit_poLinkWrap" style="margin-top:4px;font-size:.74rem"></div>
+      </div>
+      <div class="field" style="grid-column:1/-1"><label>รูป Drawing (แบบงาน)</label>
+        <input type="file" id="ordEdit_jobImg1" accept="image/*" style="display:none" onchange="_ordJobImgChanged('ordEdit')">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn" onclick="$('ordEdit_jobImg1').click()" style="padding:6px 14px;font-size:.78rem">เลือกไฟล์</button>
+          <span id="ordEdit_jobImg1Name" style="font-size:.76rem;color:var(--t3)">ยังไม่ได้เลือกไฟล์ใด</span>
+          <button type="button" id="ordEdit_jobImg1Clear" onclick="_ordClearJobImg('ordEdit')" title="ลบไฟล์"
+            style="display:none;border:none;background:none;color:#ef4444;font-size:1rem;cursor:pointer;line-height:1;padding:2px 4px">✕</button>
+        </div>
+        <img id="ordEdit_jobImg1Preview" style="display:none;max-width:120px;max-height:120px;margin-top:6px;border-radius:6px;border:1px solid var(--bc-div)">
+        <div id="ordEdit_jobImg1LinkWrap" style="margin-top:4px;font-size:.74rem"></div>
       </div>
       <div class="field" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="ordEdit_note"></div>
     </div>
@@ -2605,15 +2639,15 @@
   </div>
 </div>
 
-<script src="core.js?v=7.91"></script>
-<script src="data.js?v=7.91"></script>
-<script src="formcalc.js?v=7.91"></script>
-<script src="aifeatures.js?v=7.91"></script>
-<script src="theme.js?v=7.91"></script>
-<script src="order.js?v=7.91"></script>
-<script src="purchase.js?v=7.91"></script>
-<script src="invoice.js?v=7.91"></script>
-<script src="plating.js?v=7.91"></script>
+<script src="core.js?v=8.09"></script>
+<script src="data.js?v=8.09"></script>
+<script src="formcalc.js?v=8.09"></script>
+<script src="aifeatures.js?v=8.09"></script>
+<script src="theme.js?v=8.09"></script>
+<script src="order.js?v=8.09"></script>
+<script src="purchase.js?v=8.09"></script>
+<script src="invoice.js?v=8.09"></script>
+<script src="plating.js?v=8.09"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -2752,9 +2786,160 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260614-BV',
+    ref: '#REV-20260614-CN',
     date: '2026-06-14',
     current: true,
+    items: [
+      'เมนูฝ่ายผลิต: เปลี่ยนรายการ "WorkOrder" (placeholder) เป็น "Job Order" และเชื่อมลิงก์ไปยังหน้า Order',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CM',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'เปลี่ยนข้อความปุ่ม/หัวเอกสารจาก "Work Order" เป็น "Job Order" (ปุ่มในตาราง Order และหัวเอกสารใบสั่งงานผลิต)',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CL',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'การ์ดแก้ไข Order (แก้ไข Order): เพิ่มช่องอัปโหลด/แสดง/ลบรูป Drawing (แบบงาน) ให้แก้ไขรูป Drawing ของออเดอร์เดิมได้',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CK',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ใบสั่งงานผลิต (Work Order): ลบบรรทัด "OD x ID x H mm." ที่ซ้ำซ้อนใต้ชื่อรายการในกล่อง "รายการ" ออก',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CJ',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ใบสั่งงานผลิต (Work Order): ตีกรอบส่วน "รายการ/จำนวน" เป็นกล่องเดียวกัน พื้นหลังไล่สีฟ้าอ่อน จัดวางชื่อรายการ+ขนาด OD/ID/H ไว้ฝั่งซ้าย และจำนวนตัวใหญ่ไว้ฝั่งขวา ให้เด่นชัดขึ้น',
+      'ใบสั่งงานผลิต: ถ้ารูป Drawing โหลดไม่ได้ (ลิงก์เสีย) จะซ่อนรูปอัตโนมัติแทนการแสดงไอคอนรูปเสีย',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CI',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ตาราง Order: เพิ่มคอลัมน์ "แบบงาน" ไว้หน้าคอลัมน์ "รายการสินค้า"',
+      'ตาราง Order: ยุบคอลัมน์ "หมายเหตุ" และ "Note" เหลือคอลัมน์เดียว แสดงข้อความทั้งสองต่อกัน',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CH',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'เพิ่มช่องอัปโหลด "รูป Drawing (แบบงาน)" ในการ์ดสร้าง Order (ทั้งจาก DATA และ Order ทั่วไป) — บันทึกเป็น jobImg1',
+      'ใบสั่งงานผลิต (Work Order): แยกพื้นที่ "แบบงาน / DRAWING" เป็น 2 ช่อง — ช่องซ้ายแสดงรูป Drawing (หรือแผนภาพ SVG ตามแบบงานถ้าไม่มีรูป) ช่องขวาแสดงไฟล์ PO',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CG',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ใบสั่งงานผลิต (Work Order): ปรับส่วน "รายการ/จำนวน" ให้ตัวใหญ่เด่นชัดแบบเดียวกับใบส่งชุบ — แปลงชื่อรายการเป็นรูปแบบ "ODxxxIDxxxHxxx mm." อัตโนมัติ และเพิ่มบรรทัดแสดงขนาด OD x ID x H (มม.) ใต้รายการ',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CF',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ใบสั่งงานผลิต (Work Order): เพิ่มแผนภาพ SVG แสดงโครงตะกร้าตามแบบงาน (workType) — "โครง หัว-ท้าย ทะลุ" และ "โครงหัวทะลุ-ท้ายบุ๋มเจาะรู" พร้อมลายตาตะแกรง แสดงคู่กับรูปแบบงานที่แนบ (ถ้ามี) ในพื้นที่ "แบบงาน / DRAWING"',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CE',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ใบสั่งงานผลิต (Work Order): เพิ่มพื้นที่ "แบบงาน / DRAWING" ขนาดใหญ่ชัดเจน วางคู่กับตารางสเปก — ถ้า Order มีรูปงาน/ไฟล์ PO แนบไว้จะแสดงรูปขนาดใหญ่อัตโนมัติ ถ้าไม่มีจะเว้นกรอบเส้นประไว้สำหรับวาดแบบด้วยมือ',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CD',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'เพิ่มปุ่ม "📋 Work Order" ในตาราง Order — พิมพ์ใบสั่งงานผลิตแบบเอกสารปกติ (มีหัวกระดาษ/โลโก้บริษัท) ดึงข้อมูลจาก Order + DATA โดยอัตโนมัติ',
+      'ใบสั่งงานผลิตประกอบด้วย: ข้อมูลลูกค้า/รายการ/จำนวน, สเปกงาน (ขนาด OD/ID/H, ตะแกรงนอก-ใน, ฝาบน-ล่าง), วันที่รับงาน/กำหนดส่ง, checklist ขั้นตอนผลิต (ตัดเหล็ก/ขึ้นรูป-เชื่อม/ส่งชุบ/ตรวจสอบ-QC/แพ็ค) พร้อมช่องผู้ทำ-วันที่เสร็จ, ช่องหมายเหตุ และลายเซ็นผู้สั่งงาน/QC/อนุมัติ',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CC',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'แก้ "พิมพ์บนฟอร์มสำเร็จ" รายการสินค้าที่มีหลายบรรทัดรายละเอียด (สเปก/ตะแกรง) ทับซ้อนกับแถวถัดไป — เปลี่ยนเป็นเว้นระยะแถวแบบไดนามิกตามจำนวนบรรทัดรายละเอียดของแต่ละรายการ',
+      'แก้บั๊กวันที่ผิด (เช่น "30 พฤษภาคม 3112" ที่ควรเป็น 2569) ในฟังก์ชัน _invThaiDate — เดิมแปลงปี พ.ศ. เป็น ค.ศ. ซ้ำ 2 ครั้ง ทำให้ toLocaleDateString บวก 543 ทับอีกรอบ',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CB',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'เพิ่มฟีเจอร์ "🖨 พิมพ์บนฟอร์มสำเร็จ" ในหน้าพรีวิวใบกำกับภาษี (ทั้งออกใหม่และพิมพ์ซ้ำ) — พิมพ์เฉพาะข้อมูลแบบวางตำแหน่งสัมบูรณ์ (มม.) ทับกระดาษ A4 ต่อเนื่องที่พิมพ์หัวกระดาษไว้แล้ว',
+      'เพิ่มปุ่ม "⚙️ ตำแหน่ง" สำหรับปรับค่า X/Y (มม.) ของแต่ละฟิลด์ (ชื่อลูกค้า, เลขที่/วันที่, รายการสินค้า, ยอดรวม ฯลฯ) เก็บค่าไว้ใน localStorage ปรับได้ตลอดให้ตรงกับฟอร์มจริง',
+      'เพิ่มฟังก์ชันแปลงจำนวนเงินเป็นข้อความภาษาไทย (เช่น "หนึ่งหมื่นสี่ร้อยแปดสิบหกบาทถ้วน") สำหรับพิมพ์ลงบรรทัด "จำนวนเงินเป็นตัวอักษร" บนฟอร์ม',
+    ],
+  },
+  {
+    ref: '#REV-20260614-CA',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'แก้ "รายงานภาษีขาย" คอลัมสรุปยอดท้ายตารางไม่ตรงกับหัวตาราง — ลบเซลล์ "สรุปยอดขาย ณ สิ้นเดือน" ที่ซ้ำกัน 2 อันออก 1 อัน ทำให้แถวสรุปรวม colspan ตรงกับ 9 คอลัมในหัวตารางแล้ว',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BZ',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'แก้ปุ่ม "🖨 พิมพ์ / บันทึกเป็น PDF" ยังไม่เด้งหน้าต่างพิมพ์อัตโนมัติ — เปลี่ยนกลับมาเปิด window.open("","_blank") แบบ sync ทันทีตอนกดปุ่ม (อยู่ origin เดียวกับหน้าหลัก) แล้วค่อยโหลด CSS + เขียนเนื้อหาเอกสาร + เรียก print() ทีหลัง',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BY',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'แก้ปุ่ม "🖨 พิมพ์ / บันทึกเป็น PDF" ที่เปิดแท็บใหม่ถูกต้องแล้วแต่ไม่เด้งหน้าต่างพิมพ์อัตโนมัติ — w.addEventListener("load") ใช้ไม่ได้กับ blob: URL (cross-origin) เปลี่ยนเป็นเรียก w.print() ด้วย setTimeout สำรองเสมอ',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BX',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'แก้ปุ่ม "🖨 พิมพ์ / บันทึกเป็น PDF" ที่เปิดแท็บใหม่แล้วเป็นหน้าขาวเปล่า (ทุกเอกสารยกเว้นใบสั่งซื้อ) — เปลี่ยนวิธีสร้างแท็บใหม่เป็น Blob URL และฝัง CSS ของ style.css ลงในเอกสารโดยตรง แก้ปัญหา external stylesheet/document.write ไม่ทำงานในแท็บใหม่',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BW',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ปุ่ม "🖨 พิมพ์ / บันทึกเป็น PDF" ในเอกสารทุกประเภท (ใบเสนอราคา, Costing, ใบกำกับภาษี, ใบวางบิล, ใบส่งชุบ, รายงานส่งชุบ, ใบเสนอราคาทั่วไป) เปลี่ยนจากพิมพ์หน้าเว็บทั้งหน้า เป็นเปิดแท็บใหม่เฉพาะเอกสารนั้น — จัดหน้ากระดาษ/พิมพ์ PDF ได้สะดวกและเป็นเอกสารเดี่ยวๆ ไม่มีโครง UI ติดมา',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BV',
+    date: '2026-06-14',
+    current: false,
     items: [
       'ใบกำกับ: แก้แถวตัวกรอง "ใบกำกับที่ออกแล้ว" (ค้นหา/ประเภท/วันที่/ล้างการกรอง) ล้นจอในโหมดมือถือ — ปรับเป็น grid 2 คอลัมน์ และปุ่มเต็มความกว้างเมื่อหน้าจอ ≤720px',
     ],
