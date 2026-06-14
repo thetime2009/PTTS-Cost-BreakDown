@@ -88,6 +88,7 @@ async function platingInit() {
   await fetchSuppliers();
   if (!_dtCache || !_dtCache.length) { try { await dtRefresh(false); } catch(e) {} }
   _platingRefreshSupplierSelect();
+  _platingRefreshDetailSupplierSelect();
   // ค่าเริ่มต้น: วันที่ออกใบส่งชุบ = วันนี้ (ถ้ายังไม่ได้กรอก)
   if ($('platingDate') && !$('platingDate').value) {
     const d = new Date();
@@ -113,6 +114,16 @@ function _platingRefreshSupplierSelect() {
   const lastUsed = localStorage.getItem('ptts_plating_supplier') || '';
   if (cur) sel.value = cur;
   else if (lastUsed && (_supplierCache || []).some(s => s.code === lastUsed)) sel.value = lastUsed;
+}
+
+// เติม dropdown "ร้านชุบ" สำหรับตัวกรองรายงาน (จาก _supplierCache)
+function _platingRefreshDetailSupplierSelect() {
+  const sel = $('platingDetailSupplier');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">ทุกร้านชุบ</option>' +
+    (_supplierCache || []).map(s => `<option value="${s.code}">${s.name}</option>`).join('');
+  if (cur) sel.value = cur;
 }
 
 // ── หา presence ของ ฝาบน/ฝาล่าง/ตะแกรงนอก/ตะแกรงใน จาก _dtCache ตาม noQuo ──
@@ -277,7 +288,7 @@ function _platingRenderOrderList() {
         <div style="position:relative;display:inline-block">
           <input type="number" step="0.01" min="0" value="${meta.price || ''}" placeholder="0.00"
             oninput="_platingSetOrderMeta('${noPO}','price',this.value)"
-            style="width:80px;padding:6px;border-radius:6px;border:1px solid var(--bc-input);background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem;text-align:center">
+            style="width:80px;padding:6px;border-radius:6px;border:1px solid var(--bc-input);background:#fde2e8;color:#1a2232;font-family:Sarabun,sans-serif;font-size:.8rem;text-align:center">
           ${meta.priceFromMemory ? `<span title="ระบบใส่ราคาให้อัตโนมัติจากความจำ" style="position:absolute;top:-7px;right:-7px;font-size:.78rem;line-height:1">🧠</span>` : ''}
         </div>
       </td>
@@ -422,7 +433,7 @@ function _platingRenderExtraItems() {
         <div style="display:flex;gap:4px;align-items:center;justify-content:center">
           <input type="number" step="0.01" value="${it.price || ''}" min="0" placeholder="0.00"
             oninput="_platingUpdateExtraItem(${idx},'price',this.value)"
-            style="width:70px;padding:6px;border-radius:6px;border:1px solid var(--bc-input);background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem;text-align:center">
+            style="width:70px;padding:6px;border-radius:6px;border:1px solid var(--bc-input);background:#fde2e8;color:#1a2232;font-family:Sarabun,sans-serif;font-size:.8rem;text-align:center">
           <button type="button" onclick="_platingLookupExtraPrice(${idx})" title="ดึงราคาล่าสุดจากประวัติ"
             style="padding:5px 7px;border-radius:6px;border:1px solid rgba(99,102,241,.4);background:rgba(99,102,241,.1);
             color:#818cf8;font-size:.74rem;cursor:pointer">🔍</button>
@@ -1113,6 +1124,310 @@ function _platingReprint(idx) {
   const html = _platingBuildDocHtml({ platingNo: p.platingNo, dateStr, supplier, items: p.items || [] });
   _platingShareData = { platingNo: p.platingNo, dateStr, supplier, items: p.items || [] };
 
+  _platingPreviewData = null;
+  _invPreviewMode = true;
+
+  let docPlating = $('docPlating');
+  if (!docPlating) {
+    docPlating = document.createElement('div');
+    docPlating.id = 'docPlating';
+    $('docQuo').parentNode.appendChild(docPlating);
+  }
+  ['docQuo','docCost','docInv','docInvRep','docBill'].forEach(id => { if ($(id)) $(id).classList.add('dp-hidden'); });
+  docPlating.classList.remove('dp-hidden');
+  docPlating.innerHTML = html;
+
+  if ($('dtabQuo'))  $('dtabQuo').style.display  = 'none';
+  if ($('dtabCost')) $('dtabCost').style.display = 'none';
+  const swapBtn = document.querySelector('.doc-bottombar .doc-tab-btn[onclick*="_docActiveTab"]');
+  if (swapBtn) swapBtn.style.display = 'none';
+  if ($('invConfirmBtn'))     $('invConfirmBtn').style.display     = 'none';
+  if ($('billConfirmBtn'))    $('billConfirmBtn').style.display    = 'none';
+  if ($('platingConfirmBtn')) $('platingConfirmBtn').style.display = 'none';
+
+  $('docExportOverlay').classList.add('open');
+}
+
+// ══════════════════════════════════════════════════════
+// ══ รายงานสรุปยอดส่งชุบ รายช่วงวันที่ ═══════════════════
+// ══════════════════════════════════════════════════════
+
+// ── สร้าง HTML รายงานสรุปยอดส่งชุบ ตามช่วงวันที่ที่กรอกในตัวกรองประวัติ ──
+function _platingBuildSummaryReportHtml(list, fromIso, toIso, supplierCode) {
+  const co = _companyInfoCache || {};
+  const supplierName = supplierCode ? ((_supplierCache || []).find(s => s.code === supplierCode)?.name || '') : '';
+  const fmtRange = (iso) => iso
+    ? new Date(iso + 'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})
+    : '-';
+
+  let grandTotal = 0;
+  let grandCount = 0;
+  const rows = list.map((p, idx) => {
+    const supplier = _supplierCache.find(s => s.code === p.supplierCode) || {};
+    const itemCount = (p.items || []).length;
+    const total = (p.items || []).reduce((s,it) => s + (parseFloat(it.price)||0) * (parseFloat(it.qty)||0), 0);
+    grandTotal += total;
+    grandCount += itemCount;
+    return `
+    <tr style="border-bottom:1px solid #e8ecf2">
+      <td style="padding:7px 10px;text-align:center;white-space:nowrap">${idx + 1}</td>
+      <td style="padding:7px 10px;white-space:nowrap">${p.date || '-'}</td>
+      <td style="padding:7px 10px;white-space:nowrap">${p.platingNo || '-'}</td>
+      <td style="padding:7px 10px">${supplier.name || p.supplierCode || '-'}</td>
+      <td style="padding:7px 10px;text-align:center">${itemCount}</td>
+      <td style="padding:7px 10px;text-align:right;white-space:nowrap">${total ? fmtB(total) : '-'}</td>
+    </tr>`;
+  }).join('') || `
+    <tr><td colspan="6" style="padding:16px;text-align:center;color:#888">ไม่พบใบส่งชุบในช่วงวันที่ที่เลือก</td></tr>`;
+
+  return `
+<div class="doc-paper" style="overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;
+    padding:22px 28px 14px;border-bottom:3px solid #2563eb;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:56px;height:56px;border-radius:10px;flex-shrink:0;overflow:hidden;
+        display:flex;align-items:center;justify-content:center">
+        <img src="${_getLogoSrc()}" alt="PTS" style="width:100%;height:100%;object-fit:contain"
+          onerror="this.parentNode.style.background='#2563eb';this.style.display='none';this.parentNode.innerHTML='<span style=color:#fff;font-weight:800;font-size:1.05rem>PT</span>'">
+      </div>
+      <div>
+        <div style="font-weight:800;font-size:.95rem;color:#1a2232">${co.name||''}</div>
+        <div style="font-size:.65rem;color:#888;letter-spacing:.5px">${co.nameEn||''}</div>
+        <div style="font-size:.68rem;color:#555;margin-top:3px;line-height:1.6">
+          ${co.address||''}<br>โทร: ${co.phone||''} | อีเมล์: ${co.email||''}<br>TAX ID: ${co.taxId||''}
+        </div>
+      </div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:1.6rem;font-weight:800;color:#2563eb;line-height:1">รายงานสรุปยอดส่งชุบ</div>
+      <div style="font-size:.65rem;color:#888;letter-spacing:2.5px;margin-bottom:10px">PLATING SUMMARY REPORT</div>
+      <table style="font-size:.78rem;margin-left:auto">
+        <tr><td style="color:#666;padding:2px 6px 2px 0">ช่วงวันที่ / Period:</td>
+            <td style="font-weight:700;color:#2563eb">${fmtRange(fromIso)} – ${fmtRange(toIso)}</td></tr>
+        <tr><td style="color:#666;padding:2px 6px 2px 0">จำนวนใบส่งชุบ:</td>
+            <td>${list.length} ใบ</td></tr>
+        ${supplierName ? `<tr><td style="color:#666;padding:2px 6px 2px 0">ร้านชุบ:</td>
+            <td style="font-weight:700">${supplierName}</td></tr>` : ''}
+      </table>
+    </div>
+  </div>
+
+  <div style="padding:16px 28px">
+    <table style="width:100%;border-collapse:collapse;font-size:.79rem">
+      <thead>
+        <tr style="background:#2563eb;color:#fff">
+          <th style="padding:8px 10px;text-align:center;border-radius:4px 0 0 0;width:6%">ลำดับ</th>
+          <th style="padding:8px 10px;text-align:left;width:14%">วันที่</th>
+          <th style="padding:8px 10px;text-align:left;width:16%">เลขที่ใบส่งชุบ</th>
+          <th style="padding:8px 10px;text-align:left">ร้านชุบ</th>
+          <th style="padding:8px 10px;text-align:center;width:12%">จำนวนรายการ</th>
+          <th style="padding:8px 10px;text-align:center;width:16%;border-radius:0 4px 0 0">ยอดรวม</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" style="padding:9px 10px;text-align:right;font-weight:700;border-top:2px solid #2563eb">รวมทั้งสิ้น</td>
+          <td style="padding:9px 10px;text-align:center;font-weight:700;border-top:2px solid #2563eb;color:#2563eb">${grandCount}</td>
+          <td style="padding:9px 10px;text-align:right;font-weight:700;border-top:2px solid #2563eb;color:#2563eb">${fmtB(grandTotal)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>`;
+}
+
+// ── สร้างข้อความสเปควัสดุ (ฝาบน/ฝาล่าง/ตะแกรงนอก/ตะแกรงใน) สำหรับ 1 รายการ ──
+function _platingItemSpecText(it) {
+  const parts = [];
+  if (it.top) parts.push('ฝาบน');
+  if (it.bot) parts.push('ฝาล่าง');
+  if (it.meshOut && it.meshIn) parts.push('ตะแกรงนอก+ใน');
+  else if (it.meshOut) parts.push('ตะแกรงนอก');
+  else if (it.meshIn) parts.push('ตะแกรงใน');
+  return parts.join('+');
+}
+
+// ── แปลงชื่อรายการรูปแบบขนาด "300x200x235" → "OD300xID200xH235 mm." (ถ้าตรงรูปแบบขนาด 3 ค่า) ──
+function _platingFormatDimDesc(desc) {
+  const s = String(desc||'').trim();
+  // กลุ่มแรกอาจมีหลายค่าคั่นด้วย "/" (เช่น OD นอก/ใน) ส่วนคั่นระหว่างกลุ่มรองรับ x, X, *, × (เครื่องหมายคูณ)
+  const m = s.match(/^(\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)*)\s*[xX*×]\s*(\d+(?:\.\d+)?)\s*(?:[xX*×]\s*(\d+(?:\.\d+)?))?\s*(mm\.?)?\s*(.*)$/);
+  if (!m) return s;
+  const rest = (m[5] || '').trim();
+  const core = m[3] ? `OD${m[1]}xID${m[2]}xH${m[3]}` : `OD${m[1]}xH${m[2]}`;
+  return `${core} mm.${rest ? ' ' + rest : ''}`;
+}
+
+// ── สร้าง HTML รายงานรายละเอียดย่อย: สรุปยอดส่งชุบแยกตามรายสินค้า (ชื่อรายการ + สเปควัสดุ) ──
+function _platingBuildDetailReportHtml(list, fromIso, toIso, supplierCode) {
+  const co = _companyInfoCache || {};
+  const supplierName = supplierCode ? ((_supplierCache || []).find(s => s.code === supplierCode)?.name || '') : '';
+  const fmtRange = (iso) => iso
+    ? new Date(iso + 'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})
+    : '-';
+
+  // รวมรายการทั้งหมดจากทุกใบส่งชุบในช่วงวันที่ แล้วจัดกลุ่มตาม ชื่อรายการ + สเปควัสดุ
+  const groups = new Map(); // key -> { description, spec, qty, amount, platingNos:Set }
+  list.forEach(p => {
+    (p.items || []).forEach(it => {
+      const desc = String(it.description||'').trim();
+      if (!desc) return;
+      const spec = _platingItemSpecText(it);
+      const key = desc + '|' + spec;
+      const qty = parseFloat(it.qty) || 0;
+      const price = parseFloat(it.price) || 0;
+      const amount = qty * price;
+      if (!groups.has(key)) groups.set(key, { description: desc, spec, qty: 0, amount: 0, platingNos: new Set() });
+      const g = groups.get(key);
+      g.qty += qty;
+      g.amount += amount;
+      if (p.platingNo) g.platingNos.add(String(p.platingNo).trim());
+    });
+  });
+
+  let grandTotal = 0;
+  const rows = Array.from(groups.values()).map((g, idx) => {
+    grandTotal += g.amount;
+    const unitPrice = g.qty ? (g.amount / g.qty) : 0;
+    const platingNosTxt = Array.from(g.platingNos).join(', ');
+    return `
+    <tr style="border-bottom:1px solid #e8ecf2">
+      <td style="padding:7px 10px;text-align:center;white-space:nowrap;vertical-align:top">${idx + 1}</td>
+      <td style="padding:7px 10px;white-space:nowrap">
+        <span>${_platingFormatDimDesc(g.description)}</span>${g.spec ? `<span style="font-size:.78rem;color:#777"> &nbsp;${g.spec}</span>` : ''}${platingNosTxt ? `<span style="font-size:.72rem;color:#999"> &nbsp;เลขที่ใบส่งชุบ: ${platingNosTxt}</span>` : ''}
+      </td>
+      <td style="padding:7px 10px;text-align:center;white-space:nowrap;vertical-align:top">${g.qty ? g.qty : '-'} Set</td>
+      <td style="padding:7px 10px;text-align:right;white-space:nowrap;vertical-align:top">${unitPrice ? fmtB(unitPrice) : 'รอราคา'}</td>
+      <td style="padding:7px 10px;text-align:right;white-space:nowrap;vertical-align:top">${g.amount ? fmtB(g.amount) : '-'}</td>
+    </tr>`;
+  }).join('') || `
+    <tr><td colspan="5" style="padding:16px;text-align:center;color:#888">ไม่พบรายการส่งชุบในช่วงวันที่ที่เลือก</td></tr>`;
+
+  return `
+<div class="doc-paper" style="overflow:hidden">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;
+    padding:22px 28px 14px;border-bottom:3px solid #2563eb;gap:12px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:56px;height:56px;border-radius:10px;flex-shrink:0;overflow:hidden;
+        display:flex;align-items:center;justify-content:center">
+        <img src="${_getLogoSrc()}" alt="PTS" style="width:100%;height:100%;object-fit:contain"
+          onerror="this.parentNode.style.background='#2563eb';this.style.display='none';this.parentNode.innerHTML='<span style=color:#fff;font-weight:800;font-size:1.05rem>PT</span>'">
+      </div>
+      <div>
+        <div style="font-weight:800;font-size:.95rem;color:#1a2232">${co.name||''}</div>
+        <div style="font-size:.65rem;color:#888;letter-spacing:.5px">${co.nameEn||''}</div>
+        <div style="font-size:.68rem;color:#555;margin-top:3px;line-height:1.6">
+          ${co.address||''}<br>โทร: ${co.phone||''} | อีเมล์: ${co.email||''}<br>TAX ID: ${co.taxId||''}
+        </div>
+      </div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:1.6rem;font-weight:800;color:#2563eb;line-height:1">รายงานรายละเอียดย่อย</div>
+      <div style="font-size:.65rem;color:#888;letter-spacing:2.5px;margin-bottom:10px">PLATING DETAIL REPORT</div>
+      <table style="font-size:.78rem;margin-left:auto">
+        <tr><td style="color:#666;padding:2px 6px 2px 0">ช่วงวันที่ / Period:</td>
+            <td style="font-weight:700;color:#2563eb">${fmtRange(fromIso)} – ${fmtRange(toIso)}</td></tr>
+        <tr><td style="color:#666;padding:2px 6px 2px 0">จำนวนใบส่งชุบ:</td>
+            <td>${list.length} ใบ</td></tr>
+        ${supplierName ? `<tr><td style="color:#666;padding:2px 6px 2px 0">ร้านชุบ:</td>
+            <td style="font-weight:700">${supplierName}</td></tr>` : ''}
+      </table>
+    </div>
+  </div>
+
+  <div style="padding:16px 28px;overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:.79rem">
+      <thead>
+        <tr style="background:#2563eb;color:#fff">
+          <th style="padding:8px 10px;text-align:center;border-radius:4px 0 0 0;width:6%">ลำดับ</th>
+          <th style="padding:8px 10px;text-align:left">รายการสินค้า<br><span style="font-size:.7rem;font-weight:400">ARTICLE DESCRIPTION</span></th>
+          <th style="padding:8px 10px;text-align:center;width:12%">จำนวน<br><span style="font-size:.7rem;font-weight:400">QUANTITY</span></th>
+          <th style="padding:8px 10px;text-align:center;width:16%">ราคาต่อหน่วย<br><span style="font-size:.7rem;font-weight:400">UNIT PRICE</span></th>
+          <th style="padding:8px 10px;text-align:center;width:16%;border-radius:0 4px 0 0">จำนวนเงิน<br><span style="font-size:.7rem;font-weight:400">AMOUNT</span></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" style="padding:9px 10px;text-align:right;font-weight:700;border-top:2px solid #2563eb">รวมทั้งสิ้น</td>
+          <td style="padding:9px 10px;text-align:right;font-weight:700;border-top:2px solid #2563eb;color:#2563eb">${fmtB(grandTotal)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>`;
+}
+
+// ── ออกรายงานรายละเอียดย่อย ตามช่วงวันที่ที่กรอกไว้ (platingDetailFrom / platingDetailTo) ──
+function _platingGenerateDetailReport() {
+  const fromIso = $('platingDetailFrom')?.value || '';
+  const toIso   = $('platingDetailTo')?.value   || '';
+  if (!fromIso || !toIso) {
+    Swal.fire({icon:'warning', title:'กรุณาเลือกช่วงวันที่ (จาก - ถึง) ก่อนออกรายงาน',
+      background:'#0d1b2a', color:'#cce4ff', confirmButtonColor:'#2563eb'});
+    return;
+  }
+  const supplierCode = $('platingDetailSupplier')?.value || '';
+  let list = (_platingHistCache || []).filter(p => {
+    const iso = _invIssuedDateToIso(p.date);
+    if (!iso) return false;
+    if (iso < fromIso || iso > toIso) return false;
+    if (supplierCode && p.supplierCode !== supplierCode) return false;
+    return true;
+  });
+  list = list.slice().sort((a,b) => (_invIssuedDateToIso(a.date)||'').localeCompare(_invIssuedDateToIso(b.date)||''));
+
+  const html = _platingBuildDetailReportHtml(list, fromIso, toIso, supplierCode);
+
+  _platingShareData = null;
+  _platingPreviewData = null;
+  _invPreviewMode = true;
+
+  let docPlating = $('docPlating');
+  if (!docPlating) {
+    docPlating = document.createElement('div');
+    docPlating.id = 'docPlating';
+    $('docQuo').parentNode.appendChild(docPlating);
+  }
+  ['docQuo','docCost','docInv','docInvRep','docBill'].forEach(id => { if ($(id)) $(id).classList.add('dp-hidden'); });
+  docPlating.classList.remove('dp-hidden');
+  docPlating.innerHTML = html;
+
+  if ($('dtabQuo'))  $('dtabQuo').style.display  = 'none';
+  if ($('dtabCost')) $('dtabCost').style.display = 'none';
+  const swapBtn = document.querySelector('.doc-bottombar .doc-tab-btn[onclick*="_docActiveTab"]');
+  if (swapBtn) swapBtn.style.display = 'none';
+  if ($('invConfirmBtn'))     $('invConfirmBtn').style.display     = 'none';
+  if ($('billConfirmBtn'))    $('billConfirmBtn').style.display    = 'none';
+  if ($('platingConfirmBtn')) $('platingConfirmBtn').style.display = 'none';
+
+  $('docExportOverlay').classList.add('open');
+}
+
+// ── ออกรายงานสรุปยอดส่งชุบ ตามช่วงวันที่ที่กรอกไว้ในตัวกรองประวัติ (platingHistFrom / platingHistTo) ──
+function _platingGenerateSummaryReport() {
+  const fromIso = $('platingDetailFrom')?.value || '';
+  const toIso   = $('platingDetailTo')?.value   || '';
+  if (!fromIso || !toIso) {
+    Swal.fire({icon:'warning', title:'กรุณาเลือกช่วงวันที่ (จาก - ถึง) ก่อนออกรายงาน',
+      background:'#0d1b2a', color:'#cce4ff', confirmButtonColor:'#2563eb'});
+    return;
+  }
+  const supplierCode = $('platingDetailSupplier')?.value || '';
+  let list = (_platingHistCache || []).filter(p => {
+    const iso = _invIssuedDateToIso(p.date);
+    if (!iso) return false;
+    if (iso < fromIso || iso > toIso) return false;
+    if (supplierCode && p.supplierCode !== supplierCode) return false;
+    return true;
+  });
+  // เรียงตามวันที่ (เก่า → ใหม่)
+  list = list.slice().sort((a,b) => (_invIssuedDateToIso(a.date)||'').localeCompare(_invIssuedDateToIso(b.date)||''));
+
+  const html = _platingBuildSummaryReportHtml(list, fromIso, toIso, supplierCode);
+
+  _platingShareData = null;
   _platingPreviewData = null;
   _invPreviewMode = true;
 

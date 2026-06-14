@@ -101,7 +101,7 @@ async function custDeleteRow(i) {
 function _custInput(id, val, placeholder) {
   return `<input id="${id}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="${placeholder||''}"
     style="width:100%;padding:5px 8px;border-radius:6px;border:1px solid rgba(99,102,241,.35);
-    background:rgba(20,20,32,.9);color:#d4cfe8;font-family:Sarabun,sans-serif;font-size:.8rem">`;
+    background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem">`;
 }
 
 // รายชื่อลูกค้าที่มีอยู่จริงในชีต Order (คอลัมน์ "ลูกค้า") — ใช้ทำ autocomplete
@@ -118,7 +118,7 @@ function _invOrderCustomerNames() {
 function _custNameInput(id, val) {
   return `<input id="${id}" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="ชื่อ/บริษัท *"
     style="width:100%;padding:5px 8px;border-radius:6px;border:1px solid rgba(99,102,241,.35);
-    background:rgba(20,20,32,.9);color:#d4cfe8;font-family:Sarabun,sans-serif;font-size:.8rem">`;
+    background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem">`;
 }
 
 // ช่อง "ผู้ติดต่อ" — ค่านี้คือสิ่งที่อยู่ในคอลัมน์ "ลูกค้า" ของชีต Order จริง (ใช้ตอนออกใบเสนอราคา)
@@ -127,7 +127,7 @@ function _custContactInput(id, val) {
   const opts = _invOrderCustomerNames();
   return `<input id="${id}" list="${id}_list" value="${(val||'').replace(/"/g,'&quot;')}" placeholder="ผู้ติดต่อ * (ต้องตรงกับคอลัมน์ลูกค้าใน Order)"
     style="width:100%;padding:5px 8px;border-radius:6px;border:1px solid rgba(99,102,241,.35);
-    background:rgba(20,20,32,.9);color:#d4cfe8;font-family:Sarabun,sans-serif;font-size:.8rem">
+    background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem">
     <datalist id="${id}_list">${opts.map(o=>`<option value="${o.replace(/"/g,'&quot;')}">`).join('')}</datalist>`;
 }
 

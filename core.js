@@ -143,6 +143,7 @@ const TAB_DEFS = [
   { id:'plating',   icon:'🧪', label:'ใบส่งชุบ' },
   { id:'api',       icon:'🔧', label:'ตั้งค่า'  },
   { id:'mat',       icon:'🧱', label:'MAT'      },
+  { id:'supplier',  icon:'🏢', label:'Supplier' },
 ];
 
 // ── Sidebar Group Menu (เดสก์ท็อป ≥1024px) ─────────────
@@ -169,6 +170,7 @@ const GROUP_DEFS = [
     { tab:'po' },
     { tab:'plating' },
     { tab:'mat' },
+    { tab:'supplier' },
   ]},
   { id:'production', icon:'🏭', label:'ฝ่ายผลิต', items: [
     { ph:true, label:'WorkOrder', icon:'📋' },
@@ -233,7 +235,7 @@ function _saveTabCfg(order, hidden) {
 let _activeTab = 'breakdown';
 
 // แท็บย่อยที่ถูกรวมไว้ใต้ปุ่ม "เพิ่มเติม" (ลดจำนวนปุ่มในแถบแท็บ)
-const SUB_TAB_IDS = ['labor', 'mold', 'api', 'mat', 'po', 'cust', 'invoice'];
+const SUB_TAB_IDS = ['labor', 'mold', 'api', 'mat', 'po', 'cust', 'invoice', 'supplier'];
 
 function renderTabBar() {
   const bar = $('mainTabBar');
@@ -403,6 +405,7 @@ function switchTab(name) {
   if (name === 'data')      dtRefresh(false);
   if (name === 'api')       { initCfgTheme(); renderTabManager(); }
   if (name === 'mat')       { renderMatTable('flap'); renderMatTable('mesh'); }
+  if (name === 'supplier')  { fetchSuppliers(); }
   if (name === 'order')     { updateOrderPreview(); fetchOrders(); fetchCustomers().then(()=>_gordRefreshCustomerList()); fetchItemMaster(); }
   if (name === 'track')     {
     fetchOrders(); renderTrackDashboard();
@@ -423,7 +426,7 @@ function switchTab(name) {
     const btn = $('trkFullBtn');
     if (btn) btn.textContent = '⛶ เปิดเต็มจอ';
   }
-  if (name === 'po')        { fetchSuppliers(); fetchPurchaseOrders(); if (!_poEditingNo && !_poItems.length) _poNewForm(); }
+  if (name === 'po')        { fetchSuppliers(); fetchPurchaseOrders(); fetchPOSupplierItems(); if (!_poEditingNo && !_poItems.length) _poNewForm(); }
   if (name === 'cust')       { fetchCustomers(); fetchOrders(); }
   if (name === 'invoice')    { fetchCustomers(); fetchOrders(); invInit(); }
   if (name === 'plating')    { fetchSuppliers(); fetchOrders(); platingInit(); }
@@ -802,6 +805,28 @@ let _matEditIdx   = { flap: -1, mesh: -1 };
   load('ptts_mat_mesh', _localMatMesh);
 })();
 
+// ── สลับ sub-tab ของแท็บ MAT: ฝา (Flap) / ตะแกรง (Mesh) ──
+function matSwitchSubTab(type) {
+  const tabs = { flap: 'matSubTab_flap', mesh: 'matSubTab_mesh' };
+  Object.keys(tabs).forEach(t => {
+    const panel = $(tabs[t]);
+    const btn   = $('matSubTabBtn_' + t);
+    if (panel) panel.style.display = (t === type) ? '' : 'none';
+    if (btn) {
+      if (t === type) {
+        btn.style.background = 'rgba(99,102,241,.15)';
+        btn.style.borderColor = 'rgba(99,102,241,.4)';
+        btn.style.color = '#818cf8';
+      } else {
+        btn.style.background = 'transparent';
+        btn.style.borderColor = 'var(--bc-input)';
+        btn.style.color = 'var(--t3)';
+      }
+    }
+  });
+  renderMatTable(type);
+}
+
 function _getMatArr(type) { return type==='flap' ? _localMatFlap : _localMatMesh; }
 function _getMatKey(type) { return type==='flap' ? 'ptts_mat_flap' : 'ptts_mat_mesh'; }
 function _getMatWrap(type){ return $(type==='flap' ? 'matFlapTableWrap' : 'matMeshTableWrap'); }
@@ -843,32 +868,32 @@ function renderMatTable(type) {
         <td style="padding:6px 8px">
           <input id="mat_code_${type}_${i}" value="${m.code}"
             style="width:100%;padding:5px 8px;border-radius:6px;border:1px solid rgba(52,211,153,.4);
-            background:rgba(20,20,32,.9);color:#d4cfe8;font-family:Sarabun,sans-serif;font-size:.82rem">
+            background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.82rem">
         </td>
         <td style="padding:6px 8px">
           <input id="mat_name_${type}_${i}" value="${m.name||''}" placeholder="ชื่อรายการวัตถุดิบ"
             style="width:100%;padding:5px 8px;border-radius:6px;border:1px solid rgba(148,163,184,.25);
-            background:rgba(20,20,32,.9);color:#94a3b8;font-family:Sarabun,sans-serif;font-size:.78rem">
+            background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.78rem">
         </td>
         <td style="padding:6px 8px">
           <div style="font-size:.7rem;color:var(--t3);margin-bottom:2px">ราคาซื้อจริง</div>
           <input id="mat_pricebuy_${type}_${i}" type="number" step="0.01" value="${m.priceBuy||0}"
             oninput="(function(){var v=parseFloat(this.value)||0;var el=document.getElementById('mat_price_${type}_${i}');if(el)el.value=Math.round(v*1.3);}).call(this)"
             style="width:100%;padding:5px 8px;border-radius:6px;border:1px solid rgba(251,191,36,.4);
-            background:rgba(20,20,32,.9);color:#fbbf24;font-family:Sarabun,sans-serif;font-size:.82rem;margin-bottom:4px">
+            background:var(--bg-input);color:#d97706;font-family:Sarabun,sans-serif;font-size:.82rem;margin-bottom:4px">
           <div style="font-size:.7rem;color:var(--t3);margin-bottom:2px">ราคา+30% <span style="color:#34d399">(ใช้คำนวณ)</span></div>
           <input id="mat_price_${type}_${i}" type="number" step="0.01" value="${m.price||0}"
             style="width:100%;padding:5px 8px;border-radius:6px;border:1px solid rgba(52,211,153,.4);
-            background:rgba(20,20,32,.9);color:#34d399;font-family:Sarabun,sans-serif;font-size:.82rem">
+            background:var(--bg-input);color:#16a34a;font-family:Sarabun,sans-serif;font-size:.82rem">
         </td>
         <td style="padding:6px 8px">
           <input id="mat_w_${type}_${i}" type="number" step="1" value="${m.w||1219}" placeholder="กว้าง"
             style="width:64px;padding:5px 6px;border-radius:6px;border:1px solid rgba(99,102,241,.4);
-            background:rgba(20,20,32,.9);color:#d4cfe8;font-family:Sarabun,sans-serif;font-size:.8rem">
+            background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem">
           <span style="color:var(--t3);font-size:.75rem">×</span>
           <input id="mat_l_${type}_${i}" type="number" step="1" value="${m.l||2438}" placeholder="ยาว"
             style="width:64px;padding:5px 6px;border-radius:6px;border:1px solid rgba(99,102,241,.4);
-            background:rgba(20,20,32,.9);color:#d4cfe8;font-family:Sarabun,sans-serif;font-size:.8rem">
+            background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem">
         </td>
         <td style="padding:6px 8px;white-space:nowrap">
           <button onclick="guardClick(this, () => matSaveRow('${type}',${i}))"

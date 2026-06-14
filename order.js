@@ -697,7 +697,7 @@ function _gordRefreshItemList() {
 function _imInput(id, val, placeholder, type) {
   return `<input id="${id}" type="${type||'text'}" value="${_escH(val)}" placeholder="${placeholder||''}"
     style="width:100%;padding:5px 8px;border-radius:6px;border:1px solid rgba(99,102,241,.35);
-    background:rgba(20,20,32,.9);color:#d4cfe8;font-family:Sarabun,sans-serif;font-size:.8rem;box-sizing:border-box">`;
+    background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem;box-sizing:border-box">`;
 }
 
 function imAddRow() {

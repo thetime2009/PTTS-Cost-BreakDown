@@ -37,7 +37,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v7.66</span>
+      <span class="ph-chip ver">v7.88</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -1880,8 +1880,20 @@
     <div>วัตถุดิบ (MAT)<span style="font-size:.75rem;color:var(--t3);margin-left:8px">เพิ่ม / ลบ / แก้ไข ราคาและขนาดแผ่น</span></div>
   </div>
 
+  <!-- Sub Tabs: ฝา (Flap) / ตะแกรง (Mesh) -->
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <button id="matSubTabBtn_flap" onclick="matSwitchSubTab('flap')"
+      style="flex:1;padding:9px 14px;border-radius:10px;border:1px solid rgba(99,102,241,.4);
+      background:rgba(99,102,241,.15);color:#818cf8;font-family:'Sarabun',sans-serif;
+      font-size:.84rem;font-weight:700;cursor:pointer">🔵 ฝา (Flap) — ฝาบน / ฝาล่าง</button>
+    <button id="matSubTabBtn_mesh" onclick="matSwitchSubTab('mesh')"
+      style="flex:1;padding:9px 14px;border-radius:10px;border:1px solid var(--bc-input);
+      background:transparent;color:var(--t3);font-family:'Sarabun',sans-serif;
+      font-size:.84rem;font-weight:700;cursor:pointer">🟢 ตะแกรง (Mesh) — นอก / ใน</button>
+  </div>
+
   <!-- ฝา (Flap) -->
-  <div style="margin-bottom:20px">
+  <div id="matSubTab_flap" style="margin-bottom:20px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div style="font-size:.82rem;font-weight:700;color:var(--c1)">🔵 ฝา (Flap) — ฝาบน / ฝาล่าง</div>
       <button onclick="matAddRow('flap')"
@@ -1893,7 +1905,7 @@
   </div>
 
   <!-- ตะแกรง (Mesh) -->
-  <div style="margin-bottom:20px">
+  <div id="matSubTab_mesh" style="margin-bottom:20px;display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
       <div style="font-size:.82rem;font-weight:700;color:var(--c1)">🟢 ตะแกรง (Mesh) — นอก / ใน</div>
       <button onclick="matAddRow('mesh')"
@@ -1910,6 +1922,34 @@
   </div>
 </div>
 </div><!-- end tab-mat -->
+
+<!-- ══ TAB: SUPPLIER ═══════════════════════════════ -->
+<div id="tab-supplier" class="tab-content">
+<div style="max-width:1100px;margin:0 auto;padding:12px 8px 100px">
+  <div class="tab-title" style="padding-top:16px">
+    <div class="ticon" style="background:rgba(99,102,241,.15);color:#818cf8">🏢</div>
+    <div>จัดการ Supplier<span style="font-size:.75rem;color:var(--t3);margin-left:8px">เพิ่ม / ลบ / แก้ไข ข้อมูล Supplier</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="icon ic-ext">🏢</div>
+      <h2>Supplier</h2>
+      <button onclick="fetchSuppliers()" style="margin-left:auto;padding:6px 12px;border-radius:8px;border:1px solid rgba(52,211,153,.3);
+        background:rgba(52,211,153,.1);color:#6ecfad;font-size:.75rem;cursor:pointer;font-family:Sarabun,sans-serif">
+        🔄 รีเฟรช
+      </button>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button onclick="supplierAddRow()"
+        style="padding:6px 16px;border-radius:8px;border:1px solid rgba(99,102,241,.4);
+        background:rgba(99,102,241,.1);color:#818cf8;font-family:'Sarabun',sans-serif;
+        font-size:.8rem;cursor:pointer">➕ เพิ่ม Supplier</button>
+    </div>
+    <div id="supplierTableWrap" style="overflow-x:auto"></div>
+  </div>
+</div>
+</div><!-- end tab-supplier -->
 
 <!-- ══════════════════════════════════════════════════ -->
 <!-- TAB: PO (ใบสั่งซื้อ)                              -->
@@ -1934,7 +1974,7 @@
         <input type="date" id="po_wantDate">
       </div>
       <div class="field"><label>Supplier</label>
-        <select id="po_supplier">
+        <select id="po_supplier" onchange="_poRenderSupplierItemChips()">
           <option value="">— เลือก Supplier —</option>
         </select>
       </div>
@@ -1945,12 +1985,19 @@
         <input type="text" id="po_payTerm" placeholder="เช่น เครดิต 30 วัน">
       </div>
       <div class="field"><label>เงื่อนไขส่งมอบ</label>
-        <input type="text" id="po_deliverTerm" placeholder="เช่น ส่งถึงโรงงาน">
+        <input type="text" id="po_deliverTerm" list="poDeliverTermOptions" placeholder="เช่น ส่งถึงโรงงาน">
+        <datalist id="poDeliverTermOptions">
+          <option value="ส่งถึงโรงงาน">
+          <option value="ส่งถึงบริษัท">
+          <option value="รับเองที่หน้าร้าน Supplier">
+          <option value="ส่งทางขนส่ง">
+          <option value="นัดส่งตามรอบรถ">
+        </datalist>
       </div>
       <div class="field"><label>สถานะ</label>
         <select id="po_status">
           <option value="ร่าง">ร่าง</option>
-          <option value="ส่งแล้ว">ส่งแล้ว</option>
+          <option value="ส่งเอกสารแล้ว">ส่งเอกสารแล้ว</option>
           <option value="ได้รับของแล้ว">ได้รับของแล้ว</option>
           <option value="ยกเลิก">ยกเลิก</option>
         </select>
@@ -1962,6 +2009,9 @@
         <input type="text" id="po_note">
       </div>
     </div>
+
+    <!-- ชิพรายการเดิมของ supplier -->
+    <div id="poSupplierItemChips" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
 
     <!-- ตารางรายการสินค้า -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -1976,8 +2026,8 @@
         <thead>
           <tr style="border-bottom:2px solid var(--bc-div)">
             <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:center;width:40px">ลำดับ</th>
+            <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:center;width:50px">รูป</th>
             <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:left">ชื่อรายการ</th>
-            <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:left">สเปค</th>
             <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:center;width:80px">จำนวน</th>
             <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:center;width:80px">หน่วย</th>
             <th style="padding:6px 8px;font-size:.74rem;color:var(--t3);text-align:right;width:110px">ราคา/หน่วย</th>
@@ -1987,6 +2037,22 @@
         </thead>
         <tbody id="poItemsBody"></tbody>
       </table>
+      <datalist id="poUnitOptions">
+        <option value="ชิ้น">
+        <option value="กล่อง">
+        <option value="ถัง">
+        <option value="แกลลอน">
+        <option value="ลิตร">
+        <option value="กก.">
+        <option value="ม้วน">
+        <option value="แผ่น">
+        <option value="เมตร">
+        <option value="เส้น">
+        <option value="คู่">
+        <option value="ชุด">
+        <option value="ขวด">
+        <option value="ถุง">
+      </datalist>
     </div>
 
     <!-- สรุปยอด -->
@@ -2035,6 +2101,7 @@
             <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:left">เลขที่ PO</th>
             <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:left">วันที่ออก</th>
             <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:left">Supplier</th>
+            <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:left">รายการที่ซื้อ</th>
             <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:left">อ้างอิง Order</th>
             <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:right">ยอดสุทธิ</th>
             <th style="padding:8px 10px;font-size:.74rem;color:var(--t3);text-align:left">สถานะ</th>
@@ -2351,6 +2418,35 @@
     <div id="platingHistListWrap" style="overflow-x:auto"></div>
   </div>
 
+  <!-- ออกรายงาน (สรุป / รายละเอียดย่อย) -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-header">
+      <div class="icon ic-ext">📋</div>
+      <h2>ออกรายงาน</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr auto auto;gap:10px 14px;margin-bottom:8px;align-items:end">
+      <div class="field"><label>วันที่ออก (จาก)</label>
+        <input type="date" id="platingDetailFrom">
+      </div>
+      <div class="field"><label>วันที่ออก (ถึง)</label>
+        <input type="date" id="platingDetailTo">
+      </div>
+      <div class="field"><label>ร้านชุบ</label>
+        <select id="platingDetailSupplier"><option value="">ทุกร้านชุบ</option></select>
+      </div>
+      <div class="field">
+        <button type="button" onclick="_platingGenerateSummaryReport()" style="padding:9px 14px;border-radius:8px;white-space:nowrap;
+          border:1px solid rgba(99,102,241,.4);background:rgba(99,102,241,.1);color:#818cf8;
+          font-size:.8rem;cursor:pointer;font-family:Sarabun,sans-serif">📊 ออกรายงานสรุป</button>
+      </div>
+      <div class="field">
+        <button type="button" onclick="_platingGenerateDetailReport()" style="padding:9px 14px;border-radius:8px;white-space:nowrap;
+          border:1px solid rgba(99,102,241,.4);background:rgba(99,102,241,.1);color:#818cf8;
+          font-size:.8rem;cursor:pointer;font-family:Sarabun,sans-serif">📋 ออกรายงานรายละเอียดย่อย</button>
+      </div>
+    </div>
+  </div>
+
 </div>
 </div><!-- end tab-plating -->
 
@@ -2509,15 +2605,15 @@
   </div>
 </div>
 
-<script src="core.js?v=7.66"></script>
-<script src="data.js?v=7.66"></script>
-<script src="formcalc.js?v=7.66"></script>
-<script src="aifeatures.js?v=7.66"></script>
-<script src="theme.js?v=7.66"></script>
-<script src="order.js?v=7.66"></script>
-<script src="purchase.js?v=7.66"></script>
-<script src="invoice.js?v=7.66"></script>
-<script src="plating.js?v=7.66"></script>
+<script src="core.js?v=7.88"></script>
+<script src="data.js?v=7.88"></script>
+<script src="formcalc.js?v=7.88"></script>
+<script src="aifeatures.js?v=7.88"></script>
+<script src="theme.js?v=7.88"></script>
+<script src="order.js?v=7.88"></script>
+<script src="purchase.js?v=7.88"></script>
+<script src="invoice.js?v=7.88"></script>
+<script src="plating.js?v=7.88"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -2656,9 +2752,196 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260614-AW',
+    ref: '#REV-20260614-BS',
     date: '2026-06-14',
     current: true,
+    items: [
+      'แก้ช่องกรอกข้อมูล (input) พื้นสีดำอ่านไม่เห็นในตารางจัดการ Supplier/ลูกค้า/MAT/Item Master — เปลี่ยนเป็นสีตามธีม (var(--bg-input)/var(--t1)) ให้อ่านง่ายทั้งโหมดสว่าง/มืด',
+      'ขยายความกว้างการ์ดแท็บ "จัดการ Supplier" เป็น 1100px รองรับหน้าจอคอมพิวเตอร์',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BR',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'เพิ่มแท็บ "จัดการ Supplier" ใน sidebar กลุ่มฝ่ายจัดซื้อ (ต่อจาก MAT) — เพิ่ม/แก้ไข/ลบข้อมูล Supplier (ชื่อ, เลขผู้เสียภาษี, ที่อยู่, ผู้ติดต่อ, หมายเหตุ) ซิงค์กับ Google Sheet "Suppliers"',
+      'Code.gs: เพิ่ม action saveSupplier / deleteSupplier',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BQ',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'แท็บ MAT: เพิ่ม sub tab "🔵 ฝา (Flap) — ฝาบน/ฝาล่าง" และ "🟢 ตะแกรง (Mesh) — นอก/ใน" แยกการแสดงผล สลับดูได้ทีละกลุ่ม',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BP',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ส่งชุบ: เติมพื้นหลังสีชมพูอ่อนให้ช่องกรอก "ราคา/หน่วย" ในตารางรายการ Order และรายการเพิ่มเอง เพื่อให้เห็นเด่นชัด',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BO',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ส่งชุบ: ย้ายปุ่ม "ออกรายงานสรุป" + ช่องกรองวันที่ ออกจากแถวประวัติใบส่งชุบ มารวมกับการ์ด "ออกรายงาน" (เปลี่ยนชื่อจาก "ออกรายงานรายละเอียดย่อย")',
+      'ส่งชุบ: ตัวกรอง "ร้านชุบ" ในการ์ด "ออกรายงาน" ใช้ร่วมกันทั้งปุ่มออกรายงานสรุปและรายงานรายละเอียดย่อย',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BN',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'รายงานรายละเอียดย่อย (ส่งชุบ): แก้สูตรแปลงขนาด ให้รองรับเครื่องหมาย × (multiplication) และรูปแบบ 4 ตัวเลขที่มี "/" เช่น 235/195x160x508 → OD235/195xID160xH508 mm.',
+      'รายงานรายละเอียดย่อย (ส่งชุบ): เพิ่มตัวกรอง "ร้านชุบ" (dropdown เลือกร้านชุบ หรือทุกร้าน) พร้อมแสดงชื่อร้านชุบในหัวรายงานเมื่อเลือก',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BM',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'รายงานรายละเอียดย่อย (ส่งชุบ): รวมชื่อรายการ + สเปควัสดุ + เลขที่ใบส่งชุบอ้างอิง ให้อยู่ในแถวเดียวบรรทัดเดียวต่อกัน ไม่ตัดขึ้นบรรทัดใหม่',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BL',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'รายงานรายละเอียดย่อย (ส่งชุบ): ช่องรายการสินค้าไม่ตัดข้อความ แสดงเป็นแถวยาวต่อกัน (เพิ่ม scroll แนวนอน)',
+      'รายงานรายละเอียดย่อย (ส่งชุบ): ถ้ารายการยังไม่มีราคา ช่อง "ราคาต่อหน่วย" แสดง "รอราคา"',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BK',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'รายงานรายละเอียดย่อย (ส่งชุบ): จัดรูปแบบชื่อรายการขนาดเป็น "OD..xID..xH.. mm." และแสดงเลขที่ใบส่งชุบอ้างอิงในช่องรายการสินค้า',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BJ',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ส่งชุบ: เพิ่มการ์ด "ออกรายงานรายละเอียดย่อย" — สรุปยอดส่งชุบแยกตามรายสินค้า (ชื่อรายการ+สเปควัสดุ) พร้อมจำนวน/ราคาต่อหน่วย/จำนวนเงิน ตามช่วงวันที่',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BI',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ส่งชุบ: เพิ่มปุ่ม "ออกรายงานสรุป" ในประวัติใบส่งชุบ — สรุปยอดส่งชุบรวมตามช่วงวันที่ที่เลือก',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BH',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ใบสั่งซื้อ: ยกเลิกคอลัมน์ "สเปค" ทั้งหมด (ในฟอร์มกรอกรายการ และในเอกสารพิมพ์)',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BG',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ใบสั่งซื้อ (เอกสารพิมพ์): ลบคอลัมน์ "สเปค/Spec" ออก รวมข้อมูลสเปคไว้ในช่อง "รายการ" แทน (แสดงในวงเล็บต่อท้ายชื่อรายการ)',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BF',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ใบสั่งซื้อ: เพิ่มคอลัมน์ "รายการที่ซื้อ" ในตารางรายการใบสั่งซื้อ (แทรกหลังคอลัมน์ Supplier)',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BE',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ใบสั่งซื้อ: ชิพรายการเดิมของ Supplier เพิ่มปุ่ม ✕ สำหรับลบรายการที่ไม่ต้องการออกจากคลัง',
+      'ใบสั่งซื้อ: กล่องชิพรายการเดิม ทำให้เลื่อนดูได้ (scroll) เมื่อมีรายการจำนวนมาก',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BD',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ใบสั่งซื้อ: ระบบจดจำรายการสินค้าที่เคยสั่งของแต่ละ Supplier อัตโนมัติ',
+      'ใบสั่งซื้อ: เลือก Supplier แล้วจะมีปุ่มชิพแสดงรายการเดิมที่เคยสั่ง คลิกเพื่อเพิ่มรายการพร้อมราคาล่าสุด',
+      'ใบสั่งซื้อ: รายการใหม่ที่ไม่เคยมีในคลังของ Supplier จะถูกเพิ่มเข้าคลังอัตโนมัติเมื่อบันทึก PO',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BC',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'ใบสั่งซื้อ: กดบันทึก/บันทึกการแก้ไขแล้ว เคลียร์รายการและฟอร์มกลับเป็นใบใหม่อัตโนมัติ',
+      'ใบสั่งซื้อ: ช่อง "หน่วย" ในรายการสินค้า เพิ่ม dropdown ตัวเลือกหน่วยที่ใช้บ่อย (ค่าเริ่มต้น "ชิ้น" เมื่อเพิ่มรายการใหม่) ยังพิมพ์เองได้',
+      'ใบสั่งซื้อ: สถานะ "ส่งแล้ว" เปลี่ยนชื่อเป็น "ส่งเอกสารแล้ว"',
+      'ใบสั่งซื้อ: ช่อง "เงื่อนไขส่งมอบ" เพิ่ม dropdown ตัวเลือกที่ใช้บ่อย ยังพิมพ์เองได้',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BB',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'แก้บั๊ก Code.gs: getPurchaseOrders ดึงข้อมูล PO_Items แค่คอลัมน์ A-H (8 คอลัมน์) ทำให้คอลัมน์ I (รูปภาพรายการ) ไม่ถูกโหลดมา — แก้เป็นดึง A-I (9 คอลัมน์) ทำให้รูปแสดงในเอกสารใบสั่งซื้อได้แล้ว',
+    ],
+  },
+  {
+    ref: '#REV-20260614-BA',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'แก้บั๊ก: มีโค้ด JS ซ้ำหลุดออกมานอกแท็ก </html> ทำให้ตัวอักษรโค้ดไปแสดงเป็นข้อความท้ายหน้าเว็บ — ลบโค้ดที่ซ้ำซ้อนออก',
+    ],
+  },
+  {
+    ref: '#REV-20260614-AZ',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'เอกสารใบสั่งซื้อ (PDF/พิมพ์): เพิ่มส่วนแสดงรูปภาพรายการ — รายการที่มีรูปจะแสดงรูปขนาดใหญ่ (150x150px) พร้อมชื่อรายการ อยู่ใต้ตารางรายการสินค้า',
+    ],
+  },
+  {
+    ref: '#REV-20260614-AY',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'เพิ่มรูปภาพต่อรายการในใบสั่งซื้อ — กดไอคอน 📷 ในแต่ละแถวเพื่ออัปโหลดรูปจากเครื่อง (เก็บขึ้น Google Drive) แสดงเป็นรูปย่อในหน้าจอแอป (คลิกรูปเพื่อเปลี่ยน) ไม่แสดงในเอกสาร PDF',
+    ],
+  },
+  {
+    ref: '#REV-20260614-AX',
+    date: '2026-06-14',
+    current: false,
+    items: [
+      'แก้กล่องข้อมูลด้านขวา (sidebar) ของ "ใบสั่งซื้อ": สีพื้นเข้มเกินไป — เปลี่ยนเป็นพื้นขาว ตัวอักษรดำ มีกรอบดำล้อมรอบ ดูสะอาดและพิมพ์ชัดเจน',
+    ],
+  },
+  {
+    ref: '#REV-20260614-AW',
+    date: '2026-06-14',
+    current: false,
     items: [
       'แก้ "ใบสั่งซื้อ" ตอนพิมพ์/บันทึก PDF: กล่องข้อมูลด้านขวา (สถานะ/วันที่/ผู้ติดต่อ) เป็นพื้นหลังสีน้ำเงินตัวอักษรขาว แต่ตอนพิมพ์พื้นหลังหายไปทำให้ตัวอักษรขาวกลืนกับกระดาษ มองไม่เห็น — บังคับให้พิมพ์พื้นหลัง/สีตัวอักษรของกล่องนี้เสมอ (print-color-adjust:exact)',
     ],
@@ -2870,42 +3153,6 @@ function _renderDevLogs() {
 }
 function openDevLogs() {
   _renderDevLogs();
-  const m = document.getElementById('devLogsModal');
-  if (m) m.style.display = 'flex';
-}
-function closeDevLogs() {
-  const m = document.getElementById('devLogsModal');
-  if (m) m.style.display = 'none';
-}
-</script>
-
-<script>
-// ===== Service Worker: ลงทะเบียนเพื่อให้แอปรีโหลด/อัปเดตเวอร์ชันใหม่อัตโนมัติ =====
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then((reg) => {
-      reg.update().catch(() => {});
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            newWorker.postMessage({ type: 'SKIP_WAITING' });
-          }
-        });
-      });
-    }).catch(() => {});
-    let _swRefreshed = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (_swRefreshed) return;
-      _swRefreshed = true;
-      window.location.reload();
-    });
-  });
-}
-</script>
-</body>
-</html>
   const m = document.getElementById('devLogsModal');
   if (m) m.style.display = 'flex';
 }

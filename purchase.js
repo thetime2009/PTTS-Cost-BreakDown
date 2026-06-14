@@ -8,11 +8,12 @@ const PO_HEADER_COLS = {
   payTerm:5, deliverTerm:6, subtotal:7, vat:8, total:9,
   status:10, createdBy:11, note:12, update:13
 };
-const PO_ITEM_COLS = { poNo:0, seq:1, name:2, spec:3, qty:4, unit:5, unitPrice:6, lineTotal:7 };
+const PO_ITEM_COLS = { poNo:0, seq:1, name:2, spec:3, qty:4, unit:5, unitPrice:6, lineTotal:7, imageUrl:8 };
 
 let _poCache = [];          // header rows
 let _poItemsCache = {};     // poNo -> items rows
 let _supplierCache = [];
+let _poSupplierItemsCache = []; // [{supplierCode, name, spec, unit, unitPrice, imageUrl, updatedAt}]
 let _poEditingNo = null;    // poNo ที่กำลังแก้ไข, null = สร้างใหม่
 let _poItems = [];          // รายการสินค้าในการ์ดที่กำลังแก้ไข
 let _poPage = 1;
@@ -43,7 +44,163 @@ async function fetchSuppliers() {
         _supplierCache.map(s => `<option value="${s.code}">${s.name} (${s.code})</option>`).join('');
       if (cur) sel.value = cur;
     }
+    if (typeof _platingRefreshSupplierSelect === 'function') _platingRefreshSupplierSelect();
+    if (typeof _platingRefreshDetailSupplierSelect === 'function') _platingRefreshDetailSupplierSelect();
+    renderSupplierTable();
   } catch (err) { console.error('fetchSuppliers', err); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  จัดการ Supplier (CRUD) — แท็บ "Supplier"
+// ════════════════════════════════════════════════════════════
+let _supplierEditIdx = -1;
+
+function _supplierInput(id, val, placeholder) {
+  return `<input id="${id}" value="${(val||'').toString().replace(/"/g,'&quot;')}" placeholder="${placeholder||''}"
+    style="width:100%;box-sizing:border-box;padding:5px 8px;border-radius:6px;border:1px solid rgba(99,102,241,.35);
+    background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem">`;
+}
+
+function supplierAddRow() {
+  _supplierCache.push({ code:'', name:'', address:'', taxId:'', contact:'', note:'' });
+  _supplierEditIdx = _supplierCache.length - 1;
+  renderSupplierTable();
+}
+function supplierEditRow(i) { _supplierEditIdx = i; renderSupplierTable(); }
+function supplierCancelEdit(i) {
+  if (!_supplierCache[i].code && !_supplierCache[i].name) _supplierCache.splice(i, 1);
+  _supplierEditIdx = -1;
+  renderSupplierTable();
+}
+
+async function supplierSaveRow(i) {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+  const data = {
+    code:    _supplierCache[i].code || '',
+    name:    g('sup_name_'+i),
+    address: g('sup_addr_'+i),
+    taxId:   g('sup_taxid_'+i),
+    contact: g('sup_contact_'+i),
+    note:    g('sup_note_'+i),
+  };
+  if (!data.name) { Swal.fire({icon:'warning',title:'กรุณาใส่ชื่อ Supplier',confirmButtonColor:'#6366f1'}); return; }
+  if (!SCRIPT_URL) { Swal.fire({icon:'info',title:'ยังไม่ตั้งค่า URL',confirmButtonColor:'#6366f1'}); return; }
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method:'POST', mode:'cors',
+      headers:{'Content-Type':'text/plain'},
+      body: JSON.stringify(Object.assign({ action:'saveSupplier' }, data))
+    });
+    const out = await res.json();
+    if (!out || out.status !== 'ok') throw new Error((out && out.message) || 'save failed');
+    _supplierEditIdx = -1;
+    await fetchSuppliers();
+    Swal.fire({icon:'success',title:'บันทึก Supplier แล้ว ✅',timer:1200,toast:true,position:'top-end',showConfirmButton:false});
+  } catch (e) {
+    Swal.fire({icon:'error',title:'บันทึกไม่สำเร็จ',text:e.message,confirmButtonColor:'#6366f1'});
+  }
+}
+
+async function supplierDeleteRow(i) {
+  const s = _supplierCache[i];
+  if (!s) return;
+  Swal.fire({
+    icon:'warning', title:`ลบ Supplier "${s.name}"?`,
+    html:`<div style="font-size:.83rem;color:#8b8aaa">ไม่สามารถย้อนกลับได้</div>`,
+    confirmButtonText:'🗑 ลบเลย', confirmButtonColor:'#c0464a',
+    showCancelButton:true, cancelButtonText:'ยกเลิก', cancelButtonColor:'#374151',
+  }).then(async r => {
+    if (!r.isConfirmed) return;
+    if (!s.code) { _supplierCache.splice(i,1); renderSupplierTable(); return; }
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method:'POST', mode:'cors',
+        headers:{'Content-Type':'text/plain'},
+        body: JSON.stringify({ action:'deleteSupplier', code: s.code })
+      });
+      const out = await res.json();
+      if (!out || out.status !== 'ok') throw new Error((out && out.message) || 'delete failed');
+      await fetchSuppliers();
+      Swal.fire({icon:'success',title:'ลบแล้ว',timer:1200,toast:true,position:'top-end',showConfirmButton:false});
+    } catch (e) {
+      Swal.fire({icon:'error',title:'ลบไม่สำเร็จ',text:e.message,confirmButtonColor:'#6366f1'});
+    }
+  });
+}
+
+function renderSupplierTable() {
+  const wrap = $('supplierTableWrap');
+  if (!wrap) return;
+  if (!_supplierCache.length) {
+    wrap.innerHTML = `<div style="text-align:center;padding:24px;color:var(--t3);font-size:.82rem">
+      ยังไม่มี Supplier — กด ➕ เพิ่ม Supplier</div>`;
+    return;
+  }
+  const rows = _supplierCache.map((s, i) => {
+    if (i === _supplierEditIdx) {
+      return `<tr style="background:rgba(99,102,241,.08)">
+        <td style="padding:6px 8px" colspan="6">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px">
+            ${_supplierInput('sup_name_'+i, s.name, 'ชื่อบริษัท/Supplier')}
+            ${_supplierInput('sup_taxid_'+i, s.taxId, 'เลขผู้เสียภาษี 13 หลัก')}
+            ${_supplierInput('sup_contact_'+i, s.contact, 'ผู้ติดต่อ/เบอร์โทร')}
+            ${_supplierInput('sup_note_'+i, s.note, 'หมายเหตุ')}
+          </div>
+          <div style="margin-top:6px">${_supplierInput('sup_addr_'+i, s.address, 'ที่อยู่')}</div>
+          <div style="margin-top:8px;text-align:right">
+            <button onclick="guardClick(this, () => supplierSaveRow(${i}))"
+              style="padding:5px 14px;border-radius:6px;border:1px solid rgba(52,211,153,.4);
+              background:rgba(52,211,153,.12);color:#6ecfad;font-family:Sarabun,sans-serif;
+              font-size:.78rem;cursor:pointer;margin-left:6px">💾 บันทึก</button>
+            <button onclick="supplierCancelEdit(${i})"
+              style="padding:5px 14px;border-radius:6px;border:1px solid rgba(239,68,68,.4);
+              background:rgba(239,68,68,.1);color:#f87171;font-family:Sarabun,sans-serif;
+              font-size:.78rem;cursor:pointer;margin-left:6px">✕ ยกเลิก</button>
+          </div>
+        </td>
+      </tr>`;
+    }
+    return `<tr style="${i%2===0?'background:var(--c1-05)':''}">
+      <td style="padding:7px 10px;font-weight:700;color:var(--c1)">${s.name||'—'}</td>
+      <td style="padding:7px 10px;font-size:.78rem;color:var(--t3)">${s.taxId||'—'}</td>
+      <td style="padding:7px 10px;font-size:.78rem;color:var(--t3)">${s.address||'—'}</td>
+      <td style="padding:7px 10px;font-size:.78rem;color:var(--t3)">${s.contact||'—'}</td>
+      <td style="padding:7px 10px;font-size:.78rem;color:var(--t3)">${s.note||'—'}</td>
+      <td style="padding:7px 10px;white-space:nowrap">
+        <button onclick="supplierEditRow(${i})"
+          style="padding:4px 8px;border-radius:6px;border:1px solid rgba(99,102,241,.35);
+          background:rgba(99,102,241,.08);color:#818cf8;cursor:pointer;font-size:.85rem">✏️</button>
+        <button onclick="supplierDeleteRow(${i})"
+          style="padding:4px 8px;border-radius:6px;border:1px solid rgba(239,68,68,.35);
+          background:rgba(239,68,68,.08);color:#f87171;cursor:pointer;font-size:.85rem;margin-left:4px">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+  wrap.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem">
+      <thead>
+        <tr style="border-bottom:1px solid rgba(255,255,255,.1)">
+          <th style="padding:7px 10px;text-align:left">ชื่อ/บริษัท</th>
+          <th style="padding:7px 10px;text-align:left">เลขผู้เสียภาษี</th>
+          <th style="padding:7px 10px;text-align:left">ที่อยู่</th>
+          <th style="padding:7px 10px;text-align:left">ผู้ติดต่อ</th>
+          <th style="padding:7px 10px;text-align:left">หมายเหตุ</th>
+          <th style="width:80px"></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ── โหลดคลังรายการสินค้าที่เคยสั่งซื้อ แยกตาม supplier ──
+async function fetchPOSupplierItems() {
+  if (!SCRIPT_URL) return;
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=getPOSupplierItems', {mode:'cors'});
+    const data = await res.json();
+    _poSupplierItemsCache = data.items || [];
+    _poRenderSupplierItemChips();
+  } catch (err) { console.error('fetchPOSupplierItems', err); }
 }
 
 // ── โหลดใบสั่งซื้อทั้งหมด ──
@@ -77,7 +234,7 @@ function _poSupplierName(code) {
 function _poStatusBadge(status) {
   const map = {
     'ร่าง':          {bg:'rgba(148,163,184,.15)', fg:'#94a3b8', bd:'rgba(148,163,184,.35)'},
-    'ส่งแล้ว':       {bg:'rgba(56,189,248,.15)',  fg:'#0ea5e9', bd:'rgba(56,189,248,.35)'},
+    'ส่งเอกสารแล้ว': {bg:'rgba(56,189,248,.15)',  fg:'#0ea5e9', bd:'rgba(56,189,248,.35)'},
     'ได้รับของแล้ว': {bg:'rgba(34,197,94,.15)',   fg:'#16a34a', bd:'rgba(34,197,94,.35)'},
     'ยกเลิก':        {bg:'rgba(248,113,113,.15)', fg:'#ef4444', bd:'rgba(248,113,113,.35)'},
   };
@@ -97,7 +254,7 @@ function renderPOTable() {
       .some(v => String(v||'').toLowerCase().includes(q)));
   }
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="padding:30px;text-align:center;color:var(--t3);font-size:.8rem">ไม่มีใบสั่งซื้อ</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="padding:30px;text-align:center;color:var(--t3);font-size:.8rem">ไม่มีใบสั่งซื้อ</td></tr>`;
     if ($('poPager')) $('poPager').innerHTML = '';
     return;
   }
@@ -112,10 +269,17 @@ function renderPOTable() {
     const total  = parseFloat(r[PO_HEADER_COLS.total]) || 0;
     const status = String(r[PO_HEADER_COLS.status]||'ร่าง');
     const rowBg  = ri % 2 === 0 ? '' : 'background:var(--pair-bg)';
+    const items  = _poItemsCache[poNo] || [];
+    const itemsSummary = items.length
+      ? items.map(it => it[PO_ITEM_COLS.name]||'').filter(Boolean).join(', ')
+      : '—';
     return `<tr style="${rowBg};border-bottom:1px solid var(--bc-div)">
       <td style="padding:8px 10px;font-size:.78rem;font-weight:600;color:var(--c1);white-space:nowrap">${poNo}</td>
       <td style="padding:8px 10px;font-size:.72rem;color:var(--t3);white-space:nowrap">${r[PO_HEADER_COLS.issueDate]||'—'}</td>
       <td style="padding:8px 10px;font-size:.78rem;color:var(--t1)">${_poSupplierName(r[PO_HEADER_COLS.supplierCode])}</td>
+      <td style="padding:8px 10px;font-size:.72rem;color:var(--t2);max-width:240px" title="${itemsSummary.replace(/"/g,'&quot;')}">
+        <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itemsSummary}</div>
+      </td>
       <td style="padding:8px 10px;font-size:.72rem;color:var(--t2)">${r[PO_HEADER_COLS.refOrders]||'—'}</td>
       <td style="padding:8px 10px;text-align:right;font-size:.78rem;font-weight:600;color:var(--c1);white-space:nowrap">${total ? total.toLocaleString('th-TH',{minimumFractionDigits:2}) : '—'} <span style="font-size:.65rem">฿</span></td>
       <td style="padding:8px 10px;white-space:nowrap">${_poStatusBadge(status)}</td>
@@ -146,8 +310,68 @@ function _poGoPage(p) { _poPage = p; renderPOTable(); }
 
 // ── จัดการรายการสินค้าในฟอร์ม ──
 function _poAddItemRow() {
-  _poItems.push({ name:'', spec:'', qty:'', unit:'', unitPrice:'' });
+  _poItems.push({ name:'', spec:'', qty:'', unit:'ชิ้น', unitPrice:'', imageUrl:'' });
   _poRenderItemsEditor();
+}
+// ── แสดงชิพรายการเดิมของ supplier ที่เลือก (คลิกเพื่อเพิ่มรายการแบบกรอกอัตโนมัติ) ──
+function _poRenderSupplierItemChips() {
+  const wrap = $('poSupplierItemChips');
+  if (!wrap) return;
+  const code = $('po_supplier') ? $('po_supplier').value : '';
+  const items = _poSupplierItemsCache.filter(it => it.supplierCode === code);
+  if (!code || items.length === 0) {
+    wrap.innerHTML = '';
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'block';
+  const chipsHtml = items.map((it, idx) => `
+    <span style="display:inline-flex;align-items:center;gap:4px;padding:4px 6px 4px 10px;border-radius:999px;
+      border:1px solid rgba(99,102,241,.35);background:rgba(99,102,241,.1);margin:2px">
+      <button type="button" class="btn-fx" onclick="_poAddItemFromChip(${idx})"
+        style="border:none;background:none;color:#818cf8;font-family:'Sarabun',sans-serif;font-size:.74rem;cursor:pointer;padding:0">
+        ${it.name}${it.unitPrice ? ' · ฿' + parseFloat(it.unitPrice).toLocaleString('th-TH',{minimumFractionDigits:2}) : ''}
+      </button>
+      <button type="button" onclick="_poDeleteSupplierItemChip(${idx})" title="ลบรายการนี้จากคลัง"
+        style="border:none;background:none;color:#f87171;font-size:.72rem;cursor:pointer;padding:0;line-height:1;width:14px;height:14px;display:flex;align-items:center;justify-content:center">✕</button>
+    </span>`).join('');
+  wrap.innerHTML = `<div style="font-size:.74rem;color:var(--t3);margin-bottom:4px">รายการที่เคยสั่งจาก Supplier นี้ (คลิกเพื่อเพิ่ม, กด ✕ เพื่อลบออกจากคลัง):</div>
+    <div style="display:flex;flex-wrap:wrap;max-height:96px;overflow-y:auto;padding-right:4px">${chipsHtml}</div>`;
+}
+// ── ลบรายการออกจากคลังของ supplier (ไม่กระทบ PO ที่บันทึกไว้แล้ว) ──
+async function _poDeleteSupplierItemChip(idx) {
+  const code = $('po_supplier') ? $('po_supplier').value : '';
+  const items = _poSupplierItemsCache.filter(it => it.supplierCode === code);
+  const it = items[idx];
+  if (!it) return;
+  const ok = await Swal.fire({
+    icon:'warning', title:'ลบรายการนี้จากคลังของ Supplier?', text: it.name,
+    showCancelButton:true, confirmButtonText:'ลบ', cancelButtonText:'ยกเลิก',
+    confirmButtonColor:'#ef4444', background:'var(--bg-deep)', color:'var(--t1)'
+  });
+  if (!ok.isConfirmed) return;
+  _poSupplierItemsCache = _poSupplierItemsCache.filter(x => !(x.supplierCode === it.supplierCode && x.name === it.name));
+  _poRenderSupplierItemChips();
+  if (!SCRIPT_URL) return;
+  try {
+    await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'deletePOSupplierItem', supplierCode: it.supplierCode, name: it.name }) });
+  } catch (err) { console.error('_poDeleteSupplierItemChip', err); }
+}
+// ── คลิกชิพ: เพิ่มรายการใหม่พร้อมข้อมูลจากคลังของ supplier ──
+function _poAddItemFromChip(idx) {
+  const code = $('po_supplier') ? $('po_supplier').value : '';
+  const items = _poSupplierItemsCache.filter(it => it.supplierCode === code);
+  const it = items[idx];
+  if (!it) return;
+  _poItems.push({
+    name: it.name || '', spec: it.spec || '', qty: '',
+    unit: it.unit || 'ชิ้น', unitPrice: (it.unitPrice !== '' && it.unitPrice != null) ? it.unitPrice : '',
+    imageUrl: it.imageUrl || ''
+  });
+  _poRenderItemsEditor();
+  _poRecalcTotals();
 }
 function _poRemoveItemRow(idx) {
   _poItems.splice(idx, 1);
@@ -165,6 +389,43 @@ function _poItemChanged(idx, field, value) {
     _poRecalcTotals();
   }
 }
+// ── อัปโหลดรูปของแต่ละรายการขึ้น Drive ──
+async function _poUploadItemImage(idx, input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!_poItems[idx]) return;
+  if (!SCRIPT_URL) {
+    Swal.fire({icon:'info', title:'ยังไม่ตั้งค่า URL', text:'กรุณาใส่ Apps Script URL ก่อน', background:'#0d1b2a', color:'#cce4ff', confirmButtonColor:'#6366f1'});
+    input.value = '';
+    return;
+  }
+  Swal.fire({title:'กำลังอัปโหลดรูป...', background:'#0d1b2a', color:'#cce4ff', allowOutsideClick:false, didOpen:()=>Swal.showLoading()});
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const r = e.target.result || '';
+        const i = r.indexOf('base64,');
+        resolve(i >= 0 ? r.slice(i + 7) : r);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST', mode: 'cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'uploadPOItemImage', fileName: file.name, mimeType: file.type, base64 })
+    });
+    const data = await res.json();
+    if (!data || data.status !== 'ok') throw new Error((data && data.message) || 'upload failed');
+    _poItems[idx].imageUrl = data.url;
+    _poRenderItemsEditor();
+    Swal.close();
+  } catch (e) {
+    Swal.fire({icon:'error', title:'อัปโหลดรูปไม่สำเร็จ', text:String(e.message||e), background:'#0d1b2a', color:'#cce4ff', confirmButtonColor:'#dc2626'});
+  }
+  input.value = '';
+}
 function _poRenderItemsEditor() {
   const wrap = $('poItemsBody');
   if (!wrap) return;
@@ -176,13 +437,19 @@ function _poRenderItemsEditor() {
     const lineTotal = (parseFloat(it.qty)||0) * (parseFloat(it.unitPrice)||0);
     return `<tr>
       <td style="padding:6px 8px;text-align:center;font-size:.76rem;color:var(--t3)">${idx+1}</td>
+      <td style="padding:6px 8px;text-align:center">
+        <input type="file" accept="image/*" id="poItemImgFile_${idx}" style="display:none" onchange="_poUploadItemImage(${idx},this)">
+        ${it.imageUrl
+          ? `<img src="${it.imageUrl}" onclick="document.getElementById('poItemImgFile_${idx}').click()"
+              style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid var(--bc-input);cursor:pointer" title="คลิกเพื่อเปลี่ยนรูป">`
+          : `<button type="button" onclick="document.getElementById('poItemImgFile_${idx}').click()"
+              style="width:36px;height:36px;border-radius:6px;border:1px dashed var(--bc-input);background:var(--bg-input);color:var(--t3);cursor:pointer;font-size:.9rem" title="เพิ่มรูป">📷</button>`}
+      </td>
       <td style="padding:6px 8px"><input type="text" value="${(it.name||'').replace(/"/g,'&quot;')}" oninput="_poItemChanged(${idx},'name',this.value)"
-        style="width:100%;box-sizing:border-box;padding:5px 7px;border-radius:6px;border:1px solid var(--bc-input);background:var(--bg-input);color:var(--t1);font-size:.78rem;font-family:Sarabun,sans-serif"></td>
-      <td style="padding:6px 8px"><input type="text" value="${(it.spec||'').replace(/"/g,'&quot;')}" oninput="_poItemChanged(${idx},'spec',this.value)"
         style="width:100%;box-sizing:border-box;padding:5px 7px;border-radius:6px;border:1px solid var(--bc-input);background:var(--bg-input);color:var(--t1);font-size:.78rem;font-family:Sarabun,sans-serif"></td>
       <td style="padding:6px 8px"><input type="number" value="${it.qty||''}" oninput="_poItemChanged(${idx},'qty',this.value)"
         style="width:100%;box-sizing:border-box;padding:5px 7px;border-radius:6px;border:1px solid var(--bc-input);background:var(--bg-input);color:var(--t1);font-size:.78rem;text-align:center;font-family:Sarabun,sans-serif"></td>
-      <td style="padding:6px 8px"><input type="text" value="${(it.unit||'').replace(/"/g,'&quot;')}" oninput="_poItemChanged(${idx},'unit',this.value)"
+      <td style="padding:6px 8px"><input type="text" list="poUnitOptions" value="${(it.unit||'').replace(/"/g,'&quot;')}" oninput="_poItemChanged(${idx},'unit',this.value)"
         style="width:100%;box-sizing:border-box;padding:5px 7px;border-radius:6px;border:1px solid var(--bc-input);background:var(--bg-input);color:var(--t1);font-size:.78rem;text-align:center;font-family:Sarabun,sans-serif"></td>
       <td style="padding:6px 8px"><input type="number" value="${it.unitPrice||''}" oninput="_poItemChanged(${idx},'unitPrice',this.value)"
         style="width:100%;box-sizing:border-box;padding:5px 7px;border-radius:6px;border:1px solid var(--bc-input);background:var(--bg-input);color:var(--t1);font-size:.78rem;text-align:right;font-family:Sarabun,sans-serif"></td>
@@ -218,6 +485,7 @@ async function _poNewForm() {
   $('po_note').value = '';
   _poRenderItemsEditor();
   _poRecalcTotals();
+  _poRenderSupplierItemChips();
   $('po_formTitle').textContent = '🧾 สร้างใบสั่งซื้อใหม่';
   $('po_saveBtn').textContent = '💾 บันทึกใบสั่งซื้อ';
   if (SCRIPT_URL) {
@@ -256,9 +524,11 @@ function _poEdit(poNo) {
     qty:  it[PO_ITEM_COLS.qty] || '',
     unit: it[PO_ITEM_COLS.unit] || '',
     unitPrice: it[PO_ITEM_COLS.unitPrice] || '',
+    imageUrl: it[PO_ITEM_COLS.imageUrl] || '',
   }));
   _poRenderItemsEditor();
   _poRecalcTotals();
+  _poRenderSupplierItemChips();
   $('po_formTitle').textContent = `✏️ แก้ไขใบสั่งซื้อ ${poNo}`;
   $('po_saveBtn').textContent = '💾 บันทึกการแก้ไข';
   document.getElementById('tab-po')?.scrollIntoView?.({behavior:'smooth', block:'start'});
@@ -296,7 +566,7 @@ async function _poSave() {
   ];
   const items = _poItems.map((it, idx) => [
     poNo, idx+1, it.name||'', it.spec||'', parseFloat(it.qty)||0, it.unit||'', parseFloat(it.unitPrice)||0,
-    (parseFloat(it.qty)||0) * (parseFloat(it.unitPrice)||0)
+    (parseFloat(it.qty)||0) * (parseFloat(it.unitPrice)||0), it.imageUrl||''
   ]);
 
   const btn = $('po_saveBtn');
@@ -312,13 +582,12 @@ async function _poSave() {
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ action:'savePurchaseOrder', poNo, header, items }) });
     await fetchPurchaseOrders();
-    _poEditingNo = poNo;
-    $('po_formTitle').textContent = `✏️ แก้ไขใบสั่งซื้อ ${poNo}`;
-    if (btn) btn.textContent = '💾 บันทึกการแก้ไข';
     Swal.fire({icon:'success', title:'บันทึกใบสั่งซื้อแล้ว ✅',
       html:`เลขที่ PO: <b>${poNo}</b>`,
       background:'#0d1b2a', color:'#cce4ff',
       confirmButtonColor:'#6366f1', timer:1800, showConfirmButton:false});
+    if (btn) btn.textContent = btnOldText;
+    await _poNewForm();
   } catch (err) {
     if (btn) btn.textContent = btnOldText;
     Swal.fire({icon:'error', title:'บันทึกไม่สำเร็จ', text:String(err.message||err),
@@ -371,12 +640,22 @@ function _poPrint(poNo) {
     <tr>
       <td class="c">${it[PO_ITEM_COLS.seq]}</td>
       <td>${it[PO_ITEM_COLS.name]||''}</td>
-      <td>${it[PO_ITEM_COLS.spec]||''}</td>
       <td class="c">${it[PO_ITEM_COLS.qty]||''}</td>
       <td class="c">${it[PO_ITEM_COLS.unit]||''}</td>
       <td class="r">${fmt(it[PO_ITEM_COLS.unitPrice])}</td>
       <td class="r">${fmt(it[PO_ITEM_COLS.lineTotal])}</td>
     </tr>`).join('');
+
+  // ── รูปภาพรายการ (แสดงใต้ตาราง รูปใหญ่ ต่อรายการที่มีรูป) ──
+  const itemsWithImage = items.filter(it => it[PO_ITEM_COLS.imageUrl]);
+  const itemImagesHtml = itemsWithImage.length ? `
+    <div class="item-images">
+      ${itemsWithImage.map(it => `
+        <div class="item-img-box">
+          <img class="item-img" src="${it[PO_ITEM_COLS.imageUrl]}">
+          <div class="item-img-cap">${it[PO_ITEM_COLS.seq]}. ${it[PO_ITEM_COLS.name]||''}</div>
+        </div>`).join('')}
+    </div>` : '';
 
   const win = window.open('', '_blank');
   if (!win) return;
@@ -391,10 +670,9 @@ function _poPrint(poNo) {
     @media print {
       body{background:#fff}
       .wrap{max-width:none;margin:0;padding:0;box-shadow:none}
-      .sidebar{background:#16335c !important;color:#dce8ff !important}
     }
     .main{flex:1;min-width:0}
-    .sidebar{width:190px;flex-shrink:0;background:#16335c;color:#dce8ff;border-radius:14px;padding:14px}
+    .sidebar{width:190px;flex-shrink:0;background:#fff;color:#1e293b;border:1.5px solid #1e293b;border-radius:14px;padding:14px}
     .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid #16335c}
     .brand{display:flex;gap:12px;align-items:flex-start}
     .brand .logo-box{width:56px;height:56px;flex-shrink:0;border-radius:8px;overflow:hidden;
@@ -425,13 +703,17 @@ function _poPrint(poNo) {
     .sign .ln{border-top:1px solid #94a3b8;margin-top:30px;padding-top:4px;font-size:10.5px}
     .sign .lab{display:inline-block;background:#eef2ff;color:#16335c;border-radius:14px;padding:2px 12px;font-size:10px;font-weight:600;margin-bottom:4px}
     .footer{text-align:center;color:#94a3b8;font-size:10px;margin-top:6px}
-    .sb-pono{background:rgba(255,255,255,.10);border-radius:10px;padding:9px 10px;margin-bottom:10px}
-    .sb-pono .lab{font-size:9.5px;opacity:.8}
-    .sb-pono .val{font-size:15px;font-weight:700;color:#fff;margin-top:2px}
+    .sb-pono{background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:9px 10px;margin-bottom:10px}
+    .sb-pono .lab{font-size:9.5px;color:#64748b;opacity:.85}
+    .sb-pono .val{font-size:15px;font-weight:700;color:#1e293b;margin-top:2px}
     .sb-row{margin-bottom:9px}
-    .sb-row .lab{font-size:9.5px;opacity:.75}
-    .sb-row .val{font-size:11px;font-weight:600;color:#fff;margin-top:2px;word-break:break-word}
-    .sb-hr{border:none;border-top:1px solid rgba(255,255,255,.18);margin:10px 0}
+    .sb-row .lab{font-size:9.5px;color:#64748b;opacity:.85}
+    .sb-row .val{font-size:11px;font-weight:600;color:#1e293b;margin-top:2px;word-break:break-word}
+    .sb-hr{border:none;border-top:1px solid #cbd5e1;margin:10px 0}
+    .item-images{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+    .item-img-box{width:150px;text-align:center}
+    .item-img-box .item-img{width:150px;height:150px;object-fit:contain;border:1px solid #dbe3ee;border-radius:8px;background:#f8fafc}
+    .item-img-box .item-img-cap{font-size:10px;color:#475569;margin-top:4px;word-break:break-word}
   </style></head><body>
   <div class="wrap">
     <div class="main">
@@ -475,7 +757,6 @@ function _poPrint(poNo) {
         <thead><tr>
           <th class="c" style="width:5%">ลำดับ<br>No.</th>
           <th>รายการ<br>Description</th>
-          <th style="width:14%">สเปค<br>Spec.</th>
           <th class="c" style="width:8%">จำนวน<br>QTY</th>
           <th class="c" style="width:7%">หน่วย<br>Unit</th>
           <th class="r" style="width:14%">ราคา/หน่วย<br>Unit Price (THB)</th>
@@ -483,6 +764,7 @@ function _poPrint(poNo) {
         </tr></thead>
         <tbody>${itemRows}</tbody>
       </table>
+      ${itemImagesHtml}
 
       <div class="totals">
         <table>
