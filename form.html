@@ -19,7 +19,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=7.33">
+<link rel="stylesheet" href="style.css?v=7.34">
 </head>
 <body>
 
@@ -37,7 +37,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v8.43</span>
+      <span class="ph-chip ver">v8.44</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2650,15 +2650,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="core.js?v=8.43"></script>
-<script src="data.js?v=8.43"></script>
-<script src="formcalc.js?v=8.43"></script>
-<script src="aifeatures.js?v=8.43"></script>
-<script src="theme.js?v=8.43"></script>
-<script src="order.js?v=8.43"></script>
-<script src="purchase.js?v=8.43"></script>
-<script src="invoice.js?v=8.43"></script>
-<script src="plating.js?v=8.43"></script>
+<script src="core.js?v=8.44"></script>
+<script src="data.js?v=8.44"></script>
+<script src="formcalc.js?v=8.44"></script>
+<script src="aifeatures.js?v=8.44"></script>
+<script src="theme.js?v=8.44"></script>
+<script src="order.js?v=8.44"></script>
+<script src="purchase.js?v=8.44"></script>
+<script src="invoice.js?v=8.44"></script>
+<script src="plating.js?v=8.44"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -2801,9 +2801,17 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260615-AC',
+    ref: '#REV-20260615-AD',
     date: '2026-06-15',
     current: true,
+    items: [
+      'หน้าติดตามงาน (Tracking): ทำตัวเลข "จำนวน" ให้เด่นขึ้น (ตัวใหญ่ + ตัวหนา + สีเน้น) เพื่อให้มองเห็นง่ายขึ้น',
+    ],
+  },
+  {
+    ref: '#REV-20260615-AC',
+    date: '2026-06-15',
+    current: false,
     items: [
       'ลดการพึ่งพาอินเทอร์เน็ตสำหรับฟอนต์ Sarabun ที่ใช้สร้าง PDF — เก็บไฟล์ฟอนต์ Sarabun-Regular.ttf ไว้ในโปรเจกต์แล้ว ระบบจะโหลดจากไฟล์ในโปรเจกต์ก่อน ถ้าไม่พบจึงค่อย fallback ไปโหลดจาก raw.githubusercontent.com (Sarabun-Bold.ttf ยังใช้ fallback จาก GitHub อยู่ — ถ้าวางไฟล์ Sarabun-Bold.ttf ไว้ในโปรเจกต์เพิ่ม ระบบจะใช้ไฟล์ในเครื่องอัตโนมัติทันทีโดยไม่ต้องแก้โค้ดเพิ่ม)',
     ],

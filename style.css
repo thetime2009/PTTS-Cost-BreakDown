@@ -1430,6 +1430,7 @@ body.trk-fullscreen-mode .trk-fs-toolbar {
 .trk-info { flex: 1; min-width: 0; }
 .trk-product { font-size: 1.05rem; font-weight: 800; color: var(--c1); word-break: break-word; letter-spacing: .3px; }
 .trk-meta { font-size: .7rem; color: var(--t3); margin-top: 2px; }
+.trk-qty { font-size: 1rem; font-weight: 800; color: var(--c1); }
 
 /* วงกลม Lead Time */
 .trk-circle { position: relative; width: 64px; height: 64px; flex-shrink: 0; }

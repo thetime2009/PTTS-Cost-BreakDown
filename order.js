@@ -2513,7 +2513,7 @@ function renderTrackDashboard() {
           : `<div class="trk-img trk-img-empty">ไม่มีรูป</div>`}
         <div class="trk-info">
           <div class="trk-product">${g('productList')}</div>
-          <div class="trk-meta">📐 ${g('workType')} &nbsp;·&nbsp; 🔢 จำนวน ${g('qty')}</div>
+          <div class="trk-meta">📐 ${g('workType')} &nbsp;·&nbsp; 🔢 จำนวน <span class="trk-qty">${g('qty')}</span></div>
           <div class="trk-meta">🧱 แม่พิมพ์ ${g('mold')}</div>
         </div>
         ${_trkLeadTimeCircle(r)}
