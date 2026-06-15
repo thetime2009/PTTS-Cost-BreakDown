@@ -1616,8 +1616,7 @@ body.trk-fullscreen-mode .trk-fs-toolbar {
 .chat-send-btn:disabled { opacity: .5; cursor: not-allowed; }
 
 @media (max-width: 480px) {
-  .chat-panel { width: calc(100vw - 24px); right: 12px; bottom: 78px; height: 70vh; }
-  .chat-fab { right: 14px; bottom: 14px; }
+  .chat-fab, .chat-panel { display: none !important; }
 }
 
 /* ไอคอนแจ้งเตือนกระพริบ — เร่งความสนใจของผู้ใช้สำหรับงานใกล้/เกินกำหนด */

@@ -19,7 +19,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=7.40">
+<link rel="stylesheet" href="style.css?v=7.41">
 </head>
 <body>
 
@@ -37,7 +37,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v8.58</span>
+      <span class="ph-chip ver">v8.59</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2659,15 +2659,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="core.js?v=8.58"></script>
-<script src="data.js?v=8.58"></script>
-<script src="formcalc.js?v=8.58"></script>
-<script src="aifeatures.js?v=8.58"></script>
-<script src="theme.js?v=8.58"></script>
-<script src="order.js?v=8.58"></script>
-<script src="purchase.js?v=8.58"></script>
-<script src="invoice.js?v=8.58"></script>
-<script src="plating.js?v=8.58"></script>
+<script src="core.js?v=8.59"></script>
+<script src="data.js?v=8.59"></script>
+<script src="formcalc.js?v=8.59"></script>
+<script src="aifeatures.js?v=8.59"></script>
+<script src="theme.js?v=8.59"></script>
+<script src="order.js?v=8.59"></script>
+<script src="purchase.js?v=8.59"></script>
+<script src="invoice.js?v=8.59"></script>
+<script src="plating.js?v=8.59"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -2810,9 +2810,17 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260615-AR',
+    ref: '#REV-20260615-AS',
     date: '2026-06-15',
     current: true,
+    items: [
+      'ปุ่ม "แชททีม" 💬: ซ่อนบนหน้าจอมือถือ (≤480px) เพราะบังเนื้อหา — ใช้งานได้เฉพาะหน้าจอคอมพิวเตอร์',
+    ],
+  },
+  {
+    ref: '#REV-20260615-AR',
+    date: '2026-06-15',
+    current: false,
     items: [
       'เพิ่มปุ่ม "แชททีม" (มุมขวาล่างทุกหน้า) — แชทคุยกันภายในทีม เก็บข้อความใน Sheet "Chat" ใหม่ (สร้างอัตโนมัติ), ตั้งชื่อผู้ใช้เอง, แจ้งเตือนข้อความใหม่ด้วยตัวเลขกระพริบที่ปุ่ม, รีเฟรชอัตโนมัติทุก 8 วินาที',
     ],
