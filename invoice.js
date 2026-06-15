@@ -865,10 +865,7 @@ async function _invLoadSarabunFonts() {
       _SARABUN_FONT_CACHE = cached; return cached;
     }
   } catch (e) {}
-  const toB64 = async (url) => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('โหลดฟอนต์ไม่สำเร็จ: ' + url);
-    const buf = await res.arrayBuffer();
+  const bufToB64 = (buf) => {
     const bytes = new Uint8Array(buf);
     let binary = '';
     const chunk = 0x8000;
@@ -877,9 +874,22 @@ async function _invLoadSarabunFonts() {
     }
     return btoa(binary);
   };
+  // โหลดฟอนต์: ลองไฟล์ในโปรเจกต์ (local) ก่อน ถ้าไม่มี/โหลดไม่ได้ ค่อย fallback ไปที่ GitHub
+  const toB64 = async (localUrl, remoteUrl) => {
+    try {
+      const res = await fetch(localUrl);
+      if (res.ok) {
+        const buf = await res.arrayBuffer();
+        if (buf.byteLength > 10000) return bufToB64(buf);
+      }
+    } catch (e) {}
+    const res2 = await fetch(remoteUrl);
+    if (!res2.ok) throw new Error('โหลดฟอนต์ไม่สำเร็จ: ' + remoteUrl);
+    return bufToB64(await res2.arrayBuffer());
+  };
   const [regular, bold] = await Promise.all([
-    toB64('https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Regular.ttf'),
-    toB64('https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Bold.ttf'),
+    toB64('Sarabun-Regular.ttf', 'https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Regular.ttf'),
+    toB64('Sarabun-Bold.ttf', 'https://raw.githubusercontent.com/google/fonts/main/ofl/sarabun/Sarabun-Bold.ttf'),
   ]);
   if (regular.length < 10000 || bold.length < 10000) throw new Error('ไฟล์ฟอนต์ที่โหลดมาไม่สมบูรณ์');
   _SARABUN_FONT_CACHE = { regular, bold };
