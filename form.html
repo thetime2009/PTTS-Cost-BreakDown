@@ -19,7 +19,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=7.39">
+<link rel="stylesheet" href="style.css?v=7.40">
 </head>
 <body>
 
@@ -37,7 +37,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v8.57</span>
+      <span class="ph-chip ver">v8.58</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2659,15 +2659,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="core.js?v=8.57"></script>
-<script src="data.js?v=8.57"></script>
-<script src="formcalc.js?v=8.57"></script>
-<script src="aifeatures.js?v=8.57"></script>
-<script src="theme.js?v=8.57"></script>
-<script src="order.js?v=8.57"></script>
-<script src="purchase.js?v=8.57"></script>
-<script src="invoice.js?v=8.57"></script>
-<script src="plating.js?v=8.57"></script>
+<script src="core.js?v=8.58"></script>
+<script src="data.js?v=8.58"></script>
+<script src="formcalc.js?v=8.58"></script>
+<script src="aifeatures.js?v=8.58"></script>
+<script src="theme.js?v=8.58"></script>
+<script src="order.js?v=8.58"></script>
+<script src="purchase.js?v=8.58"></script>
+<script src="invoice.js?v=8.58"></script>
+<script src="plating.js?v=8.58"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -2810,9 +2810,17 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260615-AQ',
+    ref: '#REV-20260615-AR',
     date: '2026-06-15',
     current: true,
+    items: [
+      'เพิ่มปุ่ม "แชททีม" (มุมขวาล่างทุกหน้า) — แชทคุยกันภายในทีม เก็บข้อความใน Sheet "Chat" ใหม่ (สร้างอัตโนมัติ), ตั้งชื่อผู้ใช้เอง, แจ้งเตือนข้อความใหม่ด้วยตัวเลขกระพริบที่ปุ่ม, รีเฟรชอัตโนมัติทุก 8 วินาที',
+    ],
+  },
+  {
+    ref: '#REV-20260615-AQ',
+    date: '2026-06-15',
+    current: false,
     items: [
       '"รายละเอียด Order": ปรับลำดับคอลัมน์ใหม่ — ซ้าย: ข้อมูลหลัก + หมายเหตุ/Note, กลาง: รูปภาพ, ขวา: ความคืบหน้า (Timeline)',
     ],
@@ -3809,5 +3817,27 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+<!-- ═══ CHAT WIDGET (แชทภายในทีม) ════════════════════════════════ -->
+<button id="chatFab" class="chat-fab" onclick="_chatToggle()" title="แชททีม">
+  💬
+  <span id="chatFabBadge" class="chat-fab-badge" style="display:none">0</span>
+</button>
+<div id="chatPanel" class="chat-panel">
+  <div class="chat-panel-head">
+    <div class="chat-panel-title">💬 แชททีม</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="chat-panel-sub" id="chatWhoAmI" onclick="_chatChangeName()">ตั้งชื่อ</span>
+      <button class="chat-panel-close" onclick="_chatToggle()">✕</button>
+    </div>
+  </div>
+  <div id="chatBody" class="chat-panel-body">
+    <div class="chat-empty">ยังไม่มีข้อความ — เริ่มแชทกับทีมได้เลย</div>
+  </div>
+  <div class="chat-panel-input">
+    <textarea id="chatInput" rows="1" placeholder="พิมพ์ข้อความ..." onkeydown="_chatInputKeydown(event)"></textarea>
+    <button class="chat-send-btn" onclick="_chatSend()">➤</button>
+  </div>
+</div>
 </body>
 </html>

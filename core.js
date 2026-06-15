@@ -1348,3 +1348,161 @@ function renderPriceComparison() {
   });
 }
 
+// ══ CHAT WIDGET (แชทภายในทีม) ═══════════════════════════════════
+const CHAT_NAME_KEY  = 'ptts_chat_name';
+const CHAT_SEEN_KEY  = 'ptts_chat_seen_count';
+const CHAT_POLL_MS   = 8000;
+let _chatMessages = [];
+let _chatPollTimer = null;
+let _chatOpen = false;
+
+function _chatGetName() {
+  return localStorage.getItem(CHAT_NAME_KEY) || '';
+}
+
+function _chatChangeName() {
+  Swal.fire({
+    title: '👤 ตั้งชื่อของคุณ',
+    input: 'text',
+    inputValue: _chatGetName(),
+    inputPlaceholder: 'เช่น ป้อม, นุช, ...',
+    confirmButtonText: 'บันทึก', confirmButtonColor: '#6366f1',
+    showCancelButton: true, cancelButtonText: 'ยกเลิก',
+    background: 'var(--bg-card)', color: 'var(--t1)',
+    inputValidator: v => !v.trim() ? 'กรุณากรอกชื่อ' : undefined
+  }).then(res => {
+    if (!res.isConfirmed) return;
+    localStorage.setItem(CHAT_NAME_KEY, res.value.trim());
+    _chatUpdateWhoAmI();
+  });
+}
+
+function _chatUpdateWhoAmI() {
+  const el = $('chatWhoAmI');
+  if (!el) return;
+  const name = _chatGetName();
+  el.textContent = name ? `คุณ: ${name} (เปลี่ยน)` : 'ตั้งชื่อ';
+}
+
+function _chatToggle() {
+  const panel = $('chatPanel');
+  if (!panel) return;
+  _chatOpen = !panel.classList.contains('open');
+  panel.classList.toggle('open', _chatOpen);
+  if (_chatOpen) {
+    if (!_chatGetName()) _chatChangeName();
+    _chatFetch(true);
+    _chatMarkSeen();
+    setTimeout(() => $('chatInput')?.focus(), 200);
+  }
+}
+
+function _chatInputKeydown(ev) {
+  if (ev.key === 'Enter' && !ev.shiftKey) {
+    ev.preventDefault();
+    _chatSend();
+  }
+}
+
+function _chatMarkSeen() {
+  localStorage.setItem(CHAT_SEEN_KEY, String(_chatMessages.length));
+  const badge = $('chatFabBadge');
+  if (badge) badge.style.display = 'none';
+  $('chatFab')?.classList.remove('has-unread');
+}
+
+function _chatRender() {
+  const body = $('chatBody');
+  if (!body) return;
+  if (!_chatMessages.length) {
+    body.innerHTML = '<div class="chat-empty">ยังไม่มีข้อความ — เริ่มแชทกับทีมได้เลย</div>';
+    return;
+  }
+  const myName = _chatGetName();
+  const wasAtBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 30;
+  body.innerHTML = _chatMessages.map(m => {
+    const mine = myName && m.sender === myName;
+    return `<div class="chat-msg ${mine ? 'me' : 'other'}">
+        <div class="chat-msg-bubble">${mine ? '' : `<b>${_escH(m.sender)}</b><br>`}${_escH(m.message)}</div>
+        <div class="chat-msg-meta">${mine ? '' : ''}${_escH(m.time||'')}</div>
+      </div>`;
+  }).join('');
+  if (wasAtBottom || !_chatOpen) body.scrollTop = body.scrollHeight;
+}
+
+function _chatFetch(scrollToBottom) {
+  if (!SCRIPT_URL) return;
+  fetch(SCRIPT_URL + '?action=getChatMessages', { mode: 'cors' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status !== 'ok' || !Array.isArray(data.messages)) return;
+      const prevLen = _chatMessages.length;
+      _chatMessages = data.messages;
+      _chatRender();
+      if (_chatOpen) {
+        _chatMarkSeen();
+        if (scrollToBottom) {
+          const body = $('chatBody');
+          if (body) body.scrollTop = body.scrollHeight;
+        }
+      } else {
+        const seen = parseInt(localStorage.getItem(CHAT_SEEN_KEY) || '0', 10);
+        const unread = Math.max(0, _chatMessages.length - seen);
+        const badge = $('chatFabBadge');
+        const fab = $('chatFab');
+        if (unread > 0) {
+          if (badge) { badge.textContent = unread > 99 ? '99+' : String(unread); badge.style.display = 'flex'; }
+          fab?.classList.add('has-unread');
+        } else {
+          if (badge) badge.style.display = 'none';
+          fab?.classList.remove('has-unread');
+        }
+      }
+    })
+    .catch(() => {});
+}
+
+function _chatSend() {
+  const input = $('chatInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  if (!SCRIPT_URL) {
+    Swal.fire({icon:'info', title:'ยังไม่ตั้งค่า URL', text:'กรุณาใส่ Apps Script URL ก่อน', background:'var(--bg-card)', color:'var(--t1)', confirmButtonColor:'#6366f1'});
+    return;
+  }
+  let name = _chatGetName();
+  if (!name) {
+    _chatChangeName();
+    return;
+  }
+  input.value = '';
+  input.style.height = 'auto';
+  // optimistic render
+  _chatMessages.push({ time: new Date().toLocaleString('th-TH', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}), sender: name, message: text });
+  _chatRender();
+  _chatMarkSeen();
+  const body = $('chatBody');
+  if (body) body.scrollTop = body.scrollHeight;
+
+  fetch(SCRIPT_URL, {
+    method: 'POST', mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'sendChatMessage', sender: name, message: text })
+  }).catch(() => {});
+
+  setTimeout(() => _chatFetch(true), 1500);
+}
+
+function _chatInit() {
+  _chatUpdateWhoAmI();
+  if (!SCRIPT_URL) return;
+  _chatFetch(false);
+  if (_chatPollTimer) clearInterval(_chatPollTimer);
+  _chatPollTimer = setInterval(() => _chatFetch(false), CHAT_POLL_MS);
+  $('chatInput')?.addEventListener('input', (e) => {
+    e.target.style.height = 'auto';
+    e.target.style.height = Math.min(e.target.scrollHeight, 70) + 'px';
+  });
+}
+
