@@ -1461,12 +1461,30 @@ body.trk-fullscreen-mode .trk-fs-toolbar {
   border-top: 2px solid #6366f1;
 }
 @media (min-width: 720px) {
-  .trk-task-col + .trk-task-col { border-top: none; border-left: 2px solid #6366f1; }
+  .trk-task-col + .trk-task-col  { border-top: none; border-left: none; }
+  .trk-task-col:nth-child(even)  { border-left: 2px solid #6366f1; }
+  .trk-task-col:nth-child(n+3)   { border-top: 2px solid #6366f1; }
 }
 .trk-task-head {
   text-align: center; font-size: 1.6rem; font-weight: 800; color: var(--tx1, #111);
   padding-bottom: 10px; margin-bottom: 10px; border-bottom: 2px solid #6366f1;
   position: relative; overflow: hidden;
+}
+.trk-ws-badge {
+  display: inline-flex; align-items: center;
+  font-size: .68rem; font-weight: 700;
+  border-radius: 999px; padding: 1px 8px;
+  margin-left: 5px; vertical-align: middle;
+}
+.trk-ws-urgent { background: #fee2e2; color: #b91c1c; }
+.trk-ws-stock  { background: #dbeafe; color: #1d4ed8; }
+.trk-task-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #6366f1; color: #fff;
+  font-size: .72rem; font-weight: 700;
+  border-radius: 999px; padding: 2px 9px;
+  margin-left: 8px; vertical-align: middle;
+  line-height: 1.4;
 }
 .trk-task-head::after {
   content: ''; position: absolute; bottom: -2px; left: -40%;

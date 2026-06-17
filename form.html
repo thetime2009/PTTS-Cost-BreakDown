@@ -38,7 +38,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v8.98</span>
+      <span class="ph-chip ver">v9.00</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2832,7 +2832,7 @@
 <script src="formcalc.js?v=8.94"></script>
 <script src="aifeatures.js?v=8.94"></script>
 <script src="theme.js?v=8.95"></script>
-<script src="order.js?v=8.94"></script>
+<script src="order.js?v=9.00"></script>
 <script src="purchase.js?v=8.94"></script>
 <script src="invoice.js?v=8.98"></script>
 <script src="plating.js?v=8.94"></script>
@@ -2978,9 +2978,30 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260617-X',
+    ref: '#REV-20260617-Z',
     date: '2026-06-17',
     current: true,
+    items: [
+      'order.js: List tasks — แสดง badge "เร่งด่วน/สต๊อก" หลังชื่องาน (ORDER_COLS.status=22) ซ่อนถ้า "ปรกติ"',
+      'order.js: เรียงการ์ดในแต่ละคอลัมน์ — เร่งด่วนขึ้นก่อน → ปรกติ → สต๊อก',
+      'style.css: เพิ่ม .trk-ws-badge, .trk-ws-urgent, .trk-ws-stock',
+    ],
+  },
+  {
+    ref: '#REV-20260617-Y',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'order.js: TRK_TASKLIST_GROUPS เพิ่มคอลัมน์ "ส่งตัวอย่างเทส+รอสรุป" ระหว่าง ส่งชุปแล้ว กับ เตรียมส่ง',
+      'order.js: _trkRenderTaskList เพิ่มจำนวนงานหลัง label เช่น "กำลังผลิต (9)"',
+      'style.css: แก้ border grid 2×2 — even = border-left, n+3 = border-top (ถูกต้องกว่าเดิม)',
+      'style.css: เพิ่ม .trk-task-count สำหรับตัวเลขยอดงานใน header',
+    ],
+  },
+  {
+    ref: '#REV-20260617-X',
+    date: '2026-06-17',
+    current: false,
     items: [
       'invoice.js: เพิ่มฟิลด์ "เครดิต/เงื่อนไขการชำระเงิน" ในทะเบียนลูกค้า (renderCustomerTable, custSaveRow, custAddRow)',
       'invoice.js: ตอนออกใบกำกับ — ดึง cust.credit เป็นค่าเริ่มต้น, แก้ไขได้ใน Swal ด้วย input+datalist',

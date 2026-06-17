@@ -2426,9 +2426,10 @@ function _trkApplySubTabUI() {
 
 // สถานะที่จะแสดงในแต่ละคอลัมน์ของ "List tasks"
 const TRK_TASKLIST_GROUPS = [
-  { key:'กำลังผลิต', label:'กำลังผลิต', color:'#2563eb' },
-  { key:'ส่งชุป',    label:'ส่งชุปแล้ว', color:'#f59e0b' },
-  { key:'เตรียมส่ง', label:'เตรียมส่ง',  color:'#0d9488' },
+  { key:'กำลังผลิต',              label:'กำลังผลิต',              color:'#2563eb' },
+  { key:'ส่งชุป',                 label:'ส่งชุปแล้ว',             color:'#f59e0b' },
+  { key:'ส่งตัวอย่างเทส+รอสรุป', label:'ส่งตัวอย่างเทส+รอสรุป', color:'#38bdf8' },
+  { key:'เตรียมส่ง',              label:'เตรียมส่ง',              color:'#0d9488' },
 ];
 
 // รวมยอด "จำนวน" ของแต่ละ "รายการสินค้า" แยกตามสถานะ Process (กำลังผลิต / ส่งชุป)
@@ -2438,12 +2439,31 @@ function _trkTaskRowClick(noPO) {
   _trkRenderTaskList();
 }
 
+// ลำดับความสำคัญ "สถานะงาน" สำหรับเรียงใน List tasks (ต่ำ = ขึ้นก่อน)
+function _trkWorkStatusOrder(r) {
+  const s = String(r[ORDER_COLS.status] || '').trim();
+  if (s === 'เร่งด่วน') return 0;
+  if (s === 'สต๊อก')   return 2;
+  return 1; // ปรกติ / อื่นๆ
+}
+
+// badge สถานะงาน — แสดงเฉพาะเมื่อไม่ใช่ "ปรกติ"
+function _trkWorkStatusBadge(r) {
+  const s = String(r[ORDER_COLS.status] || '').trim();
+  if (s === 'เร่งด่วน') return '<span class="trk-ws-badge trk-ws-urgent">🔴 เร่งด่วน</span>';
+  if (s === 'สต๊อก')   return '<span class="trk-ws-badge trk-ws-stock">📦 สต๊อก</span>';
+  return '';
+}
+
 function _trkRenderTaskList() {
   const wrap = $('trkTaskList');
   if (!wrap) return;
 
   wrap.innerHTML = TRK_TASKLIST_GROUPS.map(grp => {
-    const rows = _orderCache.filter(r => _trkEffectiveStatus(r) === grp.key);
+    // เรียงเร่งด่วนขึ้นก่อน → ปรกติ → สต๊อก
+    const rows = _orderCache
+      .filter(r => _trkEffectiveStatus(r) === grp.key)
+      .sort((a, b) => _trkWorkStatusOrder(a) - _trkWorkStatusOrder(b));
     const itemsHtml = rows.length
       ? rows.map(r => {
           const name = String(r[ORDER_COLS.productList] || '').trim() || '(ไม่ระบุรายการ)';
@@ -2455,7 +2475,7 @@ function _trkRenderTaskList() {
           return `<div class="trk-task-row" onclick="_trkTaskRowClick('${String(noPO).replace(/'/g,"\\'")}')">
               <div class="trk-task-circle">${_trkLeadTimeCircle(r)}</div>
               <div class="trk-task-info">
-                <div class="trk-task-main">${name} = ${qty.toLocaleString('th-TH')} <span class="trk-task-unit">ลูก</span>${_newBadge(isNewRow)}</div>
+                <div class="trk-task-main">${name} = ${qty.toLocaleString('th-TH')} <span class="trk-task-unit">ลูก</span>${_trkWorkStatusBadge(r)}${_newBadge(isNewRow)}</div>
                 <div class="trk-task-meta">แบบงาน: ${workType} · ลูกค้า: ${customer}</div>
               </div>
             </div>`;
@@ -2463,7 +2483,7 @@ function _trkRenderTaskList() {
       : `<div class="trk-task-empty">ไม่มีงาน</div>`;
     return `
       <div class="trk-task-col">
-        <div class="trk-task-head">${grp.label}</div>
+        <div class="trk-task-head">${grp.label}<span class="trk-task-count">${rows.length}</span></div>
         <div class="trk-task-body" style="color:${grp.color}">${itemsHtml}</div>
       </div>`;
   }).join('');
