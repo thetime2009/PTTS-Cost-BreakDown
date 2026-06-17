@@ -670,7 +670,7 @@ async function _invShowPreview(invoiceNo, type, cust, invoiceDateIso) {
   const html = _invBuildDocHtml({ invoiceNo, isFull, cust, dateStr, itemRows, subtotal, vat, total });
 
   _invPreviewMode = true;
-  _invPreviewData = { invoiceNo, type, customerCode: cust.code, poList: [..._invSelectedPOs], subtotal, vat, total, items: itemsArr };
+  _invPreviewData = { invoiceNo, date: dateStr, type, customerCode: cust.code, poList: [..._invSelectedPOs], subtotal, vat, total, items: itemsArr };
 
   let docInv = $('docInv');
   if (!docInv) {
@@ -1383,7 +1383,7 @@ function renderIssuedInvoiceList() {
       : '-';
     return `<tr style="border-bottom:1px solid var(--bc-card)">
       <td style="padding:6px 8px;font-weight:700;color:var(--c1);white-space:nowrap">${inv.invoiceNo}</td>
-      <td style="padding:6px 8px;font-size:.78rem;color:var(--t2);white-space:nowrap">${inv.date}</td>
+      <td style="padding:6px 8px;font-size:.78rem;color:var(--t2);white-space:nowrap">${_invThaiDate(inv.date)}</td>
       <td style="padding:6px 8px;font-size:.78rem;color:var(--t2)">${cust.name||inv.customerCode||''}${cust.branch?' ('+cust.branch+')':''}</td>
       <td style="padding:6px 8px;font-size:.78rem;color:var(--t3)">${poText}</td>
       <td style="padding:6px 8px;font-size:.78rem;color:var(--t3)">${inv.type}</td>
@@ -1453,13 +1453,21 @@ async function deleteIssuedInvoice(invoiceNo) {
 }
 
 // แปลงวันที่ dd/MM/yyyy <-> yyyy-MM-dd (สำหรับ <input type="date">)
+// แปลง stored date (dd/MM/YYYY ไม่ว่า พ.ศ. หรือ ค.ศ.) → yyyy-MM-dd (CE) สำหรับ <input type="date">
 function _invDateToInput(d) {
   const p = String(d||'').split('/');
-  return p.length === 3 ? `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}` : '';
+  if (p.length !== 3) return '';
+  let y = parseInt(p[2], 10);
+  if (y > 2400) y -= 543; // พ.ศ. → ค.ศ.
+  return `${y}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
 }
+// แปลง yyyy-MM-dd (CE จาก input) → dd/MM/พ.ศ. สำหรับเก็บใน Sheet
 function _invDateFromInput(d) {
   const p = String(d||'').split('-');
-  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : '';
+  if (p.length !== 3) return '';
+  let y = parseInt(p[0], 10);
+  if (y < 2400) y += 543; // ค.ศ. → พ.ศ.
+  return `${p[2]}/${p[1]}/${y}`;
 }
 
 // ── HTML ของแถวรายการสินค้า 1 แถวในตัวแก้ไข ──
