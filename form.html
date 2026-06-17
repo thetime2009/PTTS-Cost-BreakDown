@@ -37,7 +37,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v8.74</span>
+      <span class="ph-chip ver">v8.78</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2815,15 +2815,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="core.js?v=8.74"></script>
-<script src="data.js?v=8.74"></script>
-<script src="formcalc.js?v=8.74"></script>
-<script src="aifeatures.js?v=8.74"></script>
-<script src="theme.js?v=8.74"></script>
-<script src="order.js?v=8.74"></script>
-<script src="purchase.js?v=8.74"></script>
-<script src="invoice.js?v=8.74"></script>
-<script src="plating.js?v=8.74"></script>
+<script src="core.js?v=8.78"></script>
+<script src="data.js?v=8.78"></script>
+<script src="formcalc.js?v=8.78"></script>
+<script src="aifeatures.js?v=8.78"></script>
+<script src="theme.js?v=8.78"></script>
+<script src="order.js?v=8.78"></script>
+<script src="purchase.js?v=8.78"></script>
+<script src="invoice.js?v=8.78"></script>
+<script src="plating.js?v=8.78"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -2966,9 +2966,45 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
+    ref: '#REV-20260617-D',
+    date: '2026-06-17',
+    current: true,
+    items: [
+      'ออกใบกำกับ: ปุ่ม "🔍 ดู PO" เปลี่ยนเป็นแสดง popup รายละเอียด Order แทนการเปิดหน้า Order',
+      'popup แสดง: รายการ รูปแบบงาน วันที่ จำนวน วัสดุ ราคา Process หมายเหตุ + ลิงก์รูปภาพ',
+    ],
+  },
+  {
+    ref: '#REV-20260617-C',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'ออกใบกำกับ: เพิ่มปุ่ม "🔍 ดู PO" ในแต่ละการ์ด PO เพื่อเปิดรายละเอียด Order',
+    ],
+  },
+  {
+    ref: '#REV-20260617-B',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'ใบกำกับภาษี + ใบวางบิล: เปลี่ยนรูปแบบวันที่เป็น dd/MM/พ.ศ. (เช่น 17/06/2569)',
+      'เพิ่ม helper _fmtDateBE() สำหรับแปลง Date object → dd/MM/พ.ศ.',
+    ],
+  },
+  {
+    ref: '#REV-20260617-A',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'Checklist ชุบ: validation หักยอดที่ส่งไปแล้วออกก่อนเปรียบเทียบ (รองรับส่งบางส่วนหลายรอบ)',
+      'Checklist ชุบ: input max และ tooltip แสดงยอดคงเหลือที่ส่งได้',
+      'ออกใบกำกับภาษี: เพิ่ม date picker เลือกวันที่ออกใบได้ ค่าเริ่มต้น = วันนี้',
+    ],
+  },
+  {
     ref: '#REV-20260616-O',
     date: '2026-06-16',
-    current: true,
+    current: false,
     items: [
       'Checklist ชุบ: เพิ่ม max attribute ในช่องจำนวน ไม่ให้กรอกเกินยอด PO',
       'Checklist ชุบ: เตือน popup เมื่อกรอกจำนวนเกินยอด PO พร้อม clamp ค่ากลับ',

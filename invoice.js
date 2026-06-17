@@ -295,12 +295,20 @@ function renderInvOrderList() {
     const note  = String(r[ORDER_COLS.note] || '').trim();
     const total = _invOrderTotal(r);
     const checked = _invSelectedPOs.has(noPO) ? 'checked' : '';
+    const noPO_esc = noPO.replace(/'/g,"\\'");
     return `<label style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;
       border:1px solid var(--bc-card);margin-bottom:6px;cursor:pointer;background:var(--bg-input2)">
-      <input type="checkbox" ${checked} onchange="_invToggleRow('${noPO.replace(/'/g,"\\'")}',this.checked)"
+      <input type="checkbox" ${checked} onchange="_invToggleRow('${noPO_esc}',this.checked)"
         style="width:18px;height:18px;flex-shrink:0">
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;color:var(--c1);font-size:.85rem">${noPO}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-weight:700;color:var(--c1);font-size:.85rem">${noPO}</span>
+          <button type="button" onclick="event.preventDefault();event.stopPropagation();_invGoToOrder('${noPO_esc}')"
+            title="เปิดรายละเอียด PO นี้"
+            style="background:none;border:1px solid var(--c1);border-radius:4px;cursor:pointer;padding:1px 6px;font-size:.68rem;color:var(--c1);line-height:1.4;font-family:Sarabun,sans-serif;flex-shrink:0">
+            🔍 ดู PO
+          </button>
+        </div>
         <div style="font-size:.76rem;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${prod}</div>
         <div style="font-size:.7rem;color:var(--t3)">วันที่: ${date}${qty ? ' · จำนวน: '+qty : ''}</div>
         ${note ? `<div style="font-size:.7rem;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">หมายเหตุ: ${note}</div>` : ''}
@@ -320,6 +328,60 @@ function _invToggleRow(noPO, checked) {
   if (checked) _invSelectedPOs.add(noPO);
   else _invSelectedPOs.delete(noPO);
   _invUpdateSummary();
+}
+
+function _invGoToOrder(noPO) {
+  const r = (_orderCache || []).find(row => String(row[ORDER_COLS.noPO]||'').trim() === noPO);
+  if (!r) return;
+
+  const v  = s => String(r[s] != null ? r[s] : '').trim();
+  const poFileUrl = v(ORDER_COLS.poFile);
+  const jobImg1   = v(ORDER_COLS.jobImg1);
+  const jobImg2   = v(ORDER_COLS.jobImg2);
+
+  const imgBtn = (url, label) => url
+    ? `<a href="${url}" target="_blank" rel="noopener"
+        style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:6px;
+          background:#1e3a5f;color:#60a5fa;font-size:.78rem;text-decoration:none;border:1px solid #2563eb">
+        🖼️ ${label}
+      </a>`
+    : '';
+
+  const field = (label, val) => val
+    ? `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.07)">
+        <span style="color:#8b8aaa;font-size:.76rem;min-width:90px;flex-shrink:0">${label}</span>
+        <span style="color:#e2e8f0;font-size:.80rem;word-break:break-word">${val}</span>
+      </div>`
+    : '';
+
+  const imgsHtml = [imgBtn(poFileUrl,'รูป PO'), imgBtn(jobImg1,'รูปงาน 1'), imgBtn(jobImg2,'รูปงาน 2')]
+    .filter(Boolean).join(' ');
+
+  Swal.fire({
+    title: `📋 ${noPO}`,
+    html: `<div style="text-align:left;font-family:Sarabun,sans-serif">
+      ${field('รายการ',       v(ORDER_COLS.productList))}
+      ${field('รูปแบบงาน',    v(ORDER_COLS.workType))}
+      ${field('วันที่สั่ง',    v(ORDER_COLS.orderDate))}
+      ${field('วันที่ต้องการ', v(ORDER_COLS.wantDate))}
+      ${field('จำนวน',        v(ORDER_COLS.qty))}
+      ${field('วัสดุ',        v(ORDER_COLS.material))}
+      ${field('ตะแกรงนอก',   v(ORDER_COLS.meshOut))}
+      ${field('ตะแกรงใน',    v(ORDER_COLS.meshIn))}
+      ${field('ฝาบน',        v(ORDER_COLS.matTop))}
+      ${field('ฝาล่าง',      v(ORDER_COLS.matBot))}
+      ${field('ราคาขาย',     v(ORDER_COLS.price) ? fmtB(parseFloat(v(ORDER_COLS.price)))+' ฿' : '')}
+      ${field('Process',     v(ORDER_COLS.process))}
+      ${field('หมายเหตุ',    v(ORDER_COLS.note))}
+      ${field('Note',        v(ORDER_COLS.note2))}
+      ${imgsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">${imgsHtml}</div>` : ''}
+    </div>`,
+    background: '#0d1b2a',
+    color: '#cce4ff',
+    width: 'min(96vw,480px)',
+    confirmButtonText: 'ปิด',
+    confirmButtonColor: '#374151',
+  });
 }
 
 function _invUpdateSummary() {
@@ -399,19 +461,38 @@ async function invGeneratePreview() {
     if (!data || data.status !== 'ok') throw new Error((data && data.message) || 'failed');
     Swal.close();
 
-    // ── เสนอเลขที่ใบกำกับถัดไป แต่แก้ไขได้ (เหมือนใบวางบิล) ──
+    // ── เสนอเลขที่ใบกำกับถัดไป + วันที่ออกใบ ──
+    const todayIso = new Date().toISOString().slice(0,10);
     const numResult = await Swal.fire({
-      icon:'question', title:'เลขที่ใบกำกับ',
-      input:'text', inputValue: data.nextNo,
-      inputLabel:'ระบบเสนอเลขถัดไปให้ — แก้ไขได้ถ้าต้องการ',
-      showCancelButton:true, confirmButtonText:'ใช้เลขนี้', cancelButtonText:'ยกเลิก',
-      confirmButtonColor:'#2563eb', background:'#0d1b2a', color:'#cce4ff',
-      inputValidator: v => !v.trim() ? 'กรุณากรอกเลขที่ใบกำกับ' : undefined
+      icon: 'question',
+      title: 'เลขที่ใบกำกับ',
+      html: `
+        <div style="text-align:left;margin-bottom:10px">
+          <label style="font-size:.82rem;color:#8b8aaa;display:block;margin-bottom:4px">เลขที่ใบกำกับ — แก้ไขได้</label>
+          <input id="swal_inv_no" class="swal2-input" value="${data.nextNo}" style="margin:0;width:100%">
+        </div>
+        <div style="text-align:left">
+          <label style="font-size:.82rem;color:#8b8aaa;display:block;margin-bottom:4px">วันที่ออกใบ</label>
+          <input id="swal_inv_date" type="date" class="swal2-input" value="${todayIso}" style="margin:0;width:100%;font-family:Sarabun,sans-serif">
+        </div>`,
+      showCancelButton: true,
+      confirmButtonText: 'ใช้เลขนี้',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#2563eb',
+      background: '#0d1b2a',
+      color: '#cce4ff',
+      preConfirm: () => {
+        const no   = document.getElementById('swal_inv_no')?.value.trim();
+        const date = document.getElementById('swal_inv_date')?.value;
+        if (!no) { Swal.showValidationMessage('กรุณากรอกเลขที่ใบกำกับ'); return false; }
+        return { no, date };
+      },
     });
     if (!numResult.isConfirmed) return;
-    const invoiceNo = numResult.value.trim();
+    const invoiceNo   = numResult.value.no;
+    const invoiceDateIso = numResult.value.date || todayIso;
 
-    await _invShowPreview(invoiceNo, type, cust);
+    await _invShowPreview(invoiceNo, type, cust, invoiceDateIso);
   } catch (e) {
     Swal.fire({icon:'error',title:'ขอเลขที่ไม่สำเร็จ',text:e.message,background:'#0d1b2a',color:'#cce4ff',confirmButtonColor:'#dc2626'});
   }
@@ -564,15 +645,15 @@ function _invBuildDocHtml({ invoiceNo, isFull, cust, dateStr, itemRows, subtotal
 }
 
 // ── ออกใบกำกับใหม่: แสดง preview พร้อมปุ่มยืนยันออกใบกำกับ ──
-async function _invShowPreview(invoiceNo, type, cust) {
+async function _invShowPreview(invoiceNo, type, cust, invoiceDateIso) {
   const isFull = type === 'full';
   const orderRows = _orderCache.filter(r => _invSelectedPOs.has(String(r[ORDER_COLS.noPO]||'')));
   const itemsArr = _invBuildItemsFromOrders(orderRows);
   const { rowsHtml: itemRows, total } = _invRenderItemRows(itemsArr, isFull);
   const subtotal = total / 1.07;
   const vat = total - subtotal;
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  const dateObj = invoiceDateIso ? new Date(invoiceDateIso + 'T00:00:00') : new Date();
+  const dateStr = _fmtDateBE(dateObj);
 
   const html = _invBuildDocHtml({ invoiceNo, isFull, cust, dateStr, itemRows, subtotal, vat, total });
 
@@ -667,10 +748,10 @@ function _invThaiDate(d) {
   const p = String(d||'').split('/');
   if (p.length !== 3) return d || '';
   let y = parseInt(p[2],10);
-  if (y > 2400) y -= 543; // เก็บเป็น พ.ศ. (เช่น 2569) -> แปลงเป็น ค.ศ. ก่อนสร้าง Date กัน toLocaleDateString บวก 543 ซ้ำ
+  if (y > 2400) y -= 543; // พ.ศ. → ค.ศ. ก่อนสร้าง Date
   const dt = new Date(y, parseInt(p[1],10) - 1, parseInt(p[0],10));
   if (isNaN(dt.getTime())) return d || '';
-  return dt.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  return _fmtDateBE(dt);
 }
 
 // ── พิมพ์ใบกำกับเดิมซ้ำ (ใช้ข้อมูล/รายการที่แก้ไขแล้ว ไม่มีปุ่มยืนยันออกใบกำกับ) ──
@@ -2039,8 +2120,8 @@ function _billGenerate() {
   const wht     = !!$('billWht')?.checked;
   const billDateVal = $('billDate')?.value || '';
   const billDateStr = billDateVal
-    ? new Date(billDateVal + 'T00:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'})
-    : new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+    ? _billDateToThaiBE(billDateVal)
+    : _fmtDateBE(new Date());
 
   // เรียงตามวันที่ใบกำกับ (เก่า -> ใหม่)
   const items = checked.slice().sort((a,b) => _invIssuedDateToIso(a.date).localeCompare(_invIssuedDateToIso(b.date)));
@@ -2104,6 +2185,15 @@ function _billDateToThaiBE(isoDate) {
   const p = String(isoDate||'').split('-');
   if (p.length !== 3) return '';
   const dd = p[2], mm = p[1], yyyy = String(parseInt(p[0],10) + 543);
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+// ── แปลง Date object -> dd/MM/yyyy พ.ศ. ──
+function _fmtDateBE(dateObj) {
+  if (!dateObj || isNaN(dateObj.getTime())) return '';
+  const dd   = String(dateObj.getDate()).padStart(2,'0');
+  const mm   = String(dateObj.getMonth()+1).padStart(2,'0');
+  const yyyy = dateObj.getFullYear() + 543;
   return `${dd}/${mm}/${yyyy}`;
 }
 

@@ -307,9 +307,9 @@ function _platingRenderOrderList() {
       <td style="padding:6px 8px;text-align:center;font-size:.74rem;white-space:nowrap">${workType}</td>
       <td style="padding:6px 8px">${product}</td>
       <td style="padding:6px 8px;text-align:center">
-        <input type="number" step="1" min="0" max="${parseFloat(qty)||''}"
-          value="${meta.platingQty !== undefined ? meta.platingQty : (parseFloat(qty)||0)}"
-          placeholder="${qty}" title="จำนวนที่จะส่งชุบ (สูงสุด ${qty} ตามยอด PO)"
+        <input type="number" step="1" min="0" max="${Math.max(0,(parseFloat(qty)||0)-(sentQtyMap[noPO]||0))||''}"
+          value="${meta.platingQty !== undefined ? meta.platingQty : Math.max(0,(parseFloat(qty)||0)-(sentQtyMap[noPO]||0))}"
+          placeholder="${qty}" title="ส่งแล้ว ${sentQtyMap[noPO]||0}/${qty} — คงเหลือ ${Math.max(0,(parseFloat(qty)||0)-(sentQtyMap[noPO]||0))} ชิ้น"
           oninput="_platingSetMainQty('${noPO}',this.value,this)"
           style="width:64px;padding:5px;border-radius:6px;border:1px solid rgba(250,204,21,.4);background:rgba(250,204,21,.08);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem;text-align:center">
       </td>
@@ -446,15 +446,21 @@ function _platingSetOrderMeta(noPO, field, value) {
 // ── เปลี่ยนจำนวนที่จะส่งชุบ (ไม่กระทบ Order qty) → ส่งต่อไปยัง part qty ทุกอัน ──
 function _platingSetMainQty(noPO, val, el) {
   let qty = parseFloat(val) || 0;
-  // ตรวจสอบไม่ให้เกินยอด PO
+  // ตรวจสอบไม่ให้เกินยอด PO (หักยอดที่ส่งไปแล้วออก)
   const poRow = (_orderCache || []).find(r => String(r[ORDER_COLS.noPO]||'').trim() === noPO);
-  const poQty = poRow ? (parseFloat(poRow[ORDER_COLS.qty]||'')||0) : 0;
-  if (poQty > 0 && qty > poQty) {
-    qty = poQty;
-    if (el) el.value = poQty;
+  const poQty   = poRow ? (parseFloat(poRow[ORDER_COLS.qty]||'')||0) : 0;
+  const sentMap = _platingSentQtyMap();
+  const alreadySent = sentMap[noPO] || 0;
+  const remaining   = Math.max(0, poQty - alreadySent);
+  if (poQty > 0 && qty > remaining) {
+    qty = remaining;
+    if (el) el.value = remaining;
+    const msg = alreadySent > 0
+      ? `ส่งชุบไปแล้ว ${alreadySent} ชิ้น — คงเหลือ ${remaining} ชิ้น`
+      : `ส่งชุบได้สูงสุด ${poQty} ชิ้นตามยอด PO`;
     Swal.fire({
       icon: 'warning',
-      title: `ส่งชุบได้สูงสุด ${poQty} ชิ้นตามยอด PO`,
+      title: msg,
       html: `<div style="font-size:.84rem;color:#8b8aaa;line-height:1.6">
         ถ้ามีชิ้นส่วนอื่นที่ต้องชุบเพิ่ม<br>
         ให้เพิ่มในส่วน <b>"รายการเพิ่มเติม (ทั่วไป)"</b> แทน
@@ -956,19 +962,28 @@ function _platingGenerate() {
     return;
   }
 
-  // ตรวจสอบจำนวนส่งชุบไม่เกินยอด PO
+  // ตรวจสอบจำนวนส่งชุบไม่เกินยอดคงเหลือ (PO qty − ยอดที่ส่งไปแล้ว)
+  const _genSentMap = _platingSentQtyMap();
   const overOrders = checkedOrders.filter(r => {
-    const noPO  = String(r[ORDER_COLS.noPO]||'').trim();
-    const poQty = parseFloat(r[ORDER_COLS.qty]||'') || 0;
-    const meta  = _platingOrderMeta[noPO] || {};
-    const pQty  = meta.platingQty != null ? meta.platingQty : poQty;
-    return poQty > 0 && pQty > poQty;
+    const noPO        = String(r[ORDER_COLS.noPO]||'').trim();
+    const poQty       = parseFloat(r[ORDER_COLS.qty]||'') || 0;
+    const alreadySent = _genSentMap[noPO] || 0;
+    const remaining   = Math.max(0, poQty - alreadySent);
+    const meta        = _platingOrderMeta[noPO] || {};
+    const pQty        = meta.platingQty != null ? meta.platingQty : poQty;
+    return poQty > 0 && pQty > remaining;
   });
   if (overOrders.length) {
-    const list = overOrders.map(r => `• ${String(r[ORDER_COLS.noPO]||'').trim()} (ยอด PO: ${r[ORDER_COLS.qty]})`).join('<br>');
+    const list = overOrders.map(r => {
+      const noPO        = String(r[ORDER_COLS.noPO]||'').trim();
+      const poQty       = parseFloat(r[ORDER_COLS.qty]||'') || 0;
+      const alreadySent = _genSentMap[noPO] || 0;
+      const remaining   = Math.max(0, poQty - alreadySent);
+      return `• ${noPO} (ส่งแล้ว ${alreadySent}/${poQty} — คงเหลือ ${remaining} ชิ้น)`;
+    }).join('<br>');
     Swal.fire({
       icon: 'error',
-      title: 'จำนวนส่งชุบเกินยอด PO',
+      title: 'จำนวนส่งชุบเกินยอดคงเหลือ',
       html: `<div style="font-size:.84rem;color:#8b8aaa;line-height:1.8;text-align:left">${list}<br><br>
         กรุณาแก้ไขจำนวนก่อนออกใบ<br>
         ถ้ามีชิ้นส่วนอื่น ให้เพิ่มใน <b>"รายการเพิ่มเติม (ทั่วไป)"</b>
