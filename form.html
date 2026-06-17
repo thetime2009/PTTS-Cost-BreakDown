@@ -38,7 +38,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v9.00</span>
+      <span class="ph-chip ver">v9.03</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2832,9 +2832,9 @@
 <script src="formcalc.js?v=8.94"></script>
 <script src="aifeatures.js?v=8.94"></script>
 <script src="theme.js?v=8.95"></script>
-<script src="order.js?v=9.00"></script>
+<script src="order.js?v=9.02"></script>
 <script src="purchase.js?v=8.94"></script>
-<script src="invoice.js?v=8.98"></script>
+<script src="invoice.js?v=9.03"></script>
 <script src="plating.js?v=8.94"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
@@ -2978,9 +2978,37 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260617-Z',
+    ref: '#REV-20260617-AC',
     date: '2026-06-17',
     current: true,
+    items: [
+      'invoice.js: ใบวางบิล — เพิ่ม print-color-adjust:exact ที่ thead row (พื้นน้ำเงิน #2563eb)',
+      'invoice.js: ใบวางบิล — เพิ่ม print-color-adjust:exact ที่ NET AMOUNT row (พื้นน้ำเงิน #1d4ed8)',
+    ],
+  },
+  {
+    ref: '#REV-20260617-AB',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'order.js: ใบสั่งงานผลิต — แก้กำหนดส่งซีดจาง: เพิ่ม print-color-adjust:exact ทั้ง * และ element',
+      'order.js: ใบสั่งงานผลิต — กล่องกำหนดส่งตัวใหญ่ขึ้น (1.4rem) border หนา 3px เด่นทั้งสีและ B&W',
+    ],
+  },
+  {
+    ref: '#REV-20260617-AA',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'order.js: ใบสั่งงานผลิต — ภาพทั้ง 2 ใช้ height:260px เท่ากัน, flex:1;min-width:0 (ไม่ overflow)',
+      'order.js: ใบสั่งงานผลิต — ย้ายหมายเหตุขึ้นมาอยู่เหนือขั้นตอนการผลิต',
+      'order.js: ใบสั่งงานผลิต — กำหนดส่งเปลี่ยนเป็น box สีแดงเด่น พร้อมลูกศร → จากวันรับงาน',
+    ],
+  },
+  {
+    ref: '#REV-20260617-Z',
+    date: '2026-06-17',
+    current: false,
     items: [
       'order.js: List tasks — แสดง badge "เร่งด่วน/สต๊อก" หลังชื่องาน (ORDER_COLS.status=22) ซ่อนถ้า "ปรกติ"',
       'order.js: เรียงการ์ดในแต่ละคอลัมน์ — เร่งด่วนขึ้นก่อน → ปรกติ → สต๊อก',

@@ -2179,7 +2179,7 @@ function _billBuildDocHtml({ billNo, billDateStr, payTerm, cust, items, wht }) {
         <col style="width:21%">
       </colgroup>
       <thead>
-        <tr style="background:#2563eb;color:#fff">
+        <tr style="background:#2563eb;color:#fff;print-color-adjust:exact;-webkit-print-color-adjust:exact">
           <th style="padding:7px 8px;text-align:center">ลำดับที่</th>
           <th style="padding:7px 8px;text-align:left">เลขที่ใบกำกับภาษี</th>
           <th style="padding:7px 8px;text-align:center">ลงวันที่</th>
@@ -2203,7 +2203,7 @@ function _billBuildDocHtml({ billNo, billDateStr, payTerm, cust, items, wht }) {
           <td colspan="4" style="padding:5px 8px;text-align:right;color:#dc2626">หัก ณ ที่จ่าย 3%</td>
           <td style="padding:5px 8px;text-align:right;color:#dc2626;white-space:nowrap">${fmtB(whtAmount)}</td>
         </tr>` : ''}
-        <tr style="background:#1d4ed8;color:#fff">
+        <tr style="background:#1d4ed8;color:#fff;print-color-adjust:exact;-webkit-print-color-adjust:exact">
           <td colspan="4" style="padding:8px 8px;text-align:right;font-weight:700;font-size:.86rem">
             จำนวนเงินรับสุทธิ / NET AMOUNT</td>
           <td style="padding:8px 8px;text-align:right;font-weight:800;font-size:.86rem;white-space:nowrap">

@@ -1761,7 +1761,7 @@ function _renderWorkOrderHtml(d) {
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap">
 <style>
   @page { size: A4; margin: 12mm; }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   body { margin:0; font-family:'Sarabun',sans-serif; color:#1a2232; font-size:13px; }
   table { width:100%; border-collapse:collapse; }
 </style>
@@ -1821,59 +1821,59 @@ function _renderWorkOrderHtml(d) {
     </div>
     <div style="flex:1;min-width:240px">
       <div style="font-size:.62rem;font-weight:700;color:#2563eb;letter-spacing:1.2px;margin-bottom:6px">แบบงาน / DRAWING</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
-        <div style="flex:1;min-width:200px">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <div style="flex:1;min-width:0">
           ${(() => {
             if (d.drawingImg) {
-              return `<img src="${d.drawingImg}" onerror="this.style.display='none'" style="max-width:100%;max-height:260px;width:auto;height:auto;
-                object-fit:contain;border:1px solid #ddd;border-radius:6px;background:#fafafa">`;
+              return `<img src="${d.drawingImg}" onerror="this.style.display='none'" style="width:100%;height:260px;
+                object-fit:contain;border:1px solid #ddd;border-radius:6px;background:#fafafa;display:block">`;
             }
             const diagramSvg = _workTypeDiagramSvg(d.workType);
             if (diagramSvg) {
-              return `<div style="border:1px solid #ddd;border-radius:6px;background:#fafafa;padding:8px">${diagramSvg}</div>`;
+              return `<div style="border:1px solid #ddd;border-radius:6px;background:#fafafa;padding:8px;height:260px;display:flex;align-items:center;justify-content:center">${diagramSvg}</div>`;
             }
-            return `
-              <div style="border:1.5px dashed #bbb;border-radius:8px;min-height:200px;
+            return `<div style="border:1.5px dashed #bbb;border-radius:8px;height:260px;
                 display:flex;align-items:center;justify-content:center;color:#bbb;font-size:.8rem;text-align:center">
-                (พื้นที่สำหรับวาด/แนบแบบงาน)
-              </div>
-            `;
+                (พื้นที่สำหรับวาด/แนบแบบงาน)</div>`;
           })()}
         </div>
-        <div style="flex:1;min-width:200px">
+        <div style="flex:1;min-width:0">
           ${d.poImg ? `
-            <img src="${d.poImg}" style="max-width:100%;max-height:260px;width:auto;height:auto;
-              object-fit:contain;border:1px solid #ddd;border-radius:6px;background:#fafafa">
+            <img src="${d.poImg}" style="width:100%;height:260px;
+              object-fit:contain;border:1px solid #ddd;border-radius:6px;background:#fafafa;display:block">
           ` : `
-            <div style="border:1.5px dashed #bbb;border-radius:8px;min-height:200px;
+            <div style="border:1.5px dashed #bbb;border-radius:8px;height:260px;
               display:flex;align-items:center;justify-content:center;color:#bbb;font-size:.8rem;text-align:center">
-              (ไม่มีไฟล์ PO แนบ)
-            </div>
+              (ไม่มีไฟล์ PO แนบ)</div>
           `}
         </div>
       </div>
     </div>
   </div>
 
+  <div style="padding:14px 0;border-bottom:1px solid #e8ecf2;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:.62rem;color:#666;margin-bottom:2px">วันที่รับงาน</div>
+      <div style="font-size:.9rem;font-weight:600">${d.orderDate || '—'}</div>
+    </div>
+    <div style="font-size:1.4rem;color:#e8ecf2">→</div>
+    <div style="border:3px solid #dc2626;border-radius:8px;padding:8px 20px;text-align:center;
+      background:#dc2626;print-color-adjust:exact;-webkit-print-color-adjust:exact">
+      <div style="font-size:.6rem;color:#fca5a5;font-weight:700;letter-spacing:1.5px;margin-bottom:3px;
+        print-color-adjust:exact;-webkit-print-color-adjust:exact">▶ กำหนดส่ง</div>
+      <div style="font-size:1.4rem;font-weight:900;color:#fff;letter-spacing:.5px;
+        print-color-adjust:exact;-webkit-print-color-adjust:exact">${d.wantDate || '—'}</div>
+    </div>
+  </div>
+
   <div style="padding:14px 0;border-bottom:1px solid #e8ecf2">
-    <table style="font-size:.85rem">
-      <tr>
-        <td style="padding:6px 10px 6px 0;color:#666;width:25%">วันที่รับงาน</td>
-        <td style="padding:6px 10px;font-weight:600">${d.orderDate || '—'}</td>
-        <td style="padding:6px 10px 6px 0;color:#666;width:25%">กำหนดส่ง</td>
-        <td style="padding:6px 0;font-weight:600;color:#dc2626">${d.wantDate || '—'}</td>
-      </tr>
-    </table>
+    <div style="font-size:.62rem;font-weight:700;color:#2563eb;letter-spacing:1.2px;margin-bottom:6px">หมายเหตุ</div>
+    <div style="font-size:.85rem;min-height:36px;white-space:pre-wrap">${d.note || '—'}</div>
   </div>
 
   <div style="padding:14px 0;border-bottom:1px solid #e8ecf2">
     <div style="font-size:.62rem;font-weight:700;color:#2563eb;letter-spacing:1.2px;margin-bottom:6px">ขั้นตอนการผลิต / CHECKLIST</div>
     <table style="font-size:.85rem">${checklistRows}</table>
-  </div>
-
-  <div style="padding:14px 0;border-bottom:1px solid #e8ecf2">
-    <div style="font-size:.62rem;font-weight:700;color:#2563eb;letter-spacing:1.2px;margin-bottom:6px">หมายเหตุ</div>
-    <div style="font-size:.85rem;min-height:40px;white-space:pre-wrap">${d.note || '—'}</div>
   </div>
 
   <div style="display:flex;gap:12px;padding-top:28px;flex-wrap:wrap">
