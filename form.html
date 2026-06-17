@@ -38,7 +38,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v8.90</span>
+      <span class="ph-chip ver">v8.92</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -87,6 +87,17 @@
 <!-- TAB 1 : BREAK DOWN                               -->
 <!-- ══════════════════════════════════════════════════ -->
 <div id="tab-breakdown" class="tab-content active">
+
+<!-- COPY NOTICE BAR -->
+<div id="copyNoticeBar" style="display:none;align-items:center;gap:10px;
+  padding:8px 14px;margin:8px 0;border-radius:8px;
+  background:rgba(8,145,178,.18);border:1px solid #0891b2;
+  font-size:.8rem;color:#67e8f9;font-family:Sarabun,sans-serif">
+  <span style="flex:1"></span>
+  <button onclick="document.getElementById('copyNoticeBar').style.display='none'"
+    style="padding:2px 10px;border-radius:5px;border:1px solid #0891b2;
+    background:transparent;color:#67e8f9;cursor:pointer;font-size:.75rem">✕ ปิด</button>
+</div>
 
 <!-- URL SETUP -->
 <div style="max-width:100%;margin:10px 0 8px;
@@ -2816,15 +2827,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="core.js?v=8.90"></script>
-<script src="data.js?v=8.90"></script>
-<script src="formcalc.js?v=8.90"></script>
-<script src="aifeatures.js?v=8.90"></script>
-<script src="theme.js?v=8.90"></script>
-<script src="order.js?v=8.90"></script>
-<script src="purchase.js?v=8.90"></script>
-<script src="invoice.js?v=8.90"></script>
-<script src="plating.js?v=8.90"></script>
+<script src="core.js?v=8.92"></script>
+<script src="data.js?v=8.92"></script>
+<script src="formcalc.js?v=8.92"></script>
+<script src="aifeatures.js?v=8.92"></script>
+<script src="theme.js?v=8.92"></script>
+<script src="order.js?v=8.92"></script>
+<script src="purchase.js?v=8.92"></script>
+<script src="invoice.js?v=8.92"></script>
+<script src="plating.js?v=8.92"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -2967,9 +2978,29 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260617-P',
+    ref: '#REV-20260617-R',
     date: '2026-06-17',
     current: true,
+    items: [
+      'dtCopyRow(): เปลี่ยนเป็น save โดยตรงไปยัง Sheet ทันที — ไม่ผ่านฟอร์ม',
+      'คัดลอกข้อมูลทั้งหมดจากแถวต้นฉบับ เปลี่ยนแค่ No.Quo (max+1), Rev=0, RefId ใหม่',
+      'อัปเดต _dtCache และ render ตารางใหม่หลัง save สำเร็จ',
+    ],
+  },
+  {
+    ref: '#REV-20260617-Q',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'DATA tab: เพิ่มปุ่ม "📋 คัดลอก" ในแต่ละแถวใบเสนอราคา',
+      'dtCopyRow(): โหลดข้อมูลเดิมทั้งหมดพร้อมเลขที่ใหม่ (max+1) — บันทึกเป็นใบใหม่ ไม่ใช่ update',
+      'เพิ่ม #copyNoticeBar ใน tab breakdown — แสดงข้อความเตือนว่ากำลังทำงานบน copy',
+    ],
+  },
+  {
+    ref: '#REV-20260617-P',
+    date: '2026-06-17',
+    current: false,
     items: [
       'Report ตัดเหล็ก: ปรับ layout ให้พอดี A4 portrait — @page margin 10mm, max-width 190mm',
       'Report ตัดเหล็ก: ลดขนาด font ตัวเลขขนาดตัด (2.6rem→1.65rem), padding, table font (.85→.72rem)',

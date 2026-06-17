@@ -347,6 +347,12 @@ function dtRender() {
                  font-size:.7rem;cursor:pointer;font-family:Sarabun,sans-serif;margin:1px;font-weight:700">
           📦 Order
         </button>
+        <button onclick="dtCopyRow(${globalIdx})"
+          style="padding:5px 10px;border-radius:7px;border:none;background:#0891b2;color:#fff;
+                 font-size:.7rem;cursor:pointer;font-family:Sarabun,sans-serif;margin:1px"
+          title="คัดลอกใบเสนอราคานี้เป็นเลขที่ใหม่">
+          📋 คัดลอก
+        </button>
         <button onclick="dtDelete('${String(r[DT.noQuo]||'').replace(/'/g,"\\'")}',this)"
           style="padding:5px 8px;border-radius:7px;border:1px solid rgba(248,113,113,.35);
                  background:rgba(248,113,113,.1);color:#f87171;font-size:.7rem;cursor:pointer;margin:1px">
@@ -655,6 +661,71 @@ function dtLoadIntoForm(idx) {
         background:'#0a1c2e',color:'#f1f5f9'});
     }, 200);
   });
+}
+
+// ── คัดลอกใบเสนอราคา → บันทึกแถวใหม่ทันที (ข้อมูลเดิมทั้งหมด เปลี่ยนแค่ No.Quo) ──
+async function dtCopyRow(idx) {
+  const tbody = $('dtBody');
+  const rows = tbody && tbody._filteredRows;
+  if (!rows || !rows[idx]) return;
+  const r = rows[idx];
+  const srcNo = String(r[DT.noQuo] || '').replace(/^Q-/i, '').trim();
+
+  // คำนวณเลขที่ล่าสุด (max + 1)
+  let maxNo = 0;
+  (_dtCache || []).forEach(row => {
+    const n = parseInt(String(row[DT.noQuo] || '').replace(/^Q-/i, ''), 10);
+    if (!isNaN(n) && n > maxNo) maxNo = n;
+  });
+  const nextNo = String(maxNo + 1);
+
+  const { isConfirmed } = await Swal.fire({
+    title: '📋 คัดลอกใบเสนอราคา',
+    html: `<div style="text-align:left;font-size:.85rem;line-height:2.2">
+      <div>คัดลอกจาก: <b>No.Quo ${srcNo}</b></div>
+      <div>เลขที่ใหม่: <b style="color:#34d399;font-size:1.05rem">No.Quo ${nextNo}</b></div>
+      <div style="font-size:.78rem;color:#94a3b8;margin-top:4px">
+        ข้อมูลทั้งหมดเหมือนกัน — บันทึกลง Sheet เป็นแถวใหม่ทันที
+      </div>
+    </div>`,
+    icon: 'question', showCancelButton: true,
+    confirmButtonText: '📋 คัดลอกเลย', cancelButtonText: 'ยกเลิก',
+    background: '#0a1c2e', color: '#f1f5f9',
+    confirmButtonColor: '#0891b2', cancelButtonColor: '#475569'
+  });
+  if (!isConfirmed) return;
+
+  // สร้าง row ใหม่ — copy ทั้งหมด แล้วเปลี่ยนเฉพาะ noQuo, rev, refId
+  const newRow = [...r];
+  newRow[DT.noQuo]  = nextNo;
+  newRow[DT.rev]    = 0;
+  newRow[DT.refId]  = (typeof generateRefId === 'function') ? generateRefId() : '';
+
+  Swal.fire({ title:'⏳ กำลังบันทึก…', allowOutsideClick:false,
+    background:'#0a1c2e', color:'#f1f5f9', showConfirmButton:false,
+    didOpen: () => Swal.showLoading() });
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ row: newRow })
+    });
+    // อัปเดต cache และ UI
+    _dtCache.push(newRow);
+    if (typeof computeNextNo === 'function') computeNextNo();
+    dtRender();
+    Swal.fire({
+      icon: 'success',
+      title: 'คัดลอกสำเร็จ ✅',
+      html: `สร้าง <b>No.Quo ${nextNo}</b> จาก <b>${srcNo}</b> แล้ว`,
+      timer: 2000, showConfirmButton: false,
+      background: '#0a1c2e', color: '#f1f5f9'
+    });
+  } catch (e) {
+    Swal.fire({ icon:'error', title:'บันทึกไม่สำเร็จ', text: e.message,
+      background:'#0a1c2e', color:'#f1f5f9', confirmButtonColor:'#dc2626' });
+  }
 }
 
 function dtShowSpecSheet(idx) {
