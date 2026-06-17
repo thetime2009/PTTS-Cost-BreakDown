@@ -527,6 +527,33 @@ function refreshCalcTab() {
   renderCalcTab(res);
 }
 
+// compact version สำหรับ print report (A4)
+function buildGridVizSmall(sw, sl, cols, rows) {
+  const longH = sl >= sw, dW = longH ? sl : sw, dH = longH ? sw : sl;
+  const dCols = longH ? cols : rows, dRows = longH ? rows : cols;
+  const PT = 13, PL = 22, PR = 5, PB = 5;
+  const maxW = 180, maxH = 68;
+  const scale = Math.min(maxW / dW, maxH / dH);
+  const W = dW * scale, H = dH * scale;
+  const cellW = W / dCols, cellH = H / dRows;
+  const vW = W + PL + PR, vH = H + PT + PB;
+  let cells = '';
+  for (let r = 0; r < dRows; r++)
+    for (let c = 0; c < dCols; c++)
+      cells += `<rect x="${(PL+c*cellW).toFixed(1)}" y="${(PT+r*cellH).toFixed(1)}"
+        width="${(cellW-.8).toFixed(1)}" height="${(cellH-.8).toFixed(1)}"
+        fill="rgba(0,0,0,.06)" stroke="#888" stroke-width=".5"/>`;
+  return `<svg viewBox="0 0 ${vW.toFixed(0)} ${vH.toFixed(0)}" style="width:100%;max-width:180px;display:block;margin:0 auto">
+    <rect x="${PL}" y="${PT}" width="${W.toFixed(1)}" height="${H.toFixed(1)}"
+      fill="#f9f9f9" stroke="#999" stroke-width="1"/>
+    ${cells}
+    <text x="${(PL+W/2).toFixed(0)}" y="${(PT-3).toFixed(0)}"
+      text-anchor="middle" font-size="8" fill="#666">${dCols} แถว</text>
+    <text x="${(PL-3).toFixed(0)}" y="${(PT+H/2+3).toFixed(0)}"
+      text-anchor="end" font-size="8" fill="#666">${dRows} แถว</text>
+  </svg>`;
+}
+
 function buildGridViz(sw, sl, cols, rows) {
   // แสดงแนวนอน (landscape) เสมอ — ด้านยาวอยู่แนวนอน
   const longH = sl >= sw, dW = longH ? sl : sw, dH = longH ? sw : sl;
@@ -683,7 +710,7 @@ function _renderCuttingReportHtml(res, meta) {
     const hasLayout = !isNone && r.pieces > 0;
     const sheetsNeeded = hasLayout ? Math.ceil(unit / r.pieces) : '-';
     const util = hasLayout ? ((r.cw*r.cl*r.pieces)/(sw*sl)*100).toFixed(1) : '0.0';
-    const grid = hasLayout ? buildGridViz(sw, sl, r.cols, r.rows) : '';
+    const grid = hasLayout ? buildGridVizSmall(sw, sl, r.cols, r.rows) : '';
     return `
       <div class="rpt-card">
         <div class="rpt-head">
@@ -717,39 +744,45 @@ function _renderCuttingReportHtml(res, meta) {
 <html lang="th"><head><meta charset="UTF-8">
 <title>Report ขนาดตัด - ${noPO || noQuo}</title>
 <style>
+  @page { size: A4 portrait; margin: 10mm; }
   * { box-sizing:border-box; }
-  body { font-family:'Sarabun',sans-serif; margin:0; padding:16px; color:#111; }
-  .rpt-header { border-bottom:2px solid #333; padding-bottom:8px; margin-bottom:14px; }
-  .rpt-header h1 { margin:0 0 6px; font-size:1.25rem; }
-  .rpt-meta { display:flex; flex-wrap:wrap; gap:14px; font-size:.9rem; color:#333; }
+  body { font-family:'Sarabun',sans-serif; margin:0 auto; padding:4px 0; color:#111;
+         max-width:190mm; font-size:13px; }
+  .rpt-header { border-bottom:2px solid #333; padding-bottom:5px; margin-bottom:8px; }
+  .rpt-header h1 { margin:0 0 3px; font-size:1rem; }
+  .rpt-meta { display:flex; flex-wrap:wrap; gap:10px; font-size:.78rem; color:#333; }
   .rpt-meta b { color:#000; }
-  .rpt-grid-wrap { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-  .rpt-card { border:1px solid #999; border-radius:8px; padding:10px; break-inside:avoid; }
-  .rpt-head { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #ccc; padding-bottom:6px; margin-bottom:6px; }
-  .rpt-name { font-weight:700; font-size:1.05rem; }
-  .rpt-badge { background:#eee; border:1px solid #999; border-radius:6px; padding:2px 8px; font-size:.8rem; }
-  .rpt-cutsize { background:#fffbe6; border:3px solid #f59e0b; border-radius:10px; padding:8px 10px; margin-bottom:8px; text-align:center; }
-  .rpt-cutsize-lbl { font-size:.95rem; font-weight:700; color:#92400e; margin-bottom:2px; }
-  .rpt-cutsize-val { font-size:2.6rem; font-weight:900; color:#000; line-height:1.1; letter-spacing:1px; }
+  .rpt-grid-wrap { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .rpt-card { border:1px solid #999; border-radius:6px; padding:7px 8px; break-inside:avoid; }
+  .rpt-head { display:flex; align-items:center; justify-content:space-between;
+              border-bottom:1px solid #ccc; padding-bottom:4px; margin-bottom:5px; }
+  .rpt-name { font-weight:700; font-size:.9rem; }
+  .rpt-badge { background:#eee; border:1px solid #999; border-radius:5px;
+               padding:1px 6px; font-size:.7rem; }
+  .rpt-cutsize { background:#fffbe6; border:2px solid #f59e0b; border-radius:7px;
+                 padding:4px 8px; margin-bottom:6px; text-align:center; }
+  .rpt-cutsize-lbl { font-size:.72rem; font-weight:700; color:#92400e; margin-bottom:1px; }
+  .rpt-cutsize-val { font-size:1.65rem; font-weight:900; color:#000; line-height:1.1; letter-spacing:.5px; }
   .rpt-cutsize-val .rpt-x { color:#f59e0b; }
-  .rpt-table { width:100%; border-collapse:collapse; font-size:.85rem; }
-  .rpt-table td { padding:3px 4px; border-bottom:1px dashed #ddd; }
+  .rpt-table { width:100%; border-collapse:collapse; font-size:.72rem; }
+  .rpt-table td { padding:2px 3px; border-bottom:1px dashed #ddd; }
   .rpt-table td:first-child { color:#555; }
   .rpt-table td:last-child { text-align:right; }
-  .rpt-grid { margin-top:8px; text-align:center; }
+  .rpt-grid { margin-top:5px; text-align:center; }
+  .rpt-grid svg { max-width:220px !important; }
   .rpt-grid svg text { fill:#555 !important; }
   .rpt-grid svg rect[fill*="rgba(74,222,128"] { fill:rgba(0,0,0,.06) !important; stroke:#666 !important; }
-  .rpt-empty { color:#888; font-size:.85rem; padding:8px 0; }
-  /* ชิ้นส่วนที่วัตถุดิบ = "ไม่มี" — แสดงวงกลมกากบาทแดงแทนขนาดตัด */
-  .rpt-none { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:18px 0; }
+  .rpt-empty { color:#888; font-size:.78rem; padding:6px 0; }
+  .rpt-none { display:flex; flex-direction:column; align-items:center;
+              justify-content:center; padding:10px 0; }
   .rpt-none-icon {
-    width:64px; height:64px; border-radius:50%;
-    background:#fff; border:4px solid #dc2626; color:#dc2626;
+    width:44px; height:44px; border-radius:50%;
+    background:#fff; border:3px solid #dc2626; color:#dc2626;
     display:flex; align-items:center; justify-content:center;
-    font-size:2.4rem; font-weight:900; line-height:1; margin-bottom:8px;
+    font-size:1.6rem; font-weight:900; line-height:1; margin-bottom:5px;
   }
-  .rpt-none-lbl { font-size:1rem; font-weight:700; color:#dc2626; }
-  @media print { body { padding:6px; } }
+  .rpt-none-lbl { font-size:.85rem; font-weight:700; color:#dc2626; }
+  @media print { body { padding:0; } }
 </style>
 </head><body>
   <div class="rpt-header">

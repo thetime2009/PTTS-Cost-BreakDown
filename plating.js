@@ -1270,79 +1270,160 @@ async function _platingCancel(idx) {
   }
 }
 
-// ── แก้ไขใบส่งชุบในประวัติ ──
+// ── แก้ไขใบส่งชุบในประวัติ (รองรับเพิ่ม/ลบรายการ + เพิ่มจาก PO / เพิ่มทั่วไป) ──
 async function _platingEdit(idx) {
   const p = _platingHistCache[idx];
   if (!p) return;
 
-  // แปลงวันที่ dd/MM/yyyy → yyyy-MM-dd สำหรับ input[type=date]
+  // แปลงวันที่ dd/MM/yyyy → yyyy-MM-dd
   let dateISO = '';
   if (p.date) {
     const m = p.date.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (m) dateISO = `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    if (m) {
+      let y = parseInt(m[3], 10);
+      if (y > 2400) y -= 543; // BE → CE for input
+      dateISO = `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    }
   }
 
   const supplierOpts = (_supplierCache || []).map(s =>
     `<option value="${s.code}"${s.code===p.supplierCode?' selected':''}>${s.name}</option>`
   ).join('');
 
-  // ── helper styles (light theme) ──
-  const IS  = `width:100%;padding:5px 8px;border-radius:6px;border:1px solid #cbd5e1;background:#f8fafc;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.8rem`;
-  const QS  = `width:58px;padding:5px;border-radius:6px;border:1px solid #cbd5e1;background:#f8fafc;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.8rem;text-align:center`;
-  const inp = (id, val, type='text', extra='') =>
-    `<input type="${type}" id="${id}" value="${String(val??'').replace(/"/g,'&quot;')}" ${extra}
-      style="${IS}${type==='number'?';text-align:center':''}">`;
-  const sel = (id, val, opts) =>
-    `<select id="${id}" style="${IS}">${opts.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('')}</select>`;
-
-  // ตะแกรงกลาง: ❌ ถ้า qty=0, input ถ้า qty>0 (คลิก ❌ เพื่อเปิด)
-  window._pltMmidOpen = function(el) {
-    const i = el.dataset.idx;
-    const cell = document.getElementById('plt_eq_mmid_cell_' + i);
-    if (cell) cell.innerHTML = `<input type="number" id="plt_eq_mmidqty_${i}" value="1" min="0" step="1" style="${QS}">`;
-  };
-  const meshMidCell = (i, qty) => qty > 0
-    ? `<span id="plt_eq_mmid_cell_${i}"><input type="number" id="plt_eq_mmidqty_${i}" value="${qty}" min="0" step="1" style="${QS}"></span>`
-    : `<span id="plt_eq_mmid_cell_${i}"><button type="button" data-idx="${i}" onclick="_pltMmidOpen(this)"
-        style="background:none;border:none;cursor:pointer;font-size:1rem;padding:2px" title="คลิกเพื่อใส่จำนวนตะแกรงกลาง">❌</button></span>`;
-
-  const itemRows = (p.items || []).map((it, i) => `
-    <tr style="border-bottom:1px solid #e2e8f0">
-      <td style="padding:5px 5px">${inp(`plt_eq_desc_${i}`, it.description||'')}</td>
-      <td style="padding:5px 4px">${inp(`plt_eq_qty_${i}`, parseFloat(it.qty)||0, 'number', 'min="0" step="1"')}</td>
-      <td style="padding:5px 4px">${inp(`plt_eq_unit_${i}`, it.unit||'')}</td>
-      <td style="padding:5px 3px;text-align:center"><input type="number" id="plt_eq_topqty_${i}" value="${it.topQty||0}" min="0" step="1" style="${QS}"></td>
-      <td style="padding:5px 3px;text-align:center"><input type="number" id="plt_eq_botqty_${i}" value="${it.botQty||0}" min="0" step="1" style="${QS}"></td>
-      <td style="padding:5px 3px;text-align:center"><input type="number" id="plt_eq_moutqty_${i}" value="${it.meshOutQty||0}" min="0" step="1" style="${QS}"></td>
-      <td style="padding:5px 3px;text-align:center">${meshMidCell(i, it.meshMidQty||0)}</td>
-      <td style="padding:5px 3px;text-align:center"><input type="number" id="plt_eq_minqty_${i}" value="${it.meshInQty||0}" min="0" step="1" style="${QS}"></td>
-      <td style="padding:5px 4px">${inp(`plt_eq_price_${i}`, parseFloat(it.price)||0, 'number', 'min="0" step="0.01"')}</td>
-      <td style="padding:5px 4px">${sel(`plt_eq_status_${i}`, it.status||'งานใหม่', ['งานใหม่','งานเก่า'])}</td>
-    </tr>`).join('');
-
+  // ── Styles ──
+  const IS = `width:100%;padding:5px 8px;border-radius:6px;border:1px solid #cbd5e1;background:#f8fafc;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.8rem`;
+  const QS = `width:58px;padding:5px;border-radius:6px;border:1px solid #cbd5e1;background:#f8fafc;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.8rem;text-align:center`;
   const thStyle = 'padding:6px 4px;text-align:center;font-size:.72rem;color:#475569;font-weight:700;white-space:nowrap;border-bottom:2px solid #e2e8f0';
+
+  // ── State: ใช้ global เพื่อให้ onclick ใน Swal HTML เรียกได้ ──
+  window._pltEditRows = (p.items || []).map((it, i) => ({ ...it, _id: i }));
+  window._pltEditNextId = (p.items || []).length;
+
+  // ── ฟังก์ชัน render rows ──
+  window._pltEditRenderRows = function() {
+    const tbody = document.getElementById('plt_eq_tbody');
+    if (!tbody) return;
+    tbody.innerHTML = window._pltEditRows.map(it => {
+      const id = it._id;
+      const noPOTag = it.noPO
+        ? `<div style="font-size:.65rem;color:#0891b2;font-weight:600;margin-bottom:2px">📦 ${it.noPO}</div>` : '';
+      const mmidCell = (it.meshMidQty > 0)
+        ? `<input type="number" id="plt_eq_mmidqty_${id}" value="${it.meshMidQty}" min="0" step="1" style="${QS}">`
+        : `<button type="button" data-id="${id}" onclick="_pltMmidOpen2(this)"
+            style="background:none;border:none;cursor:pointer;font-size:1rem;padding:2px" title="คลิกเพื่อใส่จำนวน">❌</button>`;
+      return `<tr id="plt_eq_row_${id}" style="border-bottom:1px solid #e2e8f0">
+        <td style="padding:5px 5px;min-width:130px">
+          ${noPOTag}
+          <input type="text" id="plt_eq_desc_${id}" value="${String(it.description||'').replace(/"/g,'&quot;')}" style="${IS}">
+        </td>
+        <td style="padding:5px 4px"><input type="number" id="plt_eq_qty_${id}" value="${parseFloat(it.qty)||0}" min="0" step="1" style="${IS};text-align:center"></td>
+        <td style="padding:5px 4px"><input type="text" id="plt_eq_unit_${id}" value="${String(it.unit||'').replace(/"/g,'&quot;')}" style="${IS}"></td>
+        <td style="padding:5px 3px;text-align:center"><input type="number" id="plt_eq_topqty_${id}" value="${it.topQty||0}" min="0" step="1" style="${QS}"></td>
+        <td style="padding:5px 3px;text-align:center"><input type="number" id="plt_eq_botqty_${id}" value="${it.botQty||0}" min="0" step="1" style="${QS}"></td>
+        <td style="padding:5px 3px;text-align:center"><input type="number" id="plt_eq_moutqty_${id}" value="${it.meshOutQty||0}" min="0" step="1" style="${QS}"></td>
+        <td style="padding:5px 3px;text-align:center" id="plt_eq_mmid_cell_${id}">${mmidCell}</td>
+        <td style="padding:5px 3px;text-align:center"><input type="number" id="plt_eq_minqty_${id}" value="${it.meshInQty||0}" min="0" step="1" style="${QS}"></td>
+        <td style="padding:5px 4px"><input type="number" id="plt_eq_price_${id}" value="${parseFloat(it.price)||0}" min="0" step="0.01" style="${IS};text-align:center"></td>
+        <td style="padding:5px 4px">
+          <select id="plt_eq_status_${id}" style="${IS}">
+            <option${(it.status||'งานใหม่')==='งานใหม่'?' selected':''}>งานใหม่</option>
+            <option${it.status==='งานเก่า'?' selected':''}>งานเก่า</option>
+          </select>
+        </td>
+        <td style="padding:5px 4px;text-align:center">
+          <button type="button" onclick="_pltEditDeleteRow(${id})"
+            style="padding:3px 8px;border-radius:5px;border:1px solid #fca5a5;background:transparent;
+            color:#ef4444;cursor:pointer;font-size:.75rem" title="ลบรายการนี้">🗑</button>
+        </td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="11" style="padding:14px;text-align:center;color:#94a3b8;font-size:.8rem">ยังไม่มีรายการ — กดปุ่มด้านล่างเพื่อเพิ่ม</td></tr>`;
+  };
+
+  window._pltMmidOpen2 = function(el) {
+    const id = el.dataset.id;
+    const cell = document.getElementById('plt_eq_mmid_cell_' + id);
+    if (cell) cell.innerHTML = `<input type="number" id="plt_eq_mmidqty_${id}" value="1" min="0" step="1" style="${QS}">`;
+  };
+
+  window._pltEditDeleteRow = function(id) {
+    window._pltEditRows = window._pltEditRows.filter(r => r._id !== id);
+    _pltEditRenderRows();
+  };
+
+  // เพิ่มรายการทั่วไป (ไม่ผูก Order)
+  window._pltEditAddFree = function() {
+    window._pltEditRows.push({
+      _id: window._pltEditNextId++,
+      source: 'general',
+      description: '', qty: 1, unit: 'Set',
+      topQty: 0, botQty: 0, meshOutQty: 0, meshMidQty: 0, meshInQty: 0,
+      price: 0, status: 'งานใหม่'
+    });
+    _pltEditRenderRows();
+    // scroll to bottom of table
+    const tbody = document.getElementById('plt_eq_tbody');
+    if (tbody) tbody.lastElementChild?.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  };
+
+  // เพิ่มรายการจาก PO
+  window._pltEditAddFromPO = function() {
+    const sel = document.getElementById('plt_eq_po_picker');
+    if (!sel || !sel.value) return;
+    const noPO = sel.value;
+    const r = (_orderCache || []).find(row => String(row[ORDER_COLS.noPO]||'').trim() === noPO);
+    window._pltEditRows.push({
+      _id: window._pltEditNextId++,
+      source: 'order',
+      noPO,
+      description: r ? String(r[ORDER_COLS.productList]||'').trim() : noPO,
+      qty:  r ? (parseFloat(r[ORDER_COLS.qty]||0) || 0) : 0,
+      unit: 'Set',
+      topQty: 0, botQty: 0, meshOutQty: 0, meshMidQty: 0, meshInQty: 0,
+      price: r ? (parseFloat(r[ORDER_COLS.price]||0) || 0) : 0,
+      status: 'งานใหม่',
+    });
+    sel.value = '';
+    _pltEditRenderRows();
+    const tbody = document.getElementById('plt_eq_tbody');
+    if (tbody) tbody.lastElementChild?.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  };
+
+  // PO options — ทุก PO ใน _orderCache (เลือกซ้ำได้ถ้าต้องการ)
+  const poOpts = (_orderCache || [])
+    .map(r => String(r[ORDER_COLS.noPO]||'').trim()).filter(Boolean)
+    .filter((v, i, a) => a.indexOf(v) === i).sort()
+    .map(noPO => {
+      const r = (_orderCache||[]).find(row => String(row[ORDER_COLS.noPO]||'').trim() === noPO);
+      const desc = r ? String(r[ORDER_COLS.productList]||'').trim() : '';
+      return `<option value="${noPO}">${noPO}${desc?' — '+desc.slice(0,30):''}</option>`;
+    }).join('');
+
   const { isConfirmed, value: formData } = await Swal.fire({
     title: `✏️ แก้ไขใบส่งชุบ ${p.platingNo}`,
     background: '#ffffff', color: '#1e293b',
-    width: 'min(96vw, 1020px)',
+    width: 'min(96vw, 1060px)',
     html: `
       <div style="text-align:left;display:flex;flex-direction:column;gap:14px">
+        <!-- วันที่ + ร้านชุบ -->
         <div style="display:flex;gap:10px">
           <label style="flex:1;font-size:.8rem;color:#475569;font-weight:600">วันที่ออกใบ<br>
             <input type="date" id="plt_eq_date" value="${dateISO}"
-              style="width:100%;margin-top:4px;padding:7px 10px;border-radius:8px;border:1px solid #cbd5e1;background:#f8fafc;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.85rem">
+              style="width:100%;margin-top:4px;padding:7px 10px;border-radius:8px;border:1px solid #cbd5e1;
+              background:#f8fafc;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.85rem">
           </label>
           <label style="flex:2;font-size:.8rem;color:#475569;font-weight:600">ร้านชุบ<br>
             <select id="plt_eq_supplier"
-              style="width:100%;margin-top:4px;padding:7px 10px;border-radius:8px;border:1px solid #cbd5e1;background:#f8fafc;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.85rem">
+              style="width:100%;margin-top:4px;padding:7px 10px;border-radius:8px;border:1px solid #cbd5e1;
+              background:#f8fafc;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.85rem">
               ${supplierOpts}
             </select>
           </label>
         </div>
+        <!-- ตารางรายการ -->
         <div>
           <div style="font-size:.8rem;font-weight:700;color:#0891b2;margin-bottom:6px">รายการสินค้า</div>
           <div style="overflow-x:auto;border-radius:8px;border:1px solid #e2e8f0">
-            <table style="width:100%;border-collapse:collapse;min-width:700px;background:#fff">
+            <table style="width:100%;border-collapse:collapse;min-width:760px;background:#fff">
               <thead style="background:#f1f5f9">
                 <tr>
                   <th style="${thStyle};text-align:left;min-width:130px">ชื่อรายการ</th>
@@ -1355,11 +1436,32 @@ async function _platingEdit(idx) {
                   <th style="${thStyle};min-width:62px">ตะแกรงใน</th>
                   <th style="${thStyle};min-width:78px">ราคา/หน่วย</th>
                   <th style="${thStyle};min-width:80px">ประเภท</th>
+                  <th style="${thStyle};min-width:36px"></th>
                 </tr>
               </thead>
-              <tbody>${itemRows}</tbody>
+              <tbody id="plt_eq_tbody"></tbody>
             </table>
           </div>
+        </div>
+        <!-- ปุ่มเพิ่มรายการ -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;
+          background:#f0f9ff;border-radius:8px;border:1px solid #bae6fd">
+          <button type="button" onclick="_pltEditAddFree()"
+            style="padding:6px 14px;border-radius:6px;border:none;background:#0891b2;color:#fff;
+            font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap">
+            ➕ เพิ่มรายการทั่วไป</button>
+          <div style="width:1px;height:24px;background:#cbd5e1;flex-shrink:0"></div>
+          <span style="font-size:.78rem;color:#475569;white-space:nowrap">เพิ่มจาก PO:</span>
+          <select id="plt_eq_po_picker"
+            style="flex:1;min-width:180px;padding:5px 8px;border-radius:6px;border:1px solid #cbd5e1;
+            background:#f8fafc;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.78rem">
+            <option value="">— เลือก No.PO —</option>
+            ${poOpts}
+          </select>
+          <button type="button" onclick="_pltEditAddFromPO()"
+            style="padding:6px 16px;border-radius:6px;border:none;background:#2563eb;color:#fff;
+            font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;white-space:nowrap">
+            ➕ เพิ่ม</button>
         </div>
       </div>`,
     showCancelButton: true,
@@ -1367,34 +1469,34 @@ async function _platingEdit(idx) {
     cancelButtonText: 'ยกเลิก',
     confirmButtonColor: '#0891b2',
     cancelButtonColor: '#94a3b8',
+    didOpen: () => { _pltEditRenderRows(); },
     preConfirm: () => {
       const dateVal = document.getElementById('plt_eq_date').value;
       const supplierCode = document.getElementById('plt_eq_supplier').value;
-      const items = (p.items || []).map((it, i) => {
-        const topQty     = parseFloat(document.getElementById(`plt_eq_topqty_${i}`)?.value)  || 0;
-        const botQty     = parseFloat(document.getElementById(`plt_eq_botqty_${i}`)?.value)  || 0;
-        const meshOutQty = parseFloat(document.getElementById(`plt_eq_moutqty_${i}`)?.value) || 0;
-        const meshMidQty = parseFloat(document.getElementById(`plt_eq_mmidqty_${i}`)?.value) || 0;
-        const meshInQty  = parseFloat(document.getElementById(`plt_eq_minqty_${i}`)?.value)  || 0;
+      const items = window._pltEditRows.map(it => {
+        const id = it._id;
+        const topQty     = parseFloat(document.getElementById(`plt_eq_topqty_${id}`)?.value)   || 0;
+        const botQty     = parseFloat(document.getElementById(`plt_eq_botqty_${id}`)?.value)   || 0;
+        const meshOutQty = parseFloat(document.getElementById(`plt_eq_moutqty_${id}`)?.value)  || 0;
+        const meshMidQty = parseFloat(document.getElementById(`plt_eq_mmidqty_${id}`)?.value)  || 0;
+        const meshInQty  = parseFloat(document.getElementById(`plt_eq_minqty_${id}`)?.value)   || 0;
         return {
           ...it,
-          description: document.getElementById(`plt_eq_desc_${i}`)?.value   ?? it.description,
-          qty:   parseFloat(document.getElementById(`plt_eq_qty_${i}`)?.value)   || 0,
-          unit:  document.getElementById(`plt_eq_unit_${i}`)?.value || it.unit || '',
-          top:      topQty     > 0,
-          bot:      botQty     > 0,
-          meshOut:  meshOutQty > 0,
-          meshMid:  meshMidQty > 0,
-          meshIn:   meshInQty  > 0,
+          description: document.getElementById(`plt_eq_desc_${id}`)?.value  ?? it.description,
+          qty:   parseFloat(document.getElementById(`plt_eq_qty_${id}`)?.value)  || 0,
+          unit:  document.getElementById(`plt_eq_unit_${id}`)?.value || it.unit || '',
+          top: topQty > 0, bot: botQty > 0, meshOut: meshOutQty > 0,
+          meshMid: meshMidQty > 0, meshIn: meshInQty > 0,
           topQty, botQty, meshOutQty, meshMidQty, meshInQty,
-          price:  parseFloat(document.getElementById(`plt_eq_price_${i}`)?.value)  || 0,
-          status: document.getElementById(`plt_eq_status_${i}`)?.value || it.status || 'งานใหม่',
+          price: parseFloat(document.getElementById(`plt_eq_price_${id}`)?.value) || 0,
+          status: document.getElementById(`plt_eq_status_${id}`)?.value || 'งานใหม่',
         };
       });
       let dateStr = p.date;
       if (dateVal) {
         const [y, mo, d] = dateVal.split('-');
-        dateStr = `${d}/${mo}/${y}`;
+        const beYear = parseInt(y, 10) + 543;
+        dateStr = `${d}/${mo}/${beYear}`;
       }
       return { date: dateStr, supplierCode, items };
     }

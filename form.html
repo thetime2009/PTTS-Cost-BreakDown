@@ -38,7 +38,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v8.84</span>
+      <span class="ph-chip ver">v8.90</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2816,15 +2816,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="core.js?v=8.84"></script>
-<script src="data.js?v=8.84"></script>
-<script src="formcalc.js?v=8.84"></script>
-<script src="aifeatures.js?v=8.84"></script>
-<script src="theme.js?v=8.84"></script>
-<script src="order.js?v=8.84"></script>
-<script src="purchase.js?v=8.84"></script>
-<script src="invoice.js?v=8.84"></script>
-<script src="plating.js?v=8.84"></script>
+<script src="core.js?v=8.90"></script>
+<script src="data.js?v=8.90"></script>
+<script src="formcalc.js?v=8.90"></script>
+<script src="aifeatures.js?v=8.90"></script>
+<script src="theme.js?v=8.90"></script>
+<script src="order.js?v=8.90"></script>
+<script src="purchase.js?v=8.90"></script>
+<script src="invoice.js?v=8.90"></script>
+<script src="plating.js?v=8.90"></script>
 
 <!-- ═══ DOCUMENT EXPORT OVERLAY ════════════════════════════════ -->
 <div id="docExportOverlay">
@@ -2967,9 +2967,65 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260617-J',
+    ref: '#REV-20260617-P',
     date: '2026-06-17',
     current: true,
+    items: [
+      'Report ตัดเหล็ก: ปรับ layout ให้พอดี A4 portrait — @page margin 10mm, max-width 190mm',
+      'Report ตัดเหล็ก: ลดขนาด font ตัวเลขขนาดตัด (2.6rem→1.65rem), padding, table font (.85→.72rem)',
+      'Report ตัดเหล็ก: SVG grid เล็กลง (buildGridVizSmall, maxH 68px) โดยไม่กระทบ in-app view',
+    ],
+  },
+  {
+    ref: '#REV-20260617-O',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'ปุ่มตัดเหล็ก (PO เก่า): แก้การ compare No.Quo — รองรับ prefix "Q-" (รูปแบบเก่า) เช่น Q-3890 vs 3890',
+      'ปุ่มตัดเหล็ก (PO เก่า): ถ้าไม่มีข้อมูลใน DATA ให้กรอก OD/ID/H/จำนวน+วัสดุเองได้ แล้วพิมพ์รายงานได้ทันที',
+    ],
+  },
+  {
+    ref: '#REV-20260617-N',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'แก้ไขใบส่งชุบ: รองรับเพิ่มรายการใหม่ได้ — กดปุ่ม "เพิ่มรายการทั่วไป" หรือเลือกจาก PO picker',
+      'แก้ไขใบส่งชุบ: แต่ละรายการมีปุ่มลบ (🗑) เพื่อลบออกจากรายการได้',
+      'แก้ไขใบส่งชุบ: เพิ่มจาก PO จะดึง ชื่อสินค้า / จำนวน / ราคา จาก Order มาให้อัตโนมัติ',
+      'ปรับวันที่ใบส่งชุบ: เก็บเป็น พ.ศ. (BE) ทั้ง input และ output',
+    ],
+  },
+  {
+    ref: '#REV-20260617-M',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'สร้าง Order: นำ "หมายเหตุ" ออกจากเงื่อนไขบังคับก่อนบันทึก — กรอกหรือไม่กรอกก็ได้',
+    ],
+  },
+  {
+    ref: '#REV-20260617-L',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'ใบวางบิล summary bar: ปรับสี chip เลขที่ใบกำกับ — พื้นเข้ม (#1e3a5f) ขอบน้ำเงิน ตัวอักษรขาว อ่านง่ายขึ้น',
+    ],
+  },
+  {
+    ref: '#REV-20260617-K',
+    date: '2026-06-17',
+    current: false,
+    items: [
+      'ใบวางบิล: เพิ่ม summary bar ด้านล่าง checklist แสดงจำนวนใบที่เลือก เลขที่ใบกำกับ และยอดรวม',
+      'summary อัปเดตทันทีเมื่อติ๊ก/ยกเลิกติ๊ก และเมื่อ toggle ทั้งหมด',
+      'ใบวางบิล checklist: แสดงวันที่ผ่าน _invThaiDate() (BE) แทนการแสดงตรงๆ',
+    ],
+  },
+  {
+    ref: '#REV-20260617-J',
+    date: '2026-06-17',
+    current: false,
     items: [
       'ใบกำกับที่ออกแล้ว: แสดงวันที่ผ่าน _invThaiDate() — รองรับทั้ง CE (17/06/2026) และ BE (16/06/2569) แสดงเป็น พ.ศ. เสมอ',
     ],

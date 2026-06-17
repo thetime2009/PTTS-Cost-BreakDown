@@ -355,7 +355,6 @@ async function createOrder() {
   if (!$('ord_orderDate')?.value)            missing.push('วันที่สั่งซื้อ');
   if (!$('ord_wantDate')?.value)             missing.push('วันที่ต้องการ');
   if (!($('ord_mold')?.value || '').trim())  missing.push('แม่พิมพ์');
-  if (!($('ord_note')?.value || '').trim())  missing.push('หมายเหตุ');
   if (!$('ord_poFile')?.files?.[0])          missing.push('แนบไฟล์ PO');
   if (missing.length) {
     Swal.fire({
@@ -1549,14 +1548,90 @@ async function _ordPrintCutting(noPO) {
     await dtRefresh(false);
     Swal.close();
   }
-  const dtRow = (_dtCache || []).find(row => String(row[DT.noQuo] || '').trim() === noQuo);
-  if (!dtRow) {
-    Swal.fire({icon:'warning', title:'ไม่พบข้อมูลคำนวณ',
-      html:`ไม่พบข้อมูล No.Quo: <b>${noQuo || '-'}</b> ในแท็บ DATA<br><span style="font-size:.8rem;color:#8b8aaa">ไม่สามารถคำนวณขนาดตัดเหล็กได้</span>`,
+  // strip "Q-" prefix เหมือน plating.js เพื่อรองรับ No.Quo รูปแบบเก่า
+  const stripQ = s => String(s || '').replace(/^Q-/i, '').trim();
+  const dtRow = (_dtCache || []).find(row => stripQ(row[DT.noQuo]) === stripQ(noQuo) && stripQ(noQuo) !== '');
+  if (dtRow) {
+    printCuttingReportFromDataRow(dtRow, noPO);
+    return;
+  }
+
+  // ── Fallback: ไม่มี DATA row — ให้กรอกขนาดเองได้ ──
+  const matKeys = Object.keys(typeof specMatData !== 'undefined' ? specMatData : {});
+  const matOpts = ['— ไม่มี —', ...matKeys].map(k => `<option value="${k}">${k}</option>`).join('');
+  const IS = `width:100%;padding:6px 8px;border-radius:6px;border:1px solid #cbd5e1;background:#f8fafc;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.82rem`;
+
+  const { isConfirmed, value: dims } = await Swal.fire({
+    title: `✂️ ตัดเหล็ก — กรอกขนาด`,
+    background: '#ffffff', color: '#1e293b',
+    width: 'min(92vw, 520px)',
+    html: `
+      <div style="text-align:left;font-size:.82rem;color:#475569;margin-bottom:6px">
+        ${noQuo ? `No.Quo: <b>${noQuo}</b> — ` : ''}ไม่พบข้อมูลคำนวณใน DATA กรุณากรอกขนาด
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left">
+        <label style="font-size:.78rem;font-weight:600;color:#475569">OD (มม.)*<br>
+          <input type="number" id="cft_od" min="0" step="0.1" placeholder="เช่น 150"
+            style="${IS};margin-top:3px"></label>
+        <label style="font-size:.78rem;font-weight:600;color:#475569">ID (มม.)<br>
+          <input type="number" id="cft_id" min="0" step="0.1" placeholder="0"
+            style="${IS};margin-top:3px" value="0"></label>
+        <label style="font-size:.78rem;font-weight:600;color:#475569">H (มม.)*<br>
+          <input type="number" id="cft_h" min="0" step="0.1" placeholder="เช่น 80"
+            style="${IS};margin-top:3px"></label>
+        <label style="font-size:.78rem;font-weight:600;color:#475569">จำนวน (ลูก)<br>
+          <input type="number" id="cft_unit" min="1" step="1" value="1"
+            style="${IS};margin-top:3px"></label>
+      </div>
+      ${matKeys.length ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;margin-top:10px">
+        <label style="font-size:.78rem;font-weight:600;color:#475569">ฝาบน<br>
+          <select id="cft_matTop" style="${IS};margin-top:3px">${matOpts}</select></label>
+        <label style="font-size:.78rem;font-weight:600;color:#475569">ฝาล่าง<br>
+          <select id="cft_matBot" style="${IS};margin-top:3px">${matOpts}</select></label>
+        <label style="font-size:.78rem;font-weight:600;color:#475569">ตะแกรงนอก<br>
+          <select id="cft_meshOut" style="${IS};margin-top:3px">${matOpts}</select></label>
+        <label style="font-size:.78rem;font-weight:600;color:#475569">ตะแกรงใน<br>
+          <select id="cft_meshIn" style="${IS};margin-top:3px">${matOpts}</select></label>
+      </div>` : ''}`,
+    showCancelButton: true,
+    confirmButtonText: '✂️ พิมพ์รายงาน',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#f59e0b',
+    cancelButtonColor: '#94a3b8',
+    preConfirm: () => {
+      const od   = parseFloat(document.getElementById('cft_od')?.value) || 0;
+      const id_  = parseFloat(document.getElementById('cft_id')?.value) || 0;
+      const h    = parseFloat(document.getElementById('cft_h')?.value)  || 0;
+      const unit = parseFloat(document.getElementById('cft_unit')?.value) || 1;
+      if (!od || !h) { Swal.showValidationMessage('กรุณากรอก OD และ H'); return false; }
+      const matTop  = document.getElementById('cft_matTop')?.value  || '';
+      const matBot  = document.getElementById('cft_matBot')?.value  || '';
+      const meshOut = document.getElementById('cft_meshOut')?.value || '';
+      const meshIn  = document.getElementById('cft_meshIn')?.value  || '';
+      return { od, id_, h, unit,
+        matCodes: [
+          matTop  === '— ไม่มี —' ? '' : matTop,
+          matBot  === '— ไม่มี —' ? '' : matBot,
+          meshOut === '— ไม่มี —' ? '' : meshOut,
+          meshIn  === '— ไม่มี —' ? '' : meshIn,
+        ]
+      };
+    }
+  });
+
+  if (!isConfirmed || !dims) return;
+  const res = _computeCutParts(dims.od, dims.id_, dims.h, dims.unit, dims.matCodes, 0, [false,false,false,false]);
+  if (!res) {
+    Swal.fire({icon:'warning', title:'คำนวณไม่ได้', text:'ข้อมูล OD หรือ H ไม่ถูกต้อง',
       background:'#0d1b2a', color:'#cce4ff', confirmButtonColor:'#1d65cc'});
     return;
   }
-  printCuttingReportFromDataRow(dtRow, noPO);
+  const html = _renderCuttingReportHtml(res, {
+    od: dims.od, id_: dims.id_, h: dims.h, unit: dims.unit,
+    noQuo: noQuo || '—', noPO: noPO || ''
+  });
+  _openCuttingReport(html);
 }
 
 // ── พิมพ์ใบสั่งงานผลิต (Work Order) ของ Order ──

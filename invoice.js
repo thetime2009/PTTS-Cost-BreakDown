@@ -1987,10 +1987,10 @@ function _billLoadInvoices() {
     const total = (inv.total !== undefined && inv.total !== '') ? parseFloat(inv.total)||0 : 0;
     return `<tr style="border-bottom:1px solid var(--bc-card)">
       <td style="padding:6px 8px;text-align:center">
-        <input type="checkbox" class="bill-chk" data-idx="${idx}" checked style="width:16px;height:16px;cursor:pointer">
+        <input type="checkbox" class="bill-chk" data-idx="${idx}" checked onchange="_billUpdateSummary()" style="width:16px;height:16px;cursor:pointer">
       </td>
       <td style="padding:6px 8px">${inv.invoiceNo}</td>
-      <td style="padding:6px 8px">${inv.date}</td>
+      <td style="padding:6px 8px">${_invThaiDate(inv.date)}</td>
       <td style="padding:6px 8px">${poArr.join(', ') || '-'}</td>
       <td style="padding:6px 8px;text-align:right">${fmtB(total)}</td>
     </tr>`;
@@ -2010,12 +2010,45 @@ function _billLoadInvoices() {
         </tr>
       </thead>
       <tbody>${rows}</tbody>
-    </table>`;
+    </table>
+    <div id="billSummaryBar" style="margin-top:10px;padding:10px 14px;border-radius:8px;
+      background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.25);font-size:.8rem;color:var(--t1)">
+    </div>`;
   wrap._billList = list;
+  _billUpdateSummary();
+}
+
+// ── อัปเดต summary bar แสดงจำนวน + เลขที่ใบกำกับที่ติ๊กเลือก ──
+function _billUpdateSummary() {
+  const wrap = $('billInvoiceListWrap');
+  const bar  = $('billSummaryBar');
+  if (!wrap || !bar || !wrap._billList) return;
+
+  const checked = Array.from(document.querySelectorAll('#billInvoiceListWrap .bill-chk:checked'))
+    .map(c => wrap._billList[parseInt(c.dataset.idx, 10)]).filter(Boolean);
+
+  if (!checked.length) {
+    bar.innerHTML = `<span style="color:var(--t3)">⚠️ ยังไม่ได้เลือกใบกำกับ</span>`;
+    return;
+  }
+
+  const sumTotal = checked.reduce((s, inv) => s + (parseFloat(inv.total)||0), 0);
+  const nos = checked.map(inv => `<span style="background:#1e3a5f;border:1px solid #3b82f6;padding:2px 8px;
+    border-radius:4px;font-weight:600;color:#e2f0ff;font-size:.75rem;white-space:nowrap">${inv.invoiceNo}</span>`).join(' ');
+
+  bar.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="color:#fff;font-weight:700;white-space:nowrap;background:#2563eb;
+        padding:3px 10px;border-radius:6px;font-size:.78rem">
+        📋 ${checked.length} ใบ</span>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;flex:1">${nos}</div>
+      <span style="font-weight:700;color:#34d399;white-space:nowrap;font-size:.82rem">รวม ${fmtB(sumTotal)} ฿</span>
+    </div>`;
 }
 
 function _billToggleAll(checked) {
   document.querySelectorAll('#billInvoiceListWrap .bill-chk').forEach(c => c.checked = checked);
+  _billUpdateSummary();
 }
 
 // ── เสนอเลขที่ใบวางบิลถัดไปจาก BillingNote sheet (ถ้าช่องยังว่าง) — แก้ไขเองได้เสมอ ──
