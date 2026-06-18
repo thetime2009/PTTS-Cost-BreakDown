@@ -2983,6 +2983,8 @@ const DEV_LOGS = [
     current: true,
     items: [
       'theme.js: printDoc() — แก้รากต้นเหตุจอขาว iOS: ลบ async fetch(style.css) ออก เขียน HTML ไปยัง window ใหม่แบบ synchronous ทันที (เหมือน _openCuttingReport ที่ทำงานได้ปกติ)',
+      'theme.js: printDoc() — ลบ w.document.open() ออก (ไม่ใช้ใน _openCuttingReport ที่ทำงานได้) เพื่อให้ตรงกับ pattern ที่ iOS Safari รองรับ',
+      'theme.js: printDoc() — เพิ่ม overflow:visible !important ที่ .doc-paper และ .doc-paper * เพื่อ override inline style overflow:hidden ในเนื้อหาเอกสาร',
       'theme.js: printDoc() — ฝัง @page, * {-webkit-print-color-adjust:exact} และ CSS พื้นฐานไว้ใน <style> โดยตรง ไม่พึ่ง style.css จาก fetch อีกต่อไป',
     ],
   },
