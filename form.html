@@ -38,7 +38,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v9.09</span>
+      <span class="ph-chip ver">v9.10</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2831,7 +2831,7 @@
 <script src="data.js?v=8.94"></script>
 <script src="formcalc.js?v=9.06"></script>
 <script src="aifeatures.js?v=8.94"></script>
-<script src="theme.js?v=9.09"></script>
+<script src="theme.js?v=9.10"></script>
 <script src="order.js?v=9.06"></script>
 <script src="purchase.js?v=9.06"></script>
 <script src="invoice.js?v=9.03"></script>
@@ -2982,9 +2982,8 @@ const DEV_LOGS = [
     date: '2026-06-18',
     current: true,
     items: [
-      'theme.js: printDoc() v9.09 — แก้หน้าขาว iOS: ดึง style.css จาก document.styleSheets (sync, ไม่ต้อง fetch) แล้วฝังทั้งหมดลงในหน้าต่างพิมพ์',
-      'theme.js: printDoc() — wrap bwHtml ด้วย <div id="docExportOverlay"> เพื่อให้ @media print rule ทำงานถูกต้อง + override body > * display:block',
-      'theme.js: printDoc() — ลบ async fetch(style.css), ลบ w.document.open(), เพิ่ม overflow:visible !important ครบทุกจุด',
+      'theme.js: printDoc() v9.10 — แก้รากจริง: ไม่ embed style.css (มี "#docExportOverlay{display:none}" ที่ซ่อน content) + ไม่ wrap ด้วย #docExportOverlay',
+      'theme.js: printDoc() — ใช้ CSS minimal แบบ self-contained เหมือน _renderWorkOrderHtml() เพราะ content ทุกอย่างเป็น inline style อยู่แล้ว',
     ],
   },
   {
