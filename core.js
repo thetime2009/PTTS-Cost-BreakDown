@@ -48,16 +48,17 @@ function _ordSubTabSwitch(which) {
 }
 // ── สลับ sub-tab ในแท็บ ใบกำกับภาษี ── ('1' = ออกใบกำกับ, '2' = เพิ่มลูกค้า, '3' = รายงานภาษีขาย, '4' = ใบวางบิล)
 function _invSubTabSwitch(which) {
-  ['1','2','3','4'].forEach(n => {
+  ['1','2','3','4','5'].forEach(n => {
     const panel = $('invSubPanel' + n);
     const btn   = $('invSubBtn' + n);
     if (panel) panel.classList.toggle('active', n === which);
     if (btn)   btn.classList.toggle('active', n === which);
   });
-  // การ์ด "ใบกำกับที่ออกแล้ว" ไม่แสดงใน sub-tab ใบวางบิล (4) — แทนด้วย "ประวัติใบวางบิล"
+  // การ์ด "ใบกำกับที่ออกแล้ว" ไม่แสดงใน sub-tab ใบวางบิล (4) และ ใบเสร็จ (5)
   const issuedCard = $('invIssuedCard');
-  if (issuedCard) issuedCard.style.display = (which === '4') ? 'none' : '';
+  if (issuedCard) issuedCard.style.display = (which === '4' || which === '5') ? 'none' : '';
   if (which === '4' && typeof fetchBillingNotes === 'function') fetchBillingNotes();
+  if (which === '5' && typeof rcptInit === 'function') rcptInit();
 }
 const num = id => parseFloat(String($(id).value).replace(/,/g,'')) || 0;
 const fmt = n => '฿' + n.toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
@@ -189,7 +190,7 @@ const GROUP_DEFS = [
     { tab:'invoice', label:'เพิ่มลูกค้า', icon:'👥', subTab:'2' },
     { tab:'invoice', label:'รายงานภาษีขาย', icon:'📊', subTab:'3' },
     { tab:'invoice', label:'ใบวางบิล', icon:'📑', subTab:'4' },
-    { ph:true, label:'ใบเสร็จ', icon:'🧾' },
+    { tab:'invoice', label:'ใบเสร็จ', icon:'🧾', subTab:'5' },
     { ph:true, label:'รายงานภาษี', icon:'📈' },
     { tab:'dept_help', label:'วิธีใช้งานแผนก', icon:'📖', dept:'account' },
   ]},
@@ -198,7 +199,7 @@ const GROUP_DEFS = [
   ]},
 ];
 function _loadSidebarGroupState() {
-  return JSON.parse(localStorage.getItem('ptts_sb_groups') || '{}');
+  try { return JSON.parse(localStorage.getItem('ptts_sb_groups') || '{}'); } catch(e) { return {}; }
 }
 function _toggleSidebarGroup(id) {
   const st = _loadSidebarGroupState();
@@ -242,8 +243,9 @@ function _sbGoto(tab, subTab, view) {
 }
 
 function _loadTabCfg() {
-  let order  = JSON.parse(localStorage.getItem('ptts_tab_order')  || 'null') || TAB_DEFS.map(t=>t.id);
-  const hidden = JSON.parse(localStorage.getItem('ptts_tab_hidden') || '[]');
+  let order, hidden;
+  try { order  = JSON.parse(localStorage.getItem('ptts_tab_order')  || 'null') || TAB_DEFS.map(t=>t.id); } catch(e) { order  = TAB_DEFS.map(t=>t.id); }
+  try { hidden = JSON.parse(localStorage.getItem('ptts_tab_hidden') || '[]'); } catch(e) { hidden = []; }
   // เผื่อมีแท็บใหม่ (เช่น order) ที่ไม่อยู่ใน config เก่าที่บันทึกไว้ — เติมต่อท้ายให้ครบ
   TAB_DEFS.forEach(t => { if (!order.includes(t.id)) order.push(t.id); });
   return { order, hidden };
@@ -258,12 +260,10 @@ let _activeTab = 'breakdown';
 // แท็บย่อยที่ถูกรวมไว้ใต้ปุ่ม "เพิ่มเติม" (ลดจำนวนปุ่มในแถบแท็บ)
 const SUB_TAB_IDS = ['labor', 'mold', 'api', 'mat', 'po', 'cust', 'invoice', 'supplier'];
 
-function renderTabBar() {
+function renderTabBar() { try { _renderTabBarInner(); } catch(e) { console.error('[renderTabBar]', e); } }
+function _renderTabBarInner() {
   const bar = $('mainTabBar');
   if (!bar) return;
-  // role filter — user2 เห็นแค่ track และ order
-  const _pttsRole = sessionStorage.getItem('ptts_role');
-  const _allowedTabs = _pttsRole === 'user2' ? ['track','order'] : null;
   const { order, hidden } = _loadTabCfg();
   const sidebarHdr = `<div class="sidebar-header">
     <div class="sidebar-logo"><img src="${_getLogoSrc()}" alt="PTS" class="app-logo-img" style="width:100%;height:100%;object-fit:contain;display:block" onerror="this.style.display='none';this.parentNode.textContent='PT'"></div>
@@ -281,7 +281,6 @@ function renderTabBar() {
         </button>`;
       }
       if (hidden.includes(it.tab)) return '';
-      if (_allowedTabs && !_allowedTabs.includes(it.tab)) return '';
       const def = TAB_DEFS.find(t=>t.id===it.tab);
       if (!def) return '';
       const label = it.label || def.label;
@@ -293,7 +292,7 @@ function renderTabBar() {
         <span class="t-icon">${icon}</span><span class="t-label">${label}</span>
       </button>`;
     }).join('');
-    const groupsHtml = (function() { if (_allowedTabs) return ''; return GROUP_DEFS.map(g => {
+    const groupsHtml = (function() { return GROUP_DEFS.map(g => {
       const itemsHtml = g.items.map(it => {
         if (it.ph) {
           return `<button type="button" class="tab-btn sb-placeholder" onclick="_placeholderAlert('${String(it.label).replace(/'/g,"\\'")}')">
@@ -337,7 +336,6 @@ function renderTabBar() {
   let moreInserted = false;
   const buttons = order.map(id => {
     if (hidden.includes(id)) return '';
-    if (_allowedTabs && !_allowedTabs.includes(id)) return '';
     const def = TAB_DEFS.find(t=>t.id===id);
     if (!def) return '';
     if (!isDesktop && SUB_TAB_IDS.includes(id)) {
@@ -375,6 +373,11 @@ window.addEventListener('resize', () => {
     _wasDesktopTabs = nowDesktop;
     renderTabBar();
   }
+});
+// safety net: ถ้า DOMContentLoaded-time render ล้มเหลวไปด้วยเหตุใดก็ตาม ให้ render อีกครั้งตอน window.load
+window.addEventListener('load', () => {
+  const bar = document.getElementById('mainTabBar');
+  if (bar && !bar.querySelector('.tab-btn, .sb-group, .sb-top-item')) renderTabBar();
 });
 
 function _toggleMoreMenu(e) {
@@ -1520,10 +1523,9 @@ function _chatSend() {
     method: 'POST', mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({ action: 'sendChatMessage', sender: name, message: text })
-  }).catch(() => {});
-
-  setTimeout(() => _chatFetch(true), 1500);
+   }).catch(() => {});
 }
+setTimeout(() => _chatFetch(true), 1500);
 
 function _chatInit() {
   _chatUpdateWhoAmI();

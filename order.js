@@ -194,6 +194,7 @@ function _ordAutoFillSelect(id, val) {
 function _ordResetCard() {
   if ($('ord_noPO')) $('ord_noPO').value = '';
   if ($('ord_note'))  { $('ord_note').value = ''; delete $('ord_note').dataset.autoVal; }
+  if ($('ord_note2')) { $('ord_note2').value = ''; }
   if ($('ord_mold'))  { $('ord_mold').value = ''; delete $('ord_mold').dataset.autoVal; }
   if ($('ord_meshOut')) { $('ord_meshOut').value = ''; delete $('ord_meshOut').dataset.autoVal; }
   if ($('ord_meshIn'))  { $('ord_meshIn').value = '';  delete $('ord_meshIn').dataset.autoVal; }
@@ -250,6 +251,7 @@ function _ordPoFileChanged(prefix) {
   const nameEl  = $(prefix + '_poFileName');
   const clearEl = $(prefix + '_poFileClear');
   const imgEl   = $(prefix + '_poFilePreview');
+  const iconEl  = $(prefix + '_poDropIcon');
   if (!file) { _ordClearPoFile(prefix); return; }
   if (nameEl)  nameEl.textContent = file.name;
   if (clearEl) clearEl.style.display = 'inline-block';
@@ -282,6 +284,7 @@ function _ordJobImgChanged(prefix) {
   const nameEl  = $(prefix + '_jobImg1Name');
   const clearEl = $(prefix + '_jobImg1Clear');
   const imgEl   = $(prefix + '_jobImg1Preview');
+  const iconEl  = $(prefix + '_drawDropIcon');
   if (!file) { _ordClearJobImg(prefix); return; }
   if (nameEl)  nameEl.textContent = file.name;
   if (clearEl) clearEl.style.display = 'inline-block';
@@ -424,6 +427,7 @@ async function createOrder() {
   row[ORDER_COLS.material]    = ($('ord_material')?.textContent || '').trim().replace(/^—$/, '') || '';
   row[ORDER_COLS.price]       = ($('ord_price')?.value || '').trim() || _ordSourceRow[DT.sellPrice] || '';
   row[ORDER_COLS.note]        = $('ord_note').value || '';
+  row[ORDER_COLS.note2]       = $('ord_note2')?.value || '';
   row[ORDER_COLS.process]     = $('ord_status').value || 'กำลังผลิต';
   row[ORDER_COLS.status]      = $('ord_workStatus')?.value || 'ปรกติ';
   row[ORDER_COLS.wantDate]    = _ordDateToSheet($('ord_wantDate').value || '');
@@ -2047,6 +2051,7 @@ function openEditOrder(noPO) {
   if ($('ordEdit_matTop')) $('ordEdit_matTop').value = r[ORDER_COLS.matTop] || '';
   if ($('ordEdit_matBot')) $('ordEdit_matBot').value = r[ORDER_COLS.matBot] || '';
   $('ordEdit_note').value        = r[ORDER_COLS.note] || '';
+  if ($('ordEdit_note2')) $('ordEdit_note2').value = r[ORDER_COLS.note2] || '';
   if ($('ordEdit_workStatus')) $('ordEdit_workStatus').value = r[ORDER_COLS.status] || 'ปรกติ';
   _ordClearPoFile('ordEdit');
   const poUrl = r[ORDER_COLS.poFile] || '';
@@ -2089,6 +2094,7 @@ async function saveOrderEdit() {
   row[ORDER_COLS.matTop]      = $('ordEdit_matTop')?.value ?? row[ORDER_COLS.matTop] ?? '';
   row[ORDER_COLS.matBot]      = $('ordEdit_matBot')?.value ?? row[ORDER_COLS.matBot] ?? '';
   row[ORDER_COLS.note]        = $('ordEdit_note').value;
+  row[ORDER_COLS.note2]       = $('ordEdit_note2')?.value || '';
   row[ORDER_COLS.poFile]      = r[ORDER_COLS.poFile] || '';
   row[ORDER_COLS.poFilePath]  = r[ORDER_COLS.poFilePath] || '';
   row[ORDER_COLS.jobImg1]     = r[ORDER_COLS.jobImg1] || '';
@@ -2709,7 +2715,7 @@ function renderTrackDashboard() {
     }
   }
 
-  wrap.innerHTML = pageRows.map((r, idx) => {
+  const cards = pageRows.map((r, idx) => {
     const g = (k) => {
       const v = r[ORDER_COLS[k]];
       const s = String(v ?? '').trim();
@@ -2766,11 +2772,11 @@ function renderTrackDashboard() {
         <div class="trk-note"><div class="trk-date-lbl">📝 หมายเหตุ</div>${note}</div>
         <div class="trk-actions">
           <button class="btn-fx" onclick="showOrderDetail('${escPO}')" style="padding:7px 12px;border-radius:8px;border:1px solid var(--bc-card);background:var(--bc-div);color:var(--t1);font-size:.78rem;font-weight:700;cursor:pointer">📋 ดูรายละเอียดเต็ม</button>
-          <button class="btn-fx" onclick="_ordQuickChangeProcess('${escPO}')" style="padding:7px 12px;border-radius:8px;border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.1);color:#d97706;font-size:.78rem;font-weight:700;cursor:pointer">🔄 เปลี่ยนสถานะ</button>
-          ${g('process') === 'เรียบร้อย' ? '' : `<button class="btn-fx" onclick="_ordMarkDelivered('${escPO}')" style="padding:7px 12px;border-radius:8px;border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.1);color:#16a34a;font-size:.78rem;font-weight:700;cursor:pointer">✈️ ส่งงาน</button>`}
-          <button class="btn-fx" onclick="_ordCopySpec('${escPO}')" style="padding:7px 12px;border-radius:8px;border:1px solid rgba(99,102,241,.35);background:rgba(99,102,241,.1);color:#6366f1;font-size:.78rem;font-weight:700;cursor:pointer">📄 คัดลอกสเปก</button>
+          <button class="btn-fx" onclick="_ordQuickChangeProcess('${escPO}')" style="padding:7px 12px;border-radius:8px;border:none;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:.78rem;font-weight:700;cursor:pointer">🔄 เปลี่ยนสถานะ</button>
         </div>
       </div>
     </div>`;
   }).join('');
+
+  wrap.innerHTML = cards || '<div style="padding:40px;text-align:center;color:var(--t3)">ไม่มีข้อมูลในช่วงนี้</div>';
 }

@@ -328,8 +328,8 @@ function dtRender() {
       <td style="padding:8px 10px;font-size:.72rem;white-space:nowrap">${r[DT.meshOut] ? `<span style="background:rgba(74,222,128,.22);color:#111;border-radius:5px;padding:1px 7px;font-weight:600">${r[DT.meshOut]}</span>` : '<span style="color:var(--t3)">—</span>'}</td>
       <td style="padding:8px 10px;font-size:.72rem;white-space:nowrap">${r[DT.meshIn]  ? `<span style="background:rgba(74,222,128,.22);color:#111;border-radius:5px;padding:1px 7px;font-weight:600">${r[DT.meshIn]}</span>`  : '<span style="color:var(--t3)">—</span>'}</td>
       <td style="padding:8px 10px;text-align:center;font-size:.8rem;color:var(--t1)">${r[DT.unit]||'—'}</td>
-      <td style="padding:8px 10px;text-align:right;font-size:.78rem;color:var(--c1);font-weight:600">${fmtB(tc)} <span style="font-size:.65rem">฿</span></td>
-      <td style="padding:8px 10px;text-align:right;font-size:.78rem;font-weight:600;color:${(sp>0&&tc>0&&sp<tc)?'#f87171':'var(--t1)'}">${fmtB(sp)} <span style="font-size:.65rem">฿</span></td>
+      <td style="padding:8px 10px;text-align:right;font-size:.78rem;color:var(--t1);font-weight:600">${fmtB(tc)} <span style="font-size:.65rem">฿</span></td>
+      <td style="padding:8px 10px;text-align:right;font-size:.78rem;font-weight:600;color:${(sp>0&&tc>0&&sp<tc)?'#f87171':'var(--c1)'}">${fmtB(sp)} <span style="font-size:.65rem">฿</span></td>
       <td style="padding:8px 10px;font-size:.72rem;color:var(--t2);max-width:160px">${workNote||'—'}</td>
       <td style="padding:8px 10px;text-align:center;white-space:nowrap">
         <button onclick="dtLoadIntoForm(${globalIdx})"

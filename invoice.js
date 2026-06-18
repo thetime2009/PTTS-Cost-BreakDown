@@ -2534,3 +2534,179 @@ function _billReprint(idx) {
 
   $('docExportOverlay').classList.add('open');
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// ── ใบเสร็จรับเงิน (Receipt) — sub-tab 5 ─────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+let _rcptLoaded = false;
+
+async function rcptInit() {
+  const sel = $('rcpt_invNo');
+  if (!sel) return;
+  // โหลด invoice list ถ้ายังไม่มี
+  if (!_invIssuedCache || !_invIssuedCache.length) await fetchIssuedInvoices();
+  // เติม dropdown
+  sel.innerHTML = '<option value="">— เลือกใบกำกับ —</option>' +
+    (_invIssuedCache || []).map(inv => {
+      const cust = (_custCache || []).find(c => c.code === inv.customerCode) || {};
+      const label = `${inv.invoiceNo} | ${_invThaiDate(inv.date)} | ${cust.name || inv.customerCode || ''}`;
+      return `<option value="${inv.invoiceNo}">${label}</option>`;
+    }).join('');
+  // load history
+  rcptLoadHistory();
+  // set default date today
+  const td = $('rcptDate');
+  if (td && !td.value) td.value = new Date().toISOString().slice(0,10);
+}
+
+function rcptOnInvSelect() {
+  const invNo = $('rcpt_invNo')?.value;
+  const wrap = $('rcptPreviewWrap');
+  if (!wrap) return;
+  if (!invNo) { wrap.style.display = 'none'; return; }
+  const inv = (_invIssuedCache || []).find(x => x.invoiceNo === invNo);
+  if (!inv) { wrap.style.display = 'none'; return; }
+  const cust = (_custCache || []).find(c => c.code === inv.customerCode) || {};
+  $('rcptCust').textContent = cust.name || inv.customerCode || '—';
+  $('rcptAmt').textContent = '฿' + (parseFloat(inv.total)||0).toLocaleString('th-TH', {minimumFractionDigits:2});
+  wrap.style.display = '';
+  const td = $('rcptDate');
+  if (td && !td.value) td.value = new Date().toISOString().slice(0,10);
+}
+
+function rcptLoadHistory() {
+  const wrap = $('rcptHistList');
+  if (!wrap) return;
+  const saved = JSON.parse(localStorage.getItem('ptts_receipts') || '[]');
+  if (!saved.length) { wrap.innerHTML = '<div style="color:var(--t3);font-size:.85rem;padding:8px 0">ยังไม่มีใบเสร็จที่ออก</div>'; return; }
+  wrap.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.83rem">
+    <thead><tr style="background:rgba(255,255,255,.05)">
+      <th style="padding:7px 10px;text-align:left">เลขที่ใบเสร็จ</th>
+      <th style="padding:7px 10px;text-align:left">วันที่</th>
+      <th style="padding:7px 10px;text-align:left">ลูกค้า</th>
+      <th style="padding:7px 10px;text-align:right">ยอด</th>
+      <th style="padding:7px 10px;text-align:center">พิมพ์</th>
+    </tr></thead><tbody>
+    ${saved.slice().reverse().map(r => `
+      <tr style="border-bottom:1px solid rgba(255,255,255,.05)">
+        <td style="padding:7px 10px;color:var(--c1);font-weight:700">${r.rcptNo}</td>
+        <td style="padding:7px 10px;color:var(--t2)">${r.date}</td>
+        <td style="padding:7px 10px">${r.cust}</td>
+        <td style="padding:7px 10px;text-align:right;color:#34d399">฿${parseFloat(r.total||0).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
+        <td style="padding:7px 10px;text-align:center">
+          <button onclick="rcptPrintSaved('${r.rcptNo.replace(/'/g,"\\'")}',${saved.indexOf(r)})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--inp-bc);background:var(--bg-card);color:var(--t1);cursor:pointer;font-family:Sarabun,sans-serif;font-size:.78rem">🖨️</button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function rcptPrint() {
+  const invNo = $('rcpt_invNo')?.value;
+  if (!invNo) return;
+  const inv = (_invIssuedCache || []).find(x => x.invoiceNo === invNo);
+  if (!inv) return;
+  const cust = (_custCache || []).find(c => c.code === inv.customerCode) || {};
+  const dateVal = $('rcptDate')?.value || new Date().toISOString().slice(0,10);
+  const payMethod = $('rcptPayMethod')?.value || 'โอนเงิน';
+  const total = parseFloat(inv.total)||0;
+
+  // สร้างเลขที่ใบเสร็จ
+  const saved = JSON.parse(localStorage.getItem('ptts_receipts') || '[]');
+  const today = dateVal.replace(/-/g,'');
+  const seq = saved.filter(r => r.rcptNo.includes(today)).length + 1;
+  const rcptNo = `RC-${today}-${String(seq).padStart(3,'0')}`;
+
+  // บันทึก
+  const record = { rcptNo, date: isoToThaiShort(dateVal), cust: cust.name || inv.customerCode || '', total, invNo, payMethod };
+  saved.push(record);
+  localStorage.setItem('ptts_receipts', JSON.stringify(saved));
+
+  _rcptOpenPrint({ rcptNo, inv, cust, dateVal, payMethod, total });
+  rcptLoadHistory();
+}
+
+function rcptPrintSaved(rcptNo, idx) {
+  const saved = JSON.parse(localStorage.getItem('ptts_receipts') || '[]');
+  const r = saved[saved.length - 1 - idx]; // reversed
+  if (!r) return;
+  const inv = (_invIssuedCache || []).find(x => x.invoiceNo === r.invNo) || {};
+  const cust = (_custCache || []).find(c => c.code === inv.customerCode) || {};
+  _rcptOpenPrint({ rcptNo: r.rcptNo, inv, cust, dateVal: r.date, payMethod: r.payMethod, total: r.total });
+}
+
+function _rcptOpenPrint({ rcptNo, inv, cust, dateVal, payMethod, total }) {
+  const comp = _companyInfoCache || {};
+  const thaiDate = dateVal.includes('/') ? dateVal : isoToThaiShort(dateVal);
+  const totalFmt = '฿' + parseFloat(total||0).toLocaleString('th-TH',{minimumFractionDigits:2});
+  const subtotal = (parseFloat(inv.subtotal)||0) || total/1.07;
+  const vat = total - subtotal;
+
+  const html = `<!DOCTYPE html><html lang="th"><head><meta charset="utf-8">
+<title>ใบเสร็จรับเงิน ${rcptNo}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap">
+<style>
+@page{size:A4;margin:18mm}
+*{box-sizing:border-box;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+body{margin:0;padding:16px;font-family:'Sarabun',sans-serif;color:#1a2232;background:#fff}
+.doc{max-width:760px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1d4ed8;padding-bottom:14px;margin-bottom:18px}
+.co-name{font-size:1.1rem;font-weight:800;color:#1d4ed8}
+.co-sub{font-size:.78rem;color:#555;margin-top:2px}
+.doc-title{text-align:right}
+.doc-title h1{font-size:1.4rem;font-weight:900;color:#1d4ed8;margin:0}
+.doc-title .rcpt-no{font-size:.85rem;color:#555;margin-top:4px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;margin-bottom:18px;padding:12px;background:#f8faff;border-radius:8px;border:1px solid #e0e8ff}
+.info-grid .lbl{font-size:.72rem;color:#888;margin-bottom:2px}
+.info-grid .val{font-size:.9rem;font-weight:600}
+table{width:100%;border-collapse:collapse;margin-bottom:14px}
+th{background:#1d4ed8;color:#fff;padding:8px 10px;font-size:.82rem;text-align:left}
+td{padding:7px 10px;border-bottom:1px solid #e8ecf2;font-size:.85rem}
+.total-row{background:#f0f5ff}
+.total-row td{font-weight:700;font-size:.95rem;border-top:2px solid #1d4ed8}
+.paid-stamp{display:inline-block;border:3px solid #16a34a;border-radius:8px;color:#16a34a;font-size:1.1rem;font-weight:900;padding:6px 20px;transform:rotate(-3deg);margin-top:16px;letter-spacing:2px}
+.sign-row{display:flex;gap:20px;margin-top:32px}
+.sign-box{flex:1;text-align:center;padding-top:8px;border-top:1px solid #bbb;font-size:.78rem;color:#555}
+@media print{body{padding:0}.paid-stamp{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+<div class="doc">
+  <div class="header">
+    <div>
+      <div class="co-name">${comp.name||'บริษัท PTTS'}</div>
+      <div class="co-sub">${comp.address||''}</div>
+      <div class="co-sub">เลขที่ผู้เสียภาษี: ${comp.taxId||''}</div>
+    </div>
+    <div class="doc-title">
+      <h1>ใบเสร็จรับเงิน</h1>
+      <div class="doc-title"><b>RECEIPT</b></div>
+      <div class="rcpt-no">เลขที่: ${rcptNo}</div>
+    </div>
+  </div>
+  <div class="info-grid">
+    <div><div class="lbl">ลูกค้า</div><div class="val">${cust.name||inv.customerCode||'—'}${cust.branch?' ('+cust.branch+')':''}</div></div>
+    <div><div class="lbl">วันที่ออกใบเสร็จ</div><div class="val">${thaiDate}</div></div>
+    <div><div class="lbl">อ้างอิงใบกำกับภาษีเลขที่</div><div class="val">${inv.invoiceNo||'—'}</div></div>
+    <div><div class="lbl">วิธีชำระเงิน</div><div class="val">${payMethod}</div></div>
+  </div>
+  <table>
+    <thead><tr><th>รายการ</th><th style="text-align:right">จำนวนเงิน (บาท)</th></tr></thead>
+    <tbody>
+      <tr><td>ค่าสินค้า/บริการ (ตามใบกำกับภาษีเลขที่ ${inv.invoiceNo||''})</td><td style="text-align:right">${(subtotal).toLocaleString('th-TH',{minimumFractionDigits:2})}</td></tr>
+      <tr><td>ภาษีมูลค่าเพิ่ม 7%</td><td style="text-align:right">${(vat).toLocaleString('th-TH',{minimumFractionDigits:2})}</td></tr>
+      <tr class="total-row"><td>รวมทั้งสิ้น</td><td style="text-align:right;color:#1d4ed8">${totalFmt}</td></tr>
+    </tbody>
+  </table>
+  <div><span class="paid-stamp">✓ ชำระเงินแล้ว</span></div>
+  <div class="sign-row">
+    <div class="sign-box"><div style="margin-top:35px;border-top:1px solid #bbb;padding-top:4px">ผู้รับเงิน</div><div style="margin-top:4px;font-size:.7rem;color:#aaa">วันที่ ......../......../........</div></div>
+    <div class="sign-box"><div style="margin-top:35px;border-top:1px solid #bbb;padding-top:4px">ผู้จ่ายเงิน</div><div style="margin-top:4px;font-size:.7rem;color:#aaa">วันที่ ......../......../........</div></div>
+  </div>
+</div>
+<script>(function(){function go(){try{window.focus();window.print();}catch(e){}}
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go).catch(function(){setTimeout(go,700)});}else{setTimeout(go,700);}})();<\/script>
+</body></html>`;
+
+  const w = window.open('','_blank');
+  if (!w) { Swal.fire({icon:'warning',title:'Popup ถูกบล็อก',text:'กรุณาอนุญาต popup แล้วลองใหม่',background:'var(--bg-card)',color:'var(--t1)'}); return; }
+  w.document.write(html);
+  w.document.close();
+}

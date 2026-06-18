@@ -817,3 +817,392 @@ function _poPrint(poNo) {
   </body></html>`);
   win.document.close();
 }
+
+// ══════════════════════════════════════════════════════════
+// EXPENSE RECEIPT — ใบเสร็จรายจ่าย
+// ══════════════════════════════════════════════════════════
+
+const _EXP_DEFAULT_CATS = [
+  'ค่าซ่อมบำรุงรถ','ค่าแรง+ค่าย่อยรถ','เครื่องจักร',
+  'จ้างกิจกรรมงาน','จ้างประกอบงาน','อัปปี้',
+  'ซื้อวัตถุดิบ','ใช้ไป','อะไหล่เครื่องจักร'
+];
+const _EXP_CATS_KEY   = 'ptts_expense_cats';
+let _expRows     = [];   // [{desc,qty,unitPrice}]
+let _expEditRef  = null; // ref ที่กำลังแก้ไข
+
+// ── Sub-tab switch ──
+function _poSubTabSwitch(n) {
+  ['1','2','3'].forEach(k => {
+    const panel = document.getElementById('poSubPanel' + k);
+    const btn   = document.getElementById('poSubBtn'   + k);
+    if (panel) panel.style.display = (k === n) ? '' : 'none';
+    if (btn) {
+      btn.style.color       = k === n ? '#6366f1' : 'var(--t2)';
+      btn.style.borderBottom= k === n ? '2px solid #6366f1' : '2px solid transparent';
+      btn.style.fontWeight  = k === n ? '700' : '600';
+    }
+  });
+  if (n === '2') { _expInitForm(); _expFetchList(); }
+  if (n === '3') { _expRenderCatList(); }
+}
+
+// ── Category helpers ──
+function _expGetCats() {
+  try { return JSON.parse(localStorage.getItem(_EXP_CATS_KEY) || 'null') || [..._EXP_DEFAULT_CATS]; }
+  catch(e) { return [..._EXP_DEFAULT_CATS]; }
+}
+function _expSaveCats(cats) { localStorage.setItem(_EXP_CATS_KEY, JSON.stringify(cats)); }
+
+function _expRenderCatList() {
+  const cats = _expGetCats();
+  const el = document.getElementById('expCatList');
+  if (!el) return;
+  if (!cats.length) { el.innerHTML = '<div style="color:var(--t3);font-size:.83rem">ยังไม่มีหมวด</div>'; return; }
+  el.innerHTML = cats.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--br)">
+      <span style="flex:1;font-size:.88rem">${c}</span>
+      <button onclick="_expDeleteCat(${i})" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:.78rem">ลบ</button>
+    </div>`).join('');
+}
+
+function _expAddCat() {
+  const inp = document.getElementById('exp_newCat');
+  if (!inp) return;
+  const name = inp.value.trim();
+  if (!name) return;
+  const cats = _expGetCats();
+  if (cats.includes(name)) { Swal.fire({icon:'info',title:'มีหมวดนี้แล้ว',timer:1200,showConfirmButton:false,background:'var(--bg-card)',color:'var(--t1)'}); return; }
+  cats.push(name);
+  _expSaveCats(cats);
+  inp.value = '';
+  _expRenderCatList();
+  _expPopulateCatSelect();
+}
+
+function _expDeleteCat(idx) {
+  const cats = _expGetCats();
+  if (idx < 0 || idx >= cats.length) return;
+  cats.splice(idx, 1);
+  _expSaveCats(cats);
+  _expRenderCatList();
+  _expPopulateCatSelect();
+}
+
+function _expPopulateCatSelect() {
+  const sel = document.getElementById('exp_category');
+  if (!sel) return;
+  const cats = _expGetCats();
+  const cur  = sel.value;
+  sel.innerHTML = '<option value="">— เลือกหมวด —</option>' +
+    cats.map(c => `<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('');
+}
+
+// ── Form init / reset ──
+function _expInitForm() {
+  const today = new Date().toISOString().slice(0, 10);
+  const refEl = document.getElementById('exp_refNo');
+  if (refEl && !refEl.value) refEl.value = _expGenRef();
+  const dateEl = document.getElementById('exp_date');
+  if (dateEl && !dateEl.value) dateEl.value = today;
+  _expPopulateCatSelect();
+  if (!_expRows.length) { _expRows = [{desc:'',qty:1,unitPrice:0},{desc:'',qty:1,unitPrice:0}]; }
+  _expRenderRows();
+}
+
+function _expReset() {
+  _expRows    = [{desc:'',qty:1,unitPrice:0},{desc:'',qty:1,unitPrice:0}];
+  _expEditRef = null;
+  const fields = ['exp_refNo','exp_vendorName','exp_vendorTaxId','exp_vendorAddress','exp_note'];
+  fields.forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('exp_refNo').value = _expGenRef();
+  document.getElementById('exp_date').value  = new Date().toISOString().slice(0,10);
+  _expPopulateCatSelect();
+  _expRenderRows();
+}
+
+function _expGenRef() {
+  const d = new Date();
+  const ds = d.getFullYear()+''+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+  const ts = String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0');
+  return 'EXP-'+ds+'-'+ts;
+}
+
+// ── Rows ──
+function _expAddRow() {
+  _expRows.push({desc:'',qty:1,unitPrice:0});
+  _expRenderRows();
+}
+
+function _expRemoveRow(i) {
+  if (_expRows.length <= 1) return;
+  _expRows.splice(i, 1);
+  _expRenderRows();
+}
+
+function _expRenderRows() {
+  const tbody = document.getElementById('expItemBody');
+  if (!tbody) return;
+  tbody.innerHTML = _expRows.map((r, i) => `
+    <tr>
+      <td style="text-align:center;padding:5px 4px;color:var(--t3)">${i+1}</td>
+      <td style="padding:4px"><input type="text" value="${r.desc||''}" oninput="_expRowChange(${i},'desc',this.value)" placeholder="รายการ" style="width:100%;background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:6px;padding:6px 8px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.85rem"></td>
+      <td style="padding:4px"><input type="number" value="${r.qty||1}" min="0" step="0.01" oninput="_expRowChange(${i},'qty',this.value)" style="width:100%;background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:6px;padding:6px 8px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.85rem;text-align:center"></td>
+      <td style="padding:4px"><input type="number" value="${r.unitPrice||0}" min="0" step="0.01" oninput="_expRowChange(${i},'unitPrice',this.value)" style="width:100%;background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:6px;padding:6px 8px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.85rem;text-align:right"></td>
+      <td style="text-align:right;padding:5px 8px;font-size:.85rem;color:var(--t1)">${((+r.qty||0)*(+r.unitPrice||0)).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
+      <td style="text-align:center;padding:4px"><button onclick="_expRemoveRow(${i})" style="background:none;border:none;cursor:pointer;color:#f87171;font-size:.9rem;padding:4px 6px" title="ลบ">✕</button></td>
+    </tr>`).join('');
+  _expCalcTotal();
+}
+
+function _expRowChange(i, field, val) {
+  if (!_expRows[i]) return;
+  _expRows[i][field] = field === 'desc' ? val : parseFloat(val)||0;
+  _expCalcTotal();
+}
+
+function _expCalcTotal() {
+  const total = _expRows.reduce((s,r) => s + (+(r.qty)||0)*(+(r.unitPrice)||0), 0);
+  const el = document.getElementById('exp_total');
+  if (el) el.textContent = total.toLocaleString('th-TH', {minimumFractionDigits:2});
+  return total;
+}
+
+// ── Save ──
+function _expCollectData() {
+  const g = id => (document.getElementById(id)||{}).value || '';
+  const total = _expCalcTotal();
+  const rows  = _expRows.filter(r => r.desc || (+r.qty>0 && +r.unitPrice>0));
+  return {
+    ref:           g('exp_refNo'),
+    date:          g('exp_date'),
+    category:      g('exp_category'),
+    payMethod:     g('exp_payMethod'),
+    vendorName:    g('exp_vendorName'),
+    vendorTaxId:   g('exp_vendorTaxId'),
+    vendorAddress: g('exp_vendorAddress'),
+    note:          g('exp_note'),
+    items:         rows,
+    total:         total,
+  };
+}
+
+function _expSave() {
+  const data = _expCollectData();
+  if (!data.ref || !data.vendorName) {
+    Swal.fire({icon:'warning',title:'กรุณากรอกข้อมูล',text:'ต้องการชื่อผู้รับเงิน',timer:2000,showConfirmButton:false,background:'var(--bg-card)',color:'var(--t1)'}); return;
+  }
+  if (!SCRIPT_URL) {
+    Swal.fire({icon:'info',title:'ยังไม่ตั้งค่า URL',text:'กรุณาใส่ Apps Script URL ในแท็บตั้งค่าก่อน',background:'var(--bg-card)',color:'var(--t1)'}); return;
+  }
+  Swal.fire({title:'กำลังบันทึก…',didOpen:()=>Swal.showLoading(),background:'var(--bg-card)',color:'var(--t1)'});
+  fetch(SCRIPT_URL, {
+    method:'POST', mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({ action:'saveExpenseReceipt', data })
+  }).then(() => {
+    Swal.fire({icon:'success',title:'บันทึกแล้ว',timer:1500,showConfirmButton:false,background:'var(--bg-card)',color:'var(--t1)'});
+    _expFetchList();
+  }).catch(() => Swal.fire({icon:'error',title:'บันทึกไม่สำเร็จ',background:'var(--bg-card)',color:'var(--t1)'}));
+}
+
+// ── Fetch list ──
+function _expFetchList() {
+  const el = document.getElementById('expListBody');
+  if (!el) return;
+  if (!SCRIPT_URL) { el.innerHTML = '<div style="color:var(--t3);padding:12px">ยังไม่ตั้งค่า Script URL</div>'; return; }
+  el.innerHTML = '<div style="color:var(--t3);padding:12px">กำลังโหลด…</div>';
+  fetch(SCRIPT_URL + '?action=getExpenseReceipts')
+    .then(r => r.json())
+    .then(d => _expRenderList(d.data || []))
+    .catch(() => { el.innerHTML = '<div style="color:var(--t3);padding:12px">โหลดไม่ได้ (ตรวจสอบ URL)</div>'; });
+}
+
+let _expListCache = [];
+
+function _expRenderList(rows) {
+  const el = document.getElementById('expListBody');
+  if (!el) return;
+  if (!rows.length) { el.innerHTML = '<div style="color:var(--t3);padding:12px">ยังไม่มีรายการ</div>'; return; }
+  _expListCache = [...rows].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  const fmtDate = d => { try {
+    const months = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    if (d.includes('T') || d.includes('/')) { const dt=new Date(d.includes('/')?d.split('/').reverse().join('-'):d); if(!isNaN(dt)) return dt.getDate()+' '+months[dt.getMonth()+1]+' '+(dt.getFullYear()+543); }
+    const [y,m,day]=d.split('-'); return (+day)+' '+months[+m]+' '+(+y+543);
+  } catch(e){return d;} };
+  el.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:.83rem">
+    <thead><tr style="background:var(--bg-alt,rgba(255,255,255,.04));color:var(--t3);font-size:.78rem">
+      <th style="padding:7px 10px;text-align:left">เลขที่</th>
+      <th style="padding:7px 10px;text-align:left">วันที่</th>
+      <th style="padding:7px 10px;text-align:left">หมวด</th>
+      <th style="padding:7px 10px;text-align:left">ผู้รับเงิน</th>
+      <th style="padding:7px 10px;text-align:right">รวม</th>
+      <th style="padding:7px 10px;text-align:center">ปฏิบัติการ</th>
+    </tr></thead>
+    <tbody>${_expListCache.map((r,i) => `<tr style="border-bottom:1px solid var(--br)">
+      <td style="padding:7px 10px;color:var(--t3)">${r.ref||''}</td>
+      <td style="padding:7px 10px">${fmtDate(r.date||'')}</td>
+      <td style="padding:7px 10px">${r.category||''}</td>
+      <td style="padding:7px 10px">${r.vendorName||''}</td>
+      <td style="padding:7px 10px;text-align:right">${(+(r.total)||0).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
+      <td style="padding:7px 10px;text-align:center;white-space:nowrap">
+        <button onclick="_expEditFromIdx(${i})" style="padding:5px 10px;border-radius:7px;border:none;background:#2563eb;color:#fff;font-size:.7rem;cursor:pointer;font-family:Sarabun,sans-serif;margin:1px">✏️ แก้ไข</button>
+        <button onclick="_expPrintFromIdx(${i})" style="padding:5px 10px;border-radius:7px;border:none;background:#16a34a;color:#fff;font-size:.7rem;cursor:pointer;font-family:Sarabun,sans-serif;margin:1px">🖨️ พิมพ์</button>
+        <button onclick="_expDeleteFromIdx(${i})" style="padding:5px 8px;border-radius:7px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.1);color:#f87171;font-size:.7rem;cursor:pointer;margin:1px">🗑️</button>
+      </td>
+    </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function _expPrintPreview() {
+  const data = _expCollectData();
+  _expOpenPrint(data);
+}
+
+function _expPrintFromIdx(i) {
+  const data = _expListCache[i];
+  if (!data) return;
+  _expOpenPrint(data);
+}
+
+function _expEditFromIdx(i) {
+  const data = _expListCache[i];
+  if (!data) return;
+  const g = (id, val) => { const el = document.getElementById(id); if (el) el.value = val||''; };
+  g('exp_refNo',         data.ref);
+  g('exp_date',          data.date ? (data.date.includes('T') ? data.date.slice(0,10) : data.date) : '');
+  g('exp_vendorName',    data.vendorName);
+  g('exp_vendorTaxId',   data.vendorTaxId);
+  g('exp_vendorAddress', data.vendorAddress);
+  g('exp_note',          data.note);
+  g('exp_payMethod',     data.payMethod);
+  _expPopulateCatSelect();
+  const catSel = document.getElementById('exp_category');
+  if (catSel) catSel.value = data.category||'';
+  const items = Array.isArray(data.items) ? data.items : (typeof data.items==='string' ? JSON.parse(data.items||'[]') : []);
+  _expRows = items.map(it => ({ desc: it.desc||'', qty: +(it.qty)||1, unitPrice: +(it.unitPrice)||0 }));
+  if (!_expRows.length) _expRows = [{desc:'',qty:1,unitPrice:0}];
+  _expRenderRows();
+  _expEditRef = data.ref || null;
+  document.getElementById('exp_refNo')?.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+function _expDeleteFromIdx(i) {
+  const data = _expListCache[i];
+  if (!data) return;
+  Swal.fire({
+    icon:'warning', title:'ลบใบเสร็จ?',
+    text: `เลขที่ ${data.ref||''} — ${data.vendorName||''}`,
+    showCancelButton:true, confirmButtonText:'ลบ', cancelButtonText:'ยกเลิก',
+    confirmButtonColor:'#ef4444', background:'var(--bg-card)', color:'var(--t1)'
+  }).then(r => {
+    if (!r.isConfirmed) return;
+    if (!SCRIPT_URL) { Swal.fire({icon:'info',title:'ยังไม่ตั้งค่า URL',background:'var(--bg-card)',color:'var(--t1)'}); return; }
+    fetch(SCRIPT_URL, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'deleteExpenseReceipt', ref: data.ref })
+    }).then(() => {
+      Swal.fire({icon:'success',title:'ลบแล้ว',timer:1200,showConfirmButton:false,background:'var(--bg-card)',color:'var(--t1)'});
+      _expFetchList();
+    });
+  });
+}
+
+function _expOpenPrint(data) {
+  const win = window.open('', '_blank');
+  if (!win) { Swal.fire({icon:'warning',title:'ป๊อปอัพถูกบล็อก',text:'กรุณาอนุญาต popup ของเบราว์เซอร์'}); return; }
+  win.document.write(_expBuildFullHtml(data));
+  win.document.close();
+}
+
+function _expBuildFullHtml(data) {
+  const companyName    = localStorage.getItem('ptts_company_name')    || 'บริษัท พีทีทีเอส จำกัด';
+  const companyAddress = localStorage.getItem('ptts_company_address') || '';
+  const companyTaxId   = localStorage.getItem('ptts_company_taxid')   || '';
+
+  const dateStr = data.date ? (() => {
+    const months = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    if (data.date.includes('T') || data.date.includes('/')) {
+      const dt = new Date(data.date.includes('/') ? data.date.split('/').reverse().join('-') : data.date);
+      if (!isNaN(dt)) return `${dt.getDate()} ${months[dt.getMonth()+1]} ${dt.getFullYear()+543}`;
+    }
+    const [y,m,d] = data.date.split('-');
+    return `${+d} ${months[+m]} ${+y+543}`;
+  })() : '';
+
+  const items = Array.isArray(data.items) ? data.items : (typeof data.items==='string' ? JSON.parse(data.items||'[]') : []);
+  const totalRows = Math.max(items.length, 10);
+  const rowsHtml = Array.from({length:totalRows}, (_,i) => {
+    const it = items[i];
+    const amt = it ? ((+(it.qty)||0)*(+(it.unitPrice)||0)) : 0;
+    return `<tr style="height:22px">
+      <td style="border:1px solid #ccc;padding:3px 6px;text-align:center;font-size:12px">${it ? i+1 : ''}</td>
+      <td style="border:1px solid #ccc;padding:3px 8px;font-size:12px">${it ? (it.desc||'') : ''}</td>
+      <td style="border:1px solid #ccc;padding:3px 6px;text-align:center;font-size:12px">${it ? (it.qty||'') : ''}</td>
+      <td style="border:1px solid #ccc;padding:3px 8px;text-align:right;font-size:12px">${it ? (+(it.unitPrice)||0).toLocaleString('th-TH',{minimumFractionDigits:2}) : ''}</td>
+      <td style="border:1px solid #ccc;padding:3px 8px;text-align:right;font-size:12px">${it ? amt.toLocaleString('th-TH',{minimumFractionDigits:2}) : ''}</td>
+    </tr>`;
+  }).join('');
+
+  const total = (+(data.total)||0).toLocaleString('th-TH',{minimumFractionDigits:2});
+
+  return `<!DOCTYPE html><html><head>
+  <meta charset="utf-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Sarabun',sans-serif; font-size:13px; background:#fff; color:#000; }
+    @media print { @page{margin:10mm} body{background:#fff} }
+    table.items { width:100%; border-collapse:collapse; margin:8px 0; }
+  </style>
+  </head><body>
+  <div style="padding:15mm 15mm 10mm">
+    <div style="text-align:center;font-size:18px;font-weight:700;margin-bottom:12px">ใบเสร็จรับเงิน</div>
+    <div style="text-align:right;font-size:12px;margin-bottom:10px">วันที่ ${dateStr}</div>
+    <div style="border:1px solid #aaa;padding:8px 10px;margin-bottom:8px;font-size:12px">
+      <div><b>ผู้รับเงิน:</b> ${data.vendorName||''}</div>
+      <div><b>ที่อยู่:</b> ${(data.vendorAddress||'').replace(/\n/g,' ')}</div>
+      <div><b>เลขประจำตัว:</b> ${data.vendorTaxId||''}</div>
+    </div>
+    <div style="border:1px solid #aaa;padding:8px 10px;margin-bottom:8px;font-size:12px">
+      <div><b>ได้รับเงินจาก:</b> ${companyName}</div>
+      <div><b>ที่อยู่:</b> ${companyAddress}</div>
+      <div><b>เลขประจำตัวผู้เสียภาษี:</b> ${companyTaxId}</div>
+    </div>
+    <div style="font-size:12px;margin-bottom:6px">ตามรายละเอียดดังต่อไปนี้</div>
+    <table class="items">
+      <thead><tr style="background:#f0f0f0">
+        <th style="border:1px solid #ccc;padding:5px 6px;width:40px;font-size:12px">ลำดับ</th>
+        <th style="border:1px solid #ccc;padding:5px 8px;font-size:12px;text-align:left">รายการ</th>
+        <th style="border:1px solid #ccc;padding:5px 6px;width:70px;font-size:12px">จำนวน</th>
+        <th style="border:1px solid #ccc;padding:5px 8px;width:100px;font-size:12px;text-align:right">ราคาต่อหน่วย</th>
+        <th style="border:1px solid #ccc;padding:5px 8px;width:100px;font-size:12px;text-align:right">จำนวนเงิน</th>
+      </tr></thead>
+      <tbody>${rowsHtml}</tbody>
+      <tfoot>
+        <tr><td colspan="4" style="border:1px solid #ccc;padding:5px 8px;text-align:right;font-weight:700;font-size:12px">รวมทั้งสิ้น</td>
+            <td style="border:1px solid #ccc;padding:5px 8px;text-align:right;font-weight:700;font-size:12px">${total}</td></tr>
+      </tfoot>
+    </table>
+    <div style="font-size:12px;margin:8px 0">ชำระโดย ${data.payMethod||'เงินสด'}</div>
+    ${data.note ? `<div style="font-size:11px;color:#555;margin-bottom:8px">หมายเหตุ: ${data.note}</div>` : ''}
+    <div style="display:flex;justify-content:space-between;margin-top:32px;font-size:12px">
+      <div style="text-align:center">
+        <div style="margin-bottom:32px">ผู้จ่ายเงิน ...................................</div>
+        <div>วันที่ ............................................</div>
+      </div>
+      <div style="text-align:center">
+        <div style="margin-bottom:32px">ผู้รับเงิน ...................................</div>
+        <div>วันที่ ............................................</div>
+      </div>
+    </div>
+  </div>
+  <script>(function(){
+    function go(){ try{ window.focus(); window.print(); }catch(e){} }
+    if(document.fonts && document.fonts.ready){
+      document.fonts.ready.then(go).catch(function(){ setTimeout(go,700); });
+    } else { setTimeout(go,700); }
+  })();<\/script>
+  </body></html>`;
+}

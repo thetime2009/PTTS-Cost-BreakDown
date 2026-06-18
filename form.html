@@ -38,9 +38,8 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v9.15</span>
+      <span class="ph-chip ver">v9.29</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
-      <span id="pttsRoleChip" onclick="pttsLogout()" title="คลิกเพื่อออกจากระบบ" style="display:none;cursor:pointer;padding:4px 10px;border-radius:999px;font-size:.72rem;font-weight:700;background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3)"></span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
   </div>
@@ -967,25 +966,6 @@
   </div>
 
 
-  <!-- ══ ตั้งค่า PIN ══ -->
-  <div class="card">
-    <div class="card-header"><div class="icon ic-info">🔐</div><h2>ตั้งค่า PIN เข้าระบบ</h2></div>
-    <div style="font-size:.78rem;color:var(--t3);margin-bottom:12px">PIN เริ่มต้น: Admin = <code>1234</code> &nbsp;|&nbsp; User = <code>0000</code> &nbsp;—&nbsp; เปลี่ยนได้ที่นี่</div>
-    <div class="pair-row" style="margin-bottom:10px">
-      <div class="field">
-        <label>Admin PIN (เข้าถึงได้ทั้งหมด)</label>
-        <input type="password" id="cfg_pin_admin" placeholder="PIN ใหม่ของ Admin" autocomplete="new-password"
-          style="background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:8px;padding:9px 12px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.9rem;width:100%">
-      </div>
-      <div class="field">
-        <label>User PIN (ดูแดชบอร์ด+Order เท่านั้น)</label>
-        <input type="password" id="cfg_pin_user2" placeholder="PIN ใหม่ของ User" autocomplete="new-password"
-          style="background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:8px;padding:9px 12px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.9rem;width:100%">
-      </div>
-    </div>
-    <button class="btn btn-primary" onclick="pttsSavePins()" style="padding:9px 16px;font-size:.85rem">💾 บันทึก PIN</button>
-  </div>
-
   <!-- ══ ค่าเริ่มต้น ══ -->
   <div class="card">
     <div class="card-header"><div class="icon ic-info">⚙️</div><h2>ค่าเริ่มต้นการคำนวณ</h2></div>
@@ -1502,8 +1482,12 @@
           </select>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;flex:1">
-          <span>หมายเหตุ:</span>
+          <span>หมายเหตุ: <span style="font-weight:700;color:#7bb3e0;font-size:.72rem">★ ข้อความนี้จะโชว์ในใบกำกับภาษี</span></span>
           <textarea id="ord_note" placeholder="หมายเหตุเพิ่มเติม" rows="3" style="flex:1;resize:vertical;padding:6px 8px;font-size:.78rem;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg1,#fff);font-family:inherit"></textarea>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;flex:1">
+          <span>Note ไว้อ่าน:</span>
+          <textarea id="ord_note2" placeholder="" rows="2" style="flex:1;resize:vertical;padding:6px 8px;font-size:.78rem;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg1,#fff);font-family:inherit"></textarea>
         </div>
       </div>
       <!-- แนบไฟล์ PO + พรีวิวภาพ -->
@@ -1512,7 +1496,9 @@
         <div class="field"><label>แนบไฟล์ PO</label>
           <input type="file" id="ord_poFile" accept="image/*,.pdf" style="display:none" onchange="_ordPoFileChanged('ord')">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <button type="button" class="btn" onclick="$('ord_poFile').click()" style="padding:6px 14px;font-size:.78rem">เลือกไฟล์</button>
+            <button type="button" onclick="$('ord_poFile').click()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">
+              📤 แนบ PO
+            </button>
             <span id="ord_poFileName" style="font-size:.76rem;color:var(--t3)">ยังไม่ได้เลือกไฟล์ใด</span>
             <button type="button" id="ord_poFileClear" onclick="_ordClearPoFile('ord')" title="ลบไฟล์"
               style="display:none;border:none;background:none;color:#ef4444;font-size:1rem;cursor:pointer;line-height:1;padding:2px 4px">✕</button>
@@ -1523,7 +1509,9 @@
           <img id="ord_jobImg1Preview" style="display:none;width:100%;max-height:200px;object-fit:contain;border-radius:10px;border:1px solid var(--bc-div);margin-bottom:8px;background:var(--bg1,#fff)">
           <input type="file" id="ord_jobImg1" accept="image/*" style="display:none" onchange="_ordJobImgChanged('ord')">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <button type="button" class="btn" onclick="$('ord_jobImg1').click()" style="padding:6px 14px;font-size:.78rem">เลือกไฟล์</button>
+            <button type="button" onclick="$('ord_jobImg1').click()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:none;border-radius:8px;background:#0f766e;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">
+              🖼️ แนบ Drawing
+            </button>
             <span id="ord_jobImg1Name" style="font-size:.76rem;color:var(--t3)">ยังไม่ได้เลือกไฟล์ใด</span>
             <button type="button" id="ord_jobImg1Clear" onclick="_ordClearJobImg('ord')" title="ลบไฟล์"
               style="display:none;border:none;background:none;color:#ef4444;font-size:1rem;cursor:pointer;line-height:1;padding:2px 4px">✕</button>
@@ -1881,6 +1869,11 @@
         <div id="ordEdit_jobImg1LinkWrap" style="margin-top:4px;font-size:.74rem"></div>
       </div>
       <div class="field" style="grid-column:1/-1"><label>หมายเหตุ</label><input type="text" id="ordEdit_note"></div>
+      <!-- ข้อความในช่องนี้จะแสดงในใบกำกับภาษี (invoice note) -->
+      <div class="field" style="grid-column:1/-1">
+        <label>หมายเหตุ (ใบกำกับภาษี) <span style="font-weight:700;color:#7bb3e0;font-size:.72rem">ข้อความนี้จะโชว์ในใบกำกับภาษี</span></label>
+        <input type="text" id="ordEdit_note2" placeholder="หมายเหตุที่แสดงในใบกำกับภาษี">
+      </div>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
       <button class="btn btn-primary" id="ordEdit_saveBtn" onclick="guardClick(this, saveOrderEdit)" style="padding:10px 18px;font-size:.88rem">💾 บันทึก</button>
@@ -2048,6 +2041,15 @@
 <div id="tab-po" class="tab-content">
 <div style="max-width:1100px;margin:0 auto;padding:12px 8px 80px">
 
+  <!-- ══ Sub-tab nav ══ -->
+  <div style="display:flex;gap:6px;margin-bottom:16px;border-bottom:2px solid var(--br);padding-bottom:0">
+    <button id="poSubBtn1" class="sub-tab-btn active" onclick="_poSubTabSwitch('1')" style="padding:8px 16px;border:none;background:none;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.88rem;font-weight:600;color:var(--t2);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s">🧾 ใบสั่งซื้อ</button>
+    <button id="poSubBtn2" class="sub-tab-btn" onclick="_poSubTabSwitch('2')" style="padding:8px 16px;border:none;background:none;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.88rem;font-weight:600;color:var(--t2);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s">📋 ใบเสร็จรายจ่าย</button>
+    <button id="poSubBtn3" class="sub-tab-btn" onclick="_poSubTabSwitch('3')" style="padding:8px 16px;border:none;background:none;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.88rem;font-weight:600;color:var(--t2);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s">🗂️ หมวดค่าใช้จ่าย</button>
+  </div>
+
+  <!-- ══ Panel 1: ใบสั่งซื้อ (เดิม) ══ -->
+  <div id="poSubPanel1">
   <!-- ฟอร์มสร้าง/แก้ไขใบสั่งซื้อ -->
   <div class="card">
     <div class="card-header">
@@ -2204,6 +2206,106 @@
     </div>
     <div id="poPager" style="display:flex;justify-content:center;align-items:center;gap:10px;margin-top:12px;font-size:.78rem;color:var(--t3)"></div>
   </div>
+  </div><!-- end poSubPanel1 -->
+
+  <!-- ══ Panel 2: ใบเสร็จรายจ่าย ══ -->
+  <div id="poSubPanel2" style="display:none">
+
+    <!-- ฟอร์มสร้างใบเสร็จ -->
+    <div class="card">
+      <div class="card-header"><div class="icon ic-ext">📋</div><h2>สร้างใบเสร็จรายจ่าย</h2></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px 14px;margin-bottom:14px">
+        <div class="field"><label>เลขที่ใบเสร็จ</label>
+          <input type="text" id="exp_refNo" readonly style="opacity:.8">
+        </div>
+        <div class="field"><label>วันที่</label>
+          <input type="date" id="exp_date">
+        </div>
+        <div class="field"><label>หมวดค่าใช้จ่าย</label>
+          <select id="exp_category" style="background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:8px;padding:8px 10px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.88rem;width:100%">
+            <option value="">— เลือกหมวด —</option>
+          </select>
+        </div>
+        <div class="field"><label>วิธีชำระเงิน</label>
+          <select id="exp_payMethod" style="background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:8px;padding:8px 10px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.88rem;width:100%">
+            <option value="เงินสด">เงินสด</option>
+            <option value="โอนเงิน">โอนเงิน</option>
+            <option value="เช็ค">เช็ค</option>
+          </select>
+        </div>
+      </div>
+      <!-- ผู้รับเงิน -->
+      <div style="background:var(--bg-alt,rgba(255,255,255,.03));border:1px solid var(--br);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-size:.8rem;font-weight:700;color:var(--t3);margin-bottom:10px">👤 ผู้รับเงิน (ร้านค้า / บุคคล)</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
+          <div class="field"><label>ชื่อผู้รับเงิน</label>
+            <input type="text" id="exp_vendorName" placeholder="ชื่อ-นามสกุล หรือชื่อร้าน">
+          </div>
+          <div class="field"><label>เลขประจำตัว (บัตรประชาชน/TAX ID)</label>
+            <input type="text" id="exp_vendorTaxId" placeholder="เลข 13 หลัก" maxlength="13">
+          </div>
+          <div class="field" style="grid-column:1/-1"><label>ที่อยู่</label>
+            <textarea id="exp_vendorAddress" rows="2" placeholder="ที่อยู่ผู้รับเงิน" style="background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:8px;padding:8px 10px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.88rem;width:100%;resize:vertical"></textarea>
+          </div>
+        </div>
+      </div>
+      <!-- รายการค่าใช้จ่าย -->
+      <div style="font-size:.82rem;font-weight:700;color:var(--t3);margin-bottom:8px">รายการค่าใช้จ่าย</div>
+      <div style="overflow-x:auto;margin-bottom:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+          <thead>
+            <tr style="background:var(--bg-alt,rgba(255,255,255,.04));color:var(--t3)">
+              <th style="padding:7px 8px;text-align:center;width:36px">#</th>
+              <th style="padding:7px 8px;text-align:left">รายการ</th>
+              <th style="padding:7px 8px;text-align:center;width:80px">จำนวน</th>
+              <th style="padding:7px 8px;text-align:right;width:110px">ราคา/หน่วย</th>
+              <th style="padding:7px 8px;text-align:right;width:110px">จำนวนเงิน</th>
+              <th style="padding:7px 8px;width:32px"></th>
+            </tr>
+          </thead>
+          <tbody id="expItemBody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <button class="btn btn-outline" onclick="_expAddRow()" style="font-size:.82rem;padding:6px 12px">+ เพิ่มรายการ</button>
+        <div style="font-size:.95rem;font-weight:700;color:var(--t1)">รวม: <span id="exp_total" style="color:#6366f1">0.00</span> บาท</div>
+      </div>
+      <!-- หมายเหตุ -->
+      <div class="field" style="margin-bottom:14px">
+        <label>หมายเหตุ</label>
+        <input type="text" id="exp_note" placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)">
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="_expSave()">💾 บันทึกใบเสร็จ</button>
+        <button class="btn btn-outline" onclick="_expPrintPreview()">🖨️ พิมพ์ใบเสร็จ</button>
+        <button class="btn btn-outline" onclick="_expReset()">🔄 ล้างฟอร์ม</button>
+      </div>
+    </div>
+
+    <!-- รายการใบเสร็จที่บันทึกแล้ว -->
+    <div class="card">
+      <div class="card-header">
+        <div class="icon ic-ext">📜</div><h2>ประวัติใบเสร็จรายจ่าย</h2>
+        <button class="btn btn-outline" onclick="_expFetchList()" style="margin-left:auto;font-size:.78rem;padding:5px 10px">🔄 รีเฟรช</button>
+      </div>
+      <div id="expListBody" style="font-size:.85rem"></div>
+    </div>
+
+  </div><!-- end poSubPanel2 -->
+
+  <!-- ══ Panel 3: หมวดค่าใช้จ่าย ══ -->
+  <div id="poSubPanel3" style="display:none">
+    <div class="card">
+      <div class="card-header"><div class="icon ic-info">🗂️</div><h2>จัดการหมวดค่าใช้จ่าย</h2></div>
+      <div style="font-size:.8rem;color:var(--t3);margin-bottom:12px">หมวดที่สร้างไว้ใช้ใน dropdown ฟอร์มใบเสร็จรายจ่าย</div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input type="text" id="exp_newCat" placeholder="ชื่อหมวดใหม่" style="flex:1;background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:8px;padding:8px 10px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.88rem">
+        <button class="btn btn-primary" onclick="_expAddCat()" style="padding:8px 14px">+ เพิ่ม</button>
+      </div>
+      <div id="expCatList"></div>
+    </div>
+  </div><!-- end poSubPanel3 -->
 
 </div>
 </div><!-- end tab-po -->
@@ -2223,6 +2325,7 @@
     <button type="button" class="ord-subtab-btn" id="invSubBtn2" onclick="_invSubTabSwitch('2')">👥 เพิ่มลูกค้า</button>
     <button type="button" class="ord-subtab-btn" id="invSubBtn3" onclick="_invSubTabSwitch('3')">📊 รายงานภาษีขาย</button>
     <button type="button" class="ord-subtab-btn" id="invSubBtn4" onclick="_invSubTabSwitch('4')">📑 ใบวางบิล</button>
+    <button type="button" class="ord-subtab-btn" id="invSubBtn5" onclick="_invSubTabSwitch('5')">🧾 ใบเสร็จ</button>
   </div>
 
   <div id="invSubPanel1" class="ord-subtab-panel active">
@@ -2397,6 +2500,39 @@
     <div id="billHistListWrap" style="overflow-x:auto"></div>
   </div>
   </div><!-- end invSubPanel4 -->
+
+  <div id="invSubPanel5" class="ord-subtab-panel">
+    <div class="card">
+      <div class="card-header"><div class="icon ic-ext">🧾</div><h2>ใบเสร็จรับเงิน</h2></div>
+      <div class="field" style="margin-bottom:10px">
+        <label>เลขที่ใบกำกับภาษีที่ชำระแล้ว</label>
+        <select id="rcpt_invNo" onchange="rcptOnInvSelect()" style="background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:8px;padding:9px 12px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.9rem;width:100%">
+          <option value="">— เลือกใบกำกับ —</option>
+        </select>
+      </div>
+      <div id="rcptPreviewWrap" style="display:none">
+        <div class="pair-row" style="margin-bottom:10px">
+          <div class="field"><label>ลูกค้า</label><div id="rcptCust" style="padding:9px 0;font-weight:600"></div></div>
+          <div class="field"><label>ยอดชำระ</label><div id="rcptAmt" style="padding:9px 0;font-weight:700;color:var(--c1)"></div></div>
+        </div>
+        <div class="pair-row" style="margin-bottom:14px">
+          <div class="field"><label>วันที่ออกใบเสร็จ</label><input type="date" id="rcptDate" style="background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:8px;padding:9px 12px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.9rem;width:100%"></div>
+          <div class="field"><label>วิธีชำระเงิน</label>
+            <select id="rcptPayMethod" style="background:var(--inp-bg);border:1px solid var(--inp-bc);border-radius:8px;padding:9px 12px;color:var(--txt);font-family:Sarabun,sans-serif;font-size:.9rem;width:100%">
+              <option>โอนเงิน</option><option>เงินสด</option><option>เช็ค</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="rcptPrint()" style="padding:9px 16px;font-size:.85rem">🖨️ พิมพ์ใบเสร็จ</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="rcptHistCard">
+      <div class="card-header"><div class="icon ic-info">📋</div><h2>ใบเสร็จที่ออกแล้ว</h2></div>
+      <div id="rcptHistList" style="overflow-x:auto"><div style="color:var(--t3);font-size:.85rem;padding:8px 0">กำลังโหลด...</div></div>
+    </div>
+  </div><!-- end invSubPanel5 -->
 
   <!-- ใบกำกับที่ออกแล้ว — แสดงเฉพาะ sub-tab 1-3 (ไม่แสดงใน sub-tab ใบวางบิล) -->
   <div class="card" id="invIssuedCard" style="margin-top:14px">
@@ -2853,7 +2989,7 @@
 <script src="formcalc.js?v=9.06"></script>
 <script src="aifeatures.js?v=8.94"></script>
 <script src="theme.js?v=9.10"></script>
-<script src="order.js?v=9.12"></script>
+<script src="order.js?v=9.29"></script>
 <script src="purchase.js?v=9.06"></script>
 <script src="invoice.js?v=9.03"></script>
 <script src="plating.js?v=8.94"></script>
@@ -2999,9 +3135,146 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260618-H',
+    ref: '#REV-20260618-J',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'core.js: แก้บั๊กเมนูหายหลัง login — เพิ่ม try-catch ครอบ renderTabBar ทั้งหมด, _loadTabCfg, _loadSidebarGroupState ป้องกัน JSON.parse throw',
+      'core.js: เพิ่ม window.load safety net — ถ้า renderTabBar ล้มใน DOMContentLoaded จะ render ใหม่อีกครั้งตอน load',
+    ],
+  },
+  {
+    ref: '#REV-20260618-V',
     date: '2026-06-18',
     current: true,
+    items: [
+      'form.html + order.js: เปลี่ยนปุ่มอัพโหลดไฟล์ PO / Drawing (สร้าง Order) เป็น Drop Zone style — คลิกหรือลากไฟล์มาวาง, แสดง preview ภาพในกล่อง, ปุ่มลบแบบ inline',
+    ],
+  },
+  {
+    ref: '#REV-20260618-U',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'form.html + order.js: เพิ่มช่อง "หมายเหตุ (ใบกำกับภาษี)" — column R (note2) ทั้งใน form สร้าง Order และ form แก้ไข',
+      'order.js: บันทึก/โหลด note2 ลง ORDER_COLS.note2 (col R) ครบทั้ง create และ edit',
+    ],
+  },
+  {
+    ref: '#REV-20260618-T',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'data.js: สลับสีคอลัมน์ — ต้นทุนรวมเป็นสีดำ (var(--t1)), เสนอขาย/ลูกเป็นสีน้ำเงิน (var(--c1))',
+    ],
+  },
+  {
+    ref: '#REV-20260618-S',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'order.js: แก้ "cards is not defined" — เปลี่ยน wrap.innerHTML = pageRows.map(...) เป็น const cards = pageRows.map(...)',
+      'order.js: ล้าง null bytes ที่ต่อท้ายไฟล์ (เกิดซ้ำทุกครั้งที่แก้ไฟล์นี้)',
+    ],
+  },
+  {
+    ref: '#REV-20260618-R',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'order.js: แก้ syntax error — ลบโค้ดค้าง (orphaned + null bytes) หลังบรรทัด 2776 ที่ทำให้ไฟล์โหลดไม่ได้ทั้งหมด',
+      'ผลกระทบ: แท็บ Order และ ติดตามงาน กลับมาโหลดข้อมูลได้ปกติ',
+    ],
+  },
+  {
+    ref: '#REV-20260618-Q',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'purchase.js + form.html: ยกเลิกระบบแนบรูป (บัตร ปชช / ชิ้นงาน) ออกจากใบเสร็จรายจ่ายทั้งหมด',
+      'purchase.js: ใบเสร็จพิมพ์หน้าเดียว ไม่มีหน้า 2 — เรียบง่ายขึ้น',
+    ],
+  },
+  {
+    ref: '#REV-20260618-P',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'purchase.js: แก้รูปบัตร ปชช ไม่แสดง — inject img.src หลัง document.write แทนการฝัง base64 ใน template (หลีกเลี่ยง truncation)',
+      'purchase.js: trigger print หลังรูปโหลดครบ (รอ img load event)',
+    ],
+  },
+  {
+    ref: '#REV-20260618-O',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'purchase.js: แก้วันที่ NaN ในใบเสร็จ — รองรับ ISO timestamp จาก Sheets',
+      'purchase.js: รูปแนบ (บัตร/ชิ้นงาน) แสดงในพิมพ์จากประวัติ — บันทึก photos ลง localStorage เมื่อ save',
+    ],
+  },
+  {
+    ref: '#REV-20260618-N',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'purchase.js: แก้ขีดคร่อมบัตรประชาชนหน้า 2 — เปลี่ยนจากกากบาท (X) เป็น 2 เส้นขนาน (ขีดคร่อม)',
+    ],
+  },
+  {
+    ref: '#REV-20260618-M',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'purchase.js: ปุ่มประวัติใบเสร็จรายจ่าย — เพิ่มปุ่ม แก้ไข/พิมพ์/ลบ เหมือน PO list',
+      'purchase.js: แก้บั๊กปุ่มพิมพ์ (onclick JSON) — ใช้ _expListCache index แทน',
+      'purchase.js: รูปชิ้นงานแสดงในหน้า 1 ใต้ตาราง, บัตรประชาชนอยู่หน้า 2',
+      'Code.gs: เพิ่ม deleteExpenseReceipt action',
+    ],
+  },
+  {
+    ref: '#REV-20260618-L',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'form.html + purchase.js: ระบบใบเสร็จรายจ่าย (Expense Receipt) — sub-tab ใหม่ใน PO tab',
+      'form.html: เพิ่ม sub-tab nav ใน PO tab (ใบสั่งซื้อ / ใบเสร็จรายจ่าย / หมวดค่าใช้จ่าย)',
+      'purchase.js: ฟอร์มสร้างใบเสร็จ, จัดการหมวด (localStorage), บันทึก Sheets, พิมพ์หน้า 1+2',
+    ],
+  },
+  {
+    ref: '#REV-20260618-K',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'ลบระบบ PIN Login / Admin / User2 ออกทั้งหมด — เปิดแอปได้เลยโดยไม่ต้องล็อกอิน',
+      'form.html: ลบ #pttsLoginOverlay, #pttsRoleChip, auth IIFE script, card ตั้งค่า PIN',
+      'core.js: ลบ role filtering (_allowedTabs) ออกจาก renderTabBar — เมนูแสดงครบทุก tab เสมอ',
+    ],
+  },
+  {
+    ref: '#REV-20260618-J',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'core.js: แก้บั๊กเมนูหายหลัง login — เพิ่ม try-catch ครอบ renderTabBar ทั้งหมด, _loadTabCfg, _loadSidebarGroupState ป้องกัน JSON.parse throw',
+      'core.js: เพิ่ม window.load safety net — ถ้า renderTabBar ล้มใน DOMContentLoaded จะ render ใหม่อีกครั้งตอน load',
+    ],
+  },
+  {
+    ref: '#REV-20260618-I',
+    date: '2026-06-18',
+    current: false,
+    items: [
+      'core.js + invoice.js: เพิ่มฟีเจอร์ ใบเสร็จรับเงิน (sub-tab 5) — เลือกใบกำกับ, ระบุวันที่+วิธีชำระ, พิมพ์ใบเสร็จ, ดูประวัติ',
+      'core.js: GROUP_DEFS บัญชี — ใบเสร็จ เปลี่ยนจาก placeholder เป็น subTab:5 จริง',
+      'core.js: แก้ไฟล์ถูกตัดขาด (_chatSend)',
+    ],
+  },
+  {
+    ref: '#REV-20260618-H',
+    date: '2026-06-18',
+    current: false,
     items: [
       'ระบบ PIN Login: Admin (เข้าถึงทุกอย่าง) และ User 2 (เห็นแค่ ติดตามงาน + Order, อ่านอย่างเดียว)',
       'form.html: เพิ่ม login overlay (#pttsLoginOverlay) — ขอ PIN ทุกครั้งที่เปิดแอป (session-based)',
@@ -4362,290 +4635,4 @@ const DEV_LOGS = [
     date: '2026-06-14',
     current: false,
     items: [
-      'เปิดแท็บ/หน้าต่างใหม่ → เริ่มที่หน้าแดชบอร์ดเสมอ, แต่ถ้าเป็นการรีเฟรช/รีโหลดหน้าเดิม → จำหน้าที่เปิดอยู่ไว้แล้วเปิดหน้าเดิมกลับมา',
-    ],
-  },
-  {
-    ref: '#REV-20260614-AJ',
-    date: '2026-06-14',
-    current: false,
-    items: [
-      'แก้ปุ่ม "บันทึกภาพ"/"ส่ง LINE/Telegram" บนหน้าพรีวิวเอกสารให้ใช้ได้บนมือถือ: เปิดภาพในแท็บใหม่ให้แตะค้างบันทึก/แชร์ได้หากดาวน์โหลด/แชร์ไฟล์ตรงไม่ได้ และแก้ปัญหา canvas ถูก taint จากโลโก้รูปข้ามโดเมน',
-    ],
-  },
-  {
-    ref: '#REV-20260614-AI',
-    date: '2026-06-14',
-    current: false,
-    items: [
-      'ใบส่งชุบ: เซลล์ตัวเลข/ชื่อวัตถุดิบ (ฝาบน/ฝาล่าง/ตะแกรงนอก/ตะแกรงใน ฯลฯ) ในตารางรายการ ไม่ตัดข้อความ ให้อยู่ในแถวเดียวเสมอ',
-    ],
-  },
-  {
-    ref: '#REV-20260614-AH',
-    date: '2026-06-14',
-    current: false,
-    items: [
-      'หน้าพรีวิวเอกสาร: ขยายความกว้างกระดาษเอกสารบนเดสก์ท็อป (จาก 800px เป็น 1100px) ไม่ให้รายการตัดข้อความ',
-      'แก้ตัวอักษรตอนพิมพ์/บันทึก PDF ให้ชัดขึ้น: ขยายขนาดตัวอักษร และเปลี่ยนสีตัวอักษรจางเป็นสีดำทั้งหมด',
-    ],
-  },
-  {
-    ref: '#REV-20260614-AG',
-    date: '2026-06-14',
-    current: false,
-    items: [
-      'หน้าพรีวิวเอกสาร (ใบส่งชุบ ฯลฯ): เพิ่มปุ่ม "บันทึกภาพ" (บันทึกเป็นไฟล์ PNG) และปุ่ม "ส่ง LINE / Telegram" (เปิดเมนูแชร์ของมือถือเพื่อส่งภาพให้ลูกค้าได้ทันที)',
-    ],
-  },
-  {
-    ref: '#REV-20260614-AF',
-    date: '2026-06-14',
-    current: false,
-    items: [
-      'แก้ปัญหาคอลัมน์การ์ดยังเป็น 2 บนเดสก์ท็อป: ย้ายค่าที่เคยตั้งไว้เป็น 2 (ค่าเริ่มต้นเดิม) เป็น 3 ให้อัตโนมัติครั้งเดียว',
-    ],
-  },
-  {
-    ref: '#REV-20260614-AE',
-    date: '2026-06-14',
-    current: false,
-    items: [
-      'แท็บ "ติดตามงาน"/"แดชบอร์ด": ค่าเริ่มต้นจำนวนคอลัมน์การ์ดบนเดสก์ท็อป (≥1024px) เป็น 3 คอลัมน์ (มือถือ/แท็บเล็ตยังเป็น 2 เหมือนเดิม) — มีผลเฉพาะกรณียังไม่เคยปรับค่าเอง',
-    ],
-  },
-  {
-    ref: '#REV-20260614-AD',
-    date: '2026-06-14',
-    current: false,
-    items: [
-      'แท็บ "ติดตามงาน" และ "แดชบอร์ด" (ใช้หน้าเดียวกัน): ขยายการ์ดให้เต็มพื้นที่บนเดสก์ท็อป (max-width:100% เหมือนแท็บอื่น)',
-    ],
-  },
-  {
-    ref: '#REV-20260614-AC',
-    date: '2026-06-14',
-    current: false,
-    items: [
-      'แท็บ "แดชบอร์ด": เปลี่ยนหัวข้อการ์ดเป็น "แดชบอร์ดสถานะงาน" (แท็บ "ติดตามงาน" ยังใช้ชื่อเดิม "ติดตามสถานะงาน")',
-    ],
-  },
-  {
-    ref: '#REV-20260614-AB',
-    date: '2026-06-14',
-    current: false,
-    items: [
-      'แท็บ "ติดตามงาน": ซ่อนการ์ดสรุป "ยังไม่ระบุสถานะ", "รอ Confirm", "ส่งยังไม่ครบ", "อื่นๆ (ค่าไม่ตรงสถานะ)" ให้เหลือเฉพาะการ์ดที่จำเป็น (แท็บ "แดชบอร์ด" ยังแสดงครบทุกการ์ดเหมือนเดิม)',
-    ],
-  },
-  {
-    ref: '#REV-20260614-AA',
-    date: '2026-06-14',
-    current: false,
-    items: [
-      'แก้ปุ่ม "แดชบอร์ด" เมื่อ active: ตัวหนังสือ/ไอคอนเป็นสีขาว (เดิมถูก .t-label ทับเป็นสีเทา)',
-    ],
-  },
-  {
-    ref: '#REV-20260614-Z',
-    date: '2026-06-14',
-    current: false,
-    items: [
-      'Sidebar: ปุ่ม "แดชบอร์ด" เมื่อ active เน้นชัดเจนขึ้น (พื้นหลังสีเข้ม ตัวอักษรขาว)',
-      'ทุกครั้งที่เปิดโปรแกรมใหม่/รีเฟรช → เริ่มที่แท็บ "แดชบอร์ด/ติดตามงาน" เสมอ (ไม่กลับไปแท็บเดิมที่บันทึกไวไว้)',
-    ],
-  },
-];
-
-function _renderDevLogs() {
-  const body = document.getElementById('devLogsBody');
-  if (!body) return;
-  body.innerHTML = DEV_LOGS.map(log => `
-    <div style="border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;
-      ${log.current ? 'background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.4)' : 'background:rgba(255,255,255,.02)'}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-family:monospace;font-size:.74rem;color:#60a5fa;font-weight:700">${log.ref}</span>
-        <span style="font-size:.7rem;color:#94a3b8">${log.date}${log.current ? ' • ปัจจุบัน' : ''}</span>
-      </div>
-      <ul style="margin:0;padding-left:18px;font-size:.78rem;color:#cce4ff;line-height:1.6">
-        ${(log.items || []).map(it => `<li>${it}</li>`).join('')}
-      </ul>
-    </div>
-  `).join('');
-}
-function openDevLogs() {
-  _renderDevLogs();
-  const m = document.getElementById('devLogsModal');
-  if (m) m.style.display = 'flex';
-}
-function closeDevLogs() {
-  const m = document.getElement('devLogsModal');
-  if (m) m.style.display = 'none';
-}
-</script>
-
-<script>
-// ===== Service Worker =====
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then((reg) => {
-      reg.update().catch(() => {});
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            newWorker.postMessage({ type: 'SKIP_WAITING' });
-          }
-        });
-      });
-    }).catch(() => {});
-    let _swRefreshed = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (_swRefreshed) return;
-      _swRefreshed = true;
-      window.location.reload();
-    });
-  });
-}
-</script>
-
-<!-- ═══ CHAT WIDGET ════════════════════════════════ -->
-<button id="chatFab" class="chat-fab" onclick="_chatToggle()" title="แชททีม">
-  💬
-  <span id="chatFabBadge" class="chat-fab-badge" style="display:none">0</span>
-</button>
-<div id="chatPanel" class="chat-panel">
-  <div class="chat-panel-head">
-    <div class="chat-panel-title">💬 แชททีม</div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="chat-panel-sub" id="chatWhoAmI" onclick="_chatChangeName()">ตั้งชื่อ</span>
-      <button class="chat-panel-close" onclick="_chatToggle()">✕</button>
-    </div>
-  </div>
-  <div id="chatBody" class="chat-panel-body">
-    <div class="chat-empty">ยังไม่มีข้อความ — เริ่มแชทกับทีมได้เลย</div>
-  </div>
-  <div class="chat-input-row">
-    <textarea id="chatInput" class="chat-input" rows="1" placeholder="พิมพ์ข้อความ…" onkeydown="_chatInputKeydown(event)"></textarea>
-    <button class="chat-send-btn" onclick="_chatSend()" title="ส่ง">➤</button>
-  </div>
-</div>
-
-<!-- ═══ PIN LOGIN OVERLAY ════════════════════════════════ -->
-<div id="pttsLoginOverlay" style="display:none;position:fixed;inset:0;z-index:99999;
-  background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);
-  align-items:center;justify-content:center;font-family:'Sarabun',sans-serif">
-  <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
-    border-radius:20px;padding:36px 32px;width:320px;max-width:90vw;text-align:center;
-    box-shadow:0 24px 48px rgba(0,0,0,.5)">
-    <div style="font-size:2.4rem;margin-bottom:8px">🔐</div>
-    <div style="font-size:1.1rem;font-weight:700;color:#e2e8f0;margin-bottom:4px">PTTS Cost Breakdown</div>
-    <div style="font-size:.82rem;color:#94a3b8;margin-bottom:24px">กรุณาใส่รหัส PIN เพื่อเข้าใช้งาน</div>
-    <input type="password" id="pttsLoginPin" maxlength="8"
-      placeholder="PIN"
-      onkeydown="if(event.key==='Enter')pttsDoLogin()"
-      style="width:100%;padding:12px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.15);
-      background:rgba(255,255,255,.07);color:#e2e8f0;font-family:'Sarabun',sans-serif;font-size:1.1rem;
-      text-align:center;letter-spacing:4px;outline:none;box-sizing:border-box;margin-bottom:12px">
-    <button onclick="pttsDoLogin()"
-      style="width:100%;padding:12px;border-radius:10px;border:none;cursor:pointer;
-      background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-family:'Sarabun',sans-serif;
-      font-size:.95rem;font-weight:700">เข้าสู่ระบบ</button>
-    <div id="pttsLoginErr" style="margin-top:10px;font-size:.8rem;color:#f87171;min-height:18px"></div>
-  </div>
-</div>
-
-<script>
-// ═══ PTTS Auth System ═══════════════════════════════════════════════
-(function(){
-  var USER2_TABS = ['track','order'];
-
-  function getPin(role){ return localStorage.getItem('ptts_pin_'+role) || (role==='admin'?'1234':'0000'); }
-
-  window.pttsDoLogin = function(){
-    var pin = document.getElementById('pttsLoginPin').value;
-    var role = pin===getPin('admin') ? 'admin' : pin===getPin('user2') ? 'user2' : null;
-    if(role){
-      sessionStorage.setItem('ptts_role', role);
-      _applyRole(role);
-    } else {
-      document.getElementById('pttsLoginErr').textContent = '❌ PIN ไม่ถูกต้อง';
-      document.getElementById('pttsLoginPin').value = '';
-    }
-  };
-
-  window.pttsLogout = function(){
-    sessionStorage.removeItem('ptts_role');
-    location.reload();
-  };
-
-  window.pttsSavePins = function(){
-    var a = document.getElementById('cfg_pin_admin');
-    var u = document.getElementById('cfg_pin_user2');
-    var saved = false;
-    if(a && a.value.trim()){ localStorage.setItem('ptts_pin_admin', a.value.trim()); a.value=''; saved=true; }
-    if(u && u.value.trim()){ localStorage.setItem('ptts_pin_user2', u.value.trim()); u.value=''; saved=true; }
-    if(saved) Swal.fire({icon:'success',title:'บันทึกแล้ว',timer:1200,showConfirmButton:false,background:'var(--bg-card)',color:'var(--t1)'});
-    else Swal.fire({icon:'info',title:'ไม่มีการเปลี่ยนแปลง',text:'กรุณากรอก PIN ใหม่ก่อนบันทึก',timer:1500,showConfirmButton:false,background:'var(--bg-card)',color:'var(--t1)'});
-  };
-
-  function _applyRole(role){
-    document.body.classList.remove('role-admin','role-user2');
-    document.body.classList.add('role-'+role);
-    document.getElementById('pttsLoginOverlay').style.display = 'none';
-    // update logout chip
-    var chip = document.getElementById('pttsRoleChip');
-    if(chip){ chip.textContent = role==='admin' ? '👤 Admin' : '👁 User'; chip.style.display=''; }
-    if(typeof renderTabBar === 'function') renderTabBar();
-    if(role==='user2'){
-      if(typeof _activeTab !== 'undefined' && !USER2_TABS.includes(_activeTab)){
-        if(typeof switchTab==='function') switchTab('track');
-      }
-      setTimeout(_enforceReadOnly, 600);
-    }
-  }
-
-  function _enforceReadOnly(){
-    USER2_TABS.forEach(function(tabId){
-      var el = document.getElementById('tab-'+tabId);
-      if(!el) return;
-      el.querySelectorAll('button').forEach(function(btn){
-        var txt = (btn.textContent||'').trim();
-        var ok = /ค้นหา|รีเฟรช|พิมพ์|เต็มจอ|กรอง|ดู|ปิด|เปิด|export|print/i.test(txt)
-               || btn.classList.contains('allow-ro')
-               || btn.id === 'trkFullBtn';
-        if(!ok){ btn.disabled=true; btn.style.opacity='.35'; btn.style.pointerEvents='none'; }
-      });
-    });
-  }
-
-  // patch switchTab to re-enforce after render
-  window.addEventListener('DOMContentLoaded', function(){
-    var origSwitch = window.switchTab;
-    if(origSwitch){
-      window.switchTab = function(name){
-        origSwitch(name);
-        if(sessionStorage.getItem('ptts_role')==='user2') setTimeout(_enforceReadOnly,600);
-      };
-    }
-    // init
-    var role = sessionStorage.getItem('ptts_role');
-    var overlay = document.getElementById('pttsLoginOverlay');
-    if(role){
-      overlay.style.display = 'none';
-      _applyRole(role);
-    } else {
-      overlay.style.display = 'flex';
-      setTimeout(function(){ document.getElementById('pttsLoginPin').focus(); },200);
-    }
-    // populate PIN placeholders
-    ['admin','user2'].forEach(function(r){
-      var el = document.getElementById('cfg_pin_'+r);
-      if(el && localStorage.getItem('ptts_pin_'+r)) el.placeholder='(ตั้งแล้ว — กรอกใหม่เพื่อเปลี่ยน)';
-    });
-  });
-})();
-</script>
-
-</body></html>
+      'เปิดแท็บ/หน้าต่างใหม่ → เริ่มที่หน้าแดชบอร์ดเสม
