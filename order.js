@@ -563,6 +563,13 @@ function _ordRefreshFormLists() {
     (_dtCache    || []).forEach(r => { const v = String(r[DT.workType]||'').trim();          if(v) seen.add(v); });
     wtDl.innerHTML = [...seen].sort().map(v => `<option value="${v}">`).join('');
   }
+  // populate datalist ตัวกรอง
+  const fwDl = $('ordFilterWorkTypeList');
+  if (fwDl) {
+    const seen2 = new Set();
+    (_orderCache || []).forEach(r => { const v = String(r[ORDER_COLS.workType]||'').trim(); if(v) seen2.add(v); });
+    fwDl.innerHTML = [...seen2].sort().map(v => `<option value="${v}">`).join('');
+  }
 }
 
 // เมื่อเลือกรายการสินค้า/บริการจาก Item Master (datalist) — เติมหน่วย/ราคาให้อัตโนมัติถ้ามีข้อมูล
@@ -1073,6 +1080,7 @@ function _ordResetFilters() {
   $('ordSearch').value = '';
   $('ordFilterStatus').value = '_not_done';
   $('ordFilterCustomer').value = '';
+  if ($('ordFilterWorkType')) $('ordFilterWorkType').value = '';
   $('ordFilterWantFrom').value = '';
   $('ordFilterWantTo').value = '';
   _ordPage = 1;
@@ -1137,6 +1145,12 @@ function renderOrderTable() {
   const custFilter = ($('ordFilterCustomer')?.value || '').trim().toLowerCase();
   if (custFilter) {
     rows = rows.filter(r => String(r[ORDER_COLS.customer]||'').toLowerCase().includes(custFilter));
+  }
+
+  // ── ตัวกรอง: แบบงาน ──
+  const workTypeFilter = ($('ordFilterWorkType')?.value || '').trim().toLowerCase();
+  if (workTypeFilter) {
+    rows = rows.filter(r => String(r[ORDER_COLS.workType]||'').toLowerCase().includes(workTypeFilter));
   }
 
   // ── ตัวกรอง: ช่วงวันที่ต้องการ ──

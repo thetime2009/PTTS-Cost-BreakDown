@@ -38,7 +38,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v9.34</span>
+      <span class="ph-chip ver">v9.35</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -1769,6 +1769,14 @@
                  border:1px solid var(--bc-input);background:var(--bg-input);
                  color:var(--t1);font-size:.78rem;font-family:Sarabun,sans-serif;outline:none">
       </div>
+      <div class="field" style="margin:0;min-width:160px">
+        <label style="font-size:.7rem;color:var(--t2)">แบบงาน</label>
+        <input id="ordFilterWorkType" type="text" list="ordFilterWorkTypeList" placeholder="ทุกแบบงาน" oninput="_ordPage=1; renderOrderTable()"
+          style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;
+                 border:1px solid var(--bc-input);background:var(--bg-input);
+                 color:var(--t1);font-size:.78rem;font-family:Sarabun,sans-serif;outline:none">
+        <datalist id="ordFilterWorkTypeList"></datalist>
+      </div>
       <div class="field" style="margin:0;min-width:140px">
         <label style="font-size:.7rem;color:var(--t2)">วันที่ต้องการ ตั้งแต่</label>
         <input id="ordFilterWantFrom" type="date" oninput="_ordPage=1; renderOrderTable()"
@@ -3023,7 +3031,7 @@
 <script src="formcalc.js?v=9.06"></script>
 <script src="aifeatures.js?v=8.94"></script>
 <script src="theme.js?v=9.10"></script>
-<script src="order.js?v=9.34"></script>
+<script src="order.js?v=9.35"></script>
 <script src="purchase.js?v=9.32"></script>
 <script src="invoice.js?v=9.03"></script>
 <script src="plating.js?v=8.94"></script>
@@ -3169,9 +3177,18 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260619-B',
+    ref: '#REV-20260619-C',
     date: '2026-06-19',
     current: true,
+    items: [
+      'form.html + order.js: เพิ่มตัวกรอง "แบบงาน" ในรายการ Order พร้อม datalist dropdown',
+      'order.js: ล้างตัวกรองแบบงานเมื่อกด "ล้างตัวกรอง"',
+    ],
+  },
+  {
+    ref: '#REV-20260619-B',
+    date: '2026-06-19',
+    current: false,
     items: [
       'form.html + order.js: ฟอร์มสร้าง Order — ช่อง "ลูกค้า" และ "แบบงาน" เปลี่ยนเป็น input แก้ไขได้ + datalist dropdown',
       'order.js: _ordRefreshFormLists() — populate datalist ลูกค้าจาก _custCache, datalist แบบงานจาก Order+DATA cache',
