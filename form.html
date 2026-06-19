@@ -38,7 +38,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v9.58</span>
+      <span class="ph-chip ver">v9.59</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -937,6 +937,11 @@
   <div class="tab-title" style="padding-top:16px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
     <div style="display:flex;align-items:center;gap:8px"><div class="ticon ic-blue">🔧</div>ตั้งค่า</div>
     <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="openDocCfg()" title="แก้ไขข้อมูลบริษัท"
+        style="padding:8px 14px;border:1px solid rgba(255,255,255,.12);border-radius:999px;
+        cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.78rem;font-weight:700;
+        display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#0369a1,#0891b2);
+        color:#fff">🏢 ตั้งค่าบริษัท</button>
       <button onclick="showHelp()" title="คู่มือการใช้งาน"
         style="padding:8px 14px;border:1px solid rgba(255,255,255,.12);border-radius:999px;
         cursor:pointer;font-family:'Sarabun',sans-serif;font-size:.78rem;font-weight:700;
@@ -3244,8 +3249,6 @@
       📋 ใบเสนอราคาอย่างเป็นทางการ (Official Quotation)</button>
     <button id="dtabCost" class="doc-tab-btn" onclick="switchDocTab('cost')">
       📊 ใบจำแนกต้นทุนผลิตภายใน (Costing Sheet)</button>
-    <button onclick="openDocCfg()" class="doc-tab-btn no-print" title="แก้ไขข้อมูลบริษัท"
-      style="padding:5px 10px;font-size:.7rem;opacity:.65">⚙️ ตั้งค่าบริษัท</button>
   </div>
 
   <!-- Doc body -->
@@ -4897,4 +4900,4 @@ const DEV_LOGS = [
     date: '2026-06-14',
     current: false,
     items: [
-      'รายงานรายละเอียดย่อย (ส่งชุบ): รวมชื่อรายการ + สเปควัสดุ + เลขที่ใบส่งชุบอ้างอิง �
+      'รา�
