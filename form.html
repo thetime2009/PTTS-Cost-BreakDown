@@ -38,7 +38,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v9.45</span>
+      <span class="ph-chip ver">v9.47</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -3223,8 +3223,8 @@
 <script src="formcalc.js?v=9.06"></script>
 <script src="aifeatures.js?v=8.94"></script>
 <script src="theme.js?v=9.10"></script>
-<script src="order.js?v=9.45"></script>
-<script src="purchase.js?v=9.45"></script>
+<script src="order.js?v=9.47"></script>
+<script src="purchase.js?v=9.47"></script>
 <script src="invoice.js?v=9.03"></script>
 <script src="plating.js?v=8.94"></script>
 
@@ -3369,9 +3369,31 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260619-M',
+    ref: '#REV-20260619-O',
     date: '2026-06-19',
     current: true,
+    items: [
+      'RFQ: เปลี่ยนรูปแบบวันที่เป็น dd/mm/yyyy พ.ศ. ทั้งในชีตและในรายการ',
+      'purchase.js: เพิ่ม _rfqDateToThai() / _rfqThaiToIso() / ปรับ _rfqThDate()',
+      'บันทึกวันที่เป็น dd/mm/yyyy พ.ศ. ไปยัง Sheets, โหลดกลับแปลงเป็น ISO สำหรับ input type=date',
+    ],
+  },
+  {
+    ref: '#REV-20260619-N',
+    date: '2026-06-19',
+    current: false,
+    items: [
+      'RFQ: แก้ Supplier datalist — retry โหลดจาก cache ทุก 600ms สูงสุด 8 ครั้ง + fallback fetch โดยตรง',
+      'RFQ: เพิ่มปุ่ม "แก้ไข" ในรายการ — โหลดข้อมูลกลับเข้าฟอร์มพร้อม scroll ขึ้น',
+      'RFQ: _rfqSave() แสดง Swal loading overlay ระหว่างบันทึก',
+      'RFQ: แก้วันที่ในรายการแสดงเป็นภาษาไทย พ.ศ. แทน raw string',
+      'Code.gs: getRFQList() format วันที่จาก Date object เป็น yyyy-MM-dd ก่อน return',
+    ],
+  },
+  {
+    ref: '#REV-20260619-M',
+    date: '2026-06-19',
+    current: false,
     items: [
       'เพิ่มฟีเจอร์ใบขอราคา (RFQ) ครบวงจร',
       'core.js: เพิ่ม tab rfq ใน TAB_DEFS / เปลี่ยน placeholder เป็น { tab: rfq } ใน GROUP_DEFS',

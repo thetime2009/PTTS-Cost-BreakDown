@@ -1461,14 +1461,16 @@ async function _rfqSave() {
   const payload = {
     action:   'saveRFQ',
     rfqNo,
-    date:     $('rfq_date').value,
+    date:     _rfqDateToThai($('rfq_date').value),
     supplier: $('rfq_supplier').value.trim(),
     items:    JSON.stringify(items),
     remark:   $('rfq_remark').value.trim(),
     createdAt: new Date().toISOString(),
   };
   const st = $('rfq_status');
-  if (st) st.textContent = '⏳ กำลังบันทึก…';
+  if (st) st.textContent = '';
+  Swal.fire({ title:'กำลังบันทึก…', allowOutsideClick:false, showConfirmButton:false,
+    background:'#0d1b2a', color:'#cce4ff', didOpen:()=>Swal.showLoading() });
   try {
     await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
     if (st) st.textContent = '✅ บันทึกแล้ว';
@@ -1527,12 +1529,12 @@ function _rfqRenderList() {
     const hasImg = items.some(r => r.img);
     return `<tr style="border-bottom:1px solid var(--bc-div);font-size:.8rem">
       <td style="padding:8px 10px;font-weight:600;color:var(--c1)">${_escH(String(q.rfqNo||''))}${hasImg?'<span style="margin-left:4px;font-size:.65rem;background:rgba(99,102,241,.2);color:#a78bfa;padding:1px 5px;border-radius:4px">📷</span>':''}</td>
-      <td style="padding:8px 10px;color:var(--t2)">${_escH(String(q.date||''))}</td>
+      <td style="padding:8px 10px;color:var(--t2)">${_escH(_rfqThDate(q.date||''))}</td>
       <td style="padding:8px 10px">${_escH(String(q.supplier||'—'))}</td>
       <td style="padding:8px 10px;text-align:center">${items.length} รายการ</td>
       <td style="padding:8px 10px;color:var(--t3);font-size:.75rem">${_escH(String(q.remark||'—'))}</td>
       <td style="padding:8px 10px;text-align:center;white-space:nowrap">
-        <button onclick="_rfqPrintFromList(${ci})" style="padding:4px 9px;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg-card);color:var(--t1);font-size:.72rem;cursor:pointer;font-family:Sarabun,sans-serif;margin-right:4px">🖨️ พิมพ์</button>
+        <button onclick="_rfqLoadFromList(${ci})" style="padding:4px 9px;border-radius:6px;border:1px solid rgba(99,102,241,.4);background:rgba(99,102,241,.1);color:#a78bfa;font-size:.72rem;cursor:pointer;font-family:Sarabun,sans-serif;margin-right:4px">✏️ แก้ไข</button><button onclick="_rfqPrintFromList(${ci})" style="padding:4px 9px;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg-card);color:var(--t1);font-size:.72rem;cursor:pointer;font-family:Sarabun,sans-serif;margin-right:4px">🖨️ พิมพ์</button>
         <button onclick="_rfqDeleteFromList(${ci})" style="padding:4px 9px;border-radius:6px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#f87171;font-size:.72rem;cursor:pointer;font-family:Sarabun,sans-serif">🗑️ ลบ</button>
       </td>
     </tr>`;
@@ -1578,7 +1580,7 @@ function _rfqPrint() {
   }
   const data = {
     rfqNo:    $('rfq_no').value || _rfqGenNo(),
-    date:     $('rfq_date').value,
+    date:     _rfqDateToThai($('rfq_date').value),
     supplier: $('rfq_supplier').value.trim(),
     items,
     remark:   $('rfq_remark').value.trim(),
@@ -1591,6 +1593,25 @@ function _rfqPrintFromList(i) {
   if (!q) return;
   _rfqOpenPrintWindow({ rfqNo: q.rfqNo, date: q.date, supplier: q.supplier,
     items: Array.isArray(q.items) ? q.items : [], remark: q.remark });
+}
+
+function _rfqLoadFromList(i) {
+  const q = _rfqListCache[i];
+  if (!q) return;
+  _rfqEditNo = q.rfqNo;
+  if ($('rfq_formTitle')) $('rfq_formTitle').textContent = 'แก้ไขใบขอราคา';
+  if ($('rfq_no'))       $('rfq_no').value = q.rfqNo;
+  if ($('rfq_date'))     $('rfq_date').value = _rfqThaiToIso(q.date||'');
+  if ($('rfq_supplier')) $('rfq_supplier').value = q.supplier || '';
+  if ($('rfq_remark'))   $('rfq_remark').value = q.remark || '';
+  if ($('rfq_status'))   $('rfq_status').textContent = '';
+  _rfqRows = Array.isArray(q.items) && q.items.length ? q.items.map(r => ({
+    name: r.name||'', qty: r.qty||'1', unit: r.unit||'ชิ้น', remark: r.remark||'', img: r.img||''
+  })) : [_rfqEmptyRow()];
+  _rfqRenderItems();
+  // scroll to form
+  const card = $('rfqFormBody');
+  if (card) card.closest('.card')?.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 function _rfqOpenPrintWindow(data) {
@@ -1695,20 +1716,45 @@ function _rfqOpenPrintWindow(data) {
   win.document.close();
 }
 
-function _rfqThDate(iso) {
-  if (!iso) return '';
-  try {
-    const d = new Date(iso);
-    return d.toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' });
-  } catch(e) { return iso; }
+// แปลง ISO (yyyy-MM-dd CE) → dd/mm/yyyy BE
+function _rfqDateToThai(isoDate) {
+  if (!isoDate) return '';
+  const p = String(isoDate).split('-');
+  if (p.length !== 3) return isoDate;
+  return `${p[2]}/${p[1]}/${parseInt(p[0])+543}`;
+}
+// แปลง dd/mm/yyyy BE → ISO (yyyy-MM-dd CE) สำหรับใส่กลับ <input type="date">
+function _rfqThaiToIso(thaiDate) {
+  if (!thaiDate) return '';
+  const p = String(thaiDate).split('/');
+  if (p.length !== 3) return thaiDate.substring(0,10);
+  return `${parseInt(p[2])-543}-${p[1]}-${p[0]}`;
+}
+// แสดงผลวันที่ — รับได้ทั้ง ISO และ dd/mm/yyyy BE
+function _rfqThDate(v) {
+  if (!v) return '';
+  if (String(v).includes('/')) return String(v); // already Thai
+  return _rfqDateToThai(String(v).substring(0,10));
 }
 
 // ── โหลด supplier list ──────────────────────────────────────
-function _rfqLoadSupplierList() {
+function _rfqLoadSupplierList(retry) {
   const dl = $('rfq_supplierList');
   if (!dl) return;
   if (typeof _supplierCache !== 'undefined' && _supplierCache.length) {
-    dl.innerHTML = _supplierCache.map(s => `<option value="${_escH(String(s.name||s[0]||''))}"></option>`).join('');
+    dl.innerHTML = _supplierCache.map(s => `<option value="${_escH(String(s.name||''))}"></option>`).join('');
+  } else if ((retry||0) < 8) {
+    // ยังไม่โหลด — รอแล้วลองใหม่ (สูงสุด 8 ครั้ง × 600ms = 4.8s)
+    setTimeout(() => _rfqLoadSupplierList((retry||0)+1), 600);
+  } else if (SCRIPT_URL) {
+    // ดึงโดยตรงเป็น fallback
+    fetch(SCRIPT_URL + '?action=getSuppliers', {mode:'cors'})
+      .then(r => r.json())
+      .then(d => {
+        if (d.suppliers && d.suppliers.length) {
+          dl.innerHTML = d.suppliers.map(s => `<option value="${_escH(String(s.name||''))}"></option>`).join('');
+        }
+      }).catch(()=>{});
   }
 }
 
