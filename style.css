@@ -1534,14 +1534,9 @@ body.trk-fullscreen-mode .trk-fs-toolbar {
 .trk-task-circle .trk-circle-lbl { font-size: .42rem; }
 .trk-task-circle .trk-circle-warn { font-size: .9rem; }
 .trk-task-info { flex: 1; min-width: 0; }
-.trk-task-main { font-size: 1rem; font-weight: 800; line-height: 1.4; word-break: break-word; color: var(--tx1,#111); }
-.trk-task-meta-row { display: flex; align-items: center; gap: 10px; margin-top: 3px; flex-wrap: wrap; }
-.trk-task-qty {
-  font-size: 1.05rem; font-weight: 900; color: var(--col-clr, #6366f1);
-  background: color-mix(in srgb, var(--col-clr,#6366f1) 12%, transparent);
-  border-radius: 6px; padding: 1px 8px;
-}
-.trk-task-cust { font-size: .78rem; font-weight: 600; color: var(--t3); }
+.trk-task-main { font-size: 1.4rem; font-weight: 800; line-height: 1.5; word-break: break-word; color: var(--col-clr, #6366f1); }
+.trk-task-meta { font-size: .75rem; font-weight: 600; color: var(--t3); margin-top: 2px; word-break: break-word; }
+.trk-task-unit { font-weight: 800; }
 .trk-task-empty { font-size: .85rem; color: var(--t3); text-align: center; padding: 12px 0; }
 
 /* วงกลม Lead Time */
