@@ -2308,7 +2308,10 @@ async function _ordQuickChangeProcess(noPO) {
   row[ORDER_COLS.process] = newProcess;
   row[ORDER_COLS.statusDeliver] = (newProcess === 'เรียบร้อย'); // P sync กับ AppSheet
 
-  showOrderDetail(noPO);
+  // แสดง loading ระหว่างบันทึก
+  Swal.fire({ title:'⏳ กำลังบันทึก...', allowOutsideClick:false,
+    background:'var(--bg-deep)', color:'var(--t1)', didOpen:()=>Swal.showLoading() });
+
   const toast = Swal.mixin({ toast:true, position:'top-end', showConfirmButton:false, timer:1500, timerProgressBar:true });
   try {
     await fetch(SCRIPT_URL, { method:'POST', mode:'no-cors',
