@@ -148,6 +148,7 @@ const TAB_DEFS = [
   { id:'rfq',       icon:'📨', label:'ใบขอราคา' },
   { id:'wi',        icon:'📄', label:'WI' },
   { id:'dept_help', icon:'📖', label:'วิธีใช้งานแผนก' },
+  { id:'dashboard', icon:'📊', label:'แดชบอร์ด' },
 ];
 
 // ── Sidebar Group Menu (เดสก์ท็อป ≥1024px) ─────────────
@@ -161,6 +162,7 @@ const TOP_SIDEBAR_ITEMS = [
 
 const GROUP_DEFS = [
   { id:'sales', icon:'💼', label:'ฝ่ายขาย', items: [
+    { tab:'dashboard' },
     { tab:'breakdown' },
     { tab:'order', label:'ใบเสนอราคา', icon:'📝' },
     { tab:'order' },
@@ -467,6 +469,7 @@ function switchTab(name) {
   if (name === 'cust')       { fetchCustomers(); fetchOrders(); }
   if (name === 'invoice')    { fetchCustomers(); fetchOrders(); invInit(); }
   if (name === 'plating')    { fetchSuppliers(); fetchOrders(); platingInit(); }
+  if (name === 'dashboard')  { if (typeof _dbInit === 'function') _dbInit(); }
 }
 
 // ── Tab Manager UI ───────────────────────────────────
@@ -1541,4 +1544,3 @@ function _chatInit() {
     e.target.style.height = Math.min(e.target.scrollHeight, 70) + 'px';
   });
 }
-

@@ -38,7 +38,7 @@
       <div class="ph-sub">Manufacturing Cost Management System</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v9.65</span>
+      <span class="ph-chip ver">v9.66</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2053,6 +2053,11 @@
 </div>
 </div><!-- end tab-track -->
 
+<!-- ══ TAB: DASHBOARD ══════════════════════════════ -->
+<div id="tab-dashboard" class="tab-content">
+  <!-- rendered by dashboard.js _dbInit() -->
+</div><!-- end tab-dashboard -->
+
 <!-- ══ TAB: MAT ════════════════════════════════════ -->
 <div id="tab-mat" class="tab-content">
 <div style="max-width:620px;margin:0 auto;padding:12px 8px 100px">
@@ -3302,7 +3307,8 @@
 <script src="formcalc.js?v=9.06"></script>
 <script src="aifeatures.js?v=8.94"></script>
 <script src="theme.js?v=9.10"></script>
-<script src="order.js?v=9.65"></script>
+<script src="order.js?v=9.66"></script>
+<script src="dashboard.js?v=9.66"></script>
 <script src="purchase.js?v=9.58"></script>
 <script src="invoice.js?v=9.03"></script>
 <script src="plating.js?v=8.94"></script>
@@ -3446,9 +3452,21 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260620-A',
+    ref: '#REV-20260620-B',
     date: '2026-06-20',
     current: true,
+    items: [
+      'เพิ่ม tab แดชบอร์ดยอดขาย (tab-dashboard) ใน TAB_DEFS, GROUP_DEFS (ฝ่ายขาย), switchTab',
+      'สร้าง dashboard.js — KPI cards, bar chart รายเดือน (Chart.js lazy-load), donut chart สัดส่วนสินค้า',
+      'dashboard.js: ตาราง Top 5 สินค้าขายดี / ลูกค้าสูงสุด + กล่อง AI วิเคราะห์ (rule-based)',
+      'Code.gs: เพิ่ม getSalesDashboard() — aggregate Order sheet: monthly/topProducts/topCustomers/kpi + % vs ช่วงก่อน',
+      'Code.gs: เพิ่ม doGet route action=getSalesDashboard',
+    ],
+  },
+  {
+    ref: '#REV-20260620-A',
+    date: '2026-06-20',
+    current: false,
     items: [
       'WI ↔ Order linking: เพิ่ม ORDER_COLS.wiId (index 37, คอลัมน์ AL) และ ORDER_NUM_COLS = 38',
       'order.js: _wiMatch() ตรวจ wiId ที่ผูกไว้โดยตรงก่อน แล้ว fallback auto-match OD+ID+H+workType',
