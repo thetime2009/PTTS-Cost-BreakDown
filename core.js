@@ -150,6 +150,7 @@ const TAB_DEFS = [
   { id:'dept_help', icon:'📖', label:'วิธีใช้งานแผนก' },
   { id:'dashboard', icon:'📊', label:'แดชบอร์ด' },
   { id:'inspect',   icon:'🔍', label:'ตรวจสอบ' },
+  { id:'stock',     icon:'📦', label:'Stock MAT' },
 ];
 
 // ── Sidebar Group Menu (เดสก์ท็อป ≥1024px) ─────────────
@@ -178,6 +179,7 @@ const GROUP_DEFS = [
     { tab:'po' },
     { tab:'plating' },
     { tab:'mat' },
+    { tab:'stock' },
     { tab:'supplier' },
     { tab:'dept_help', label:'วิธีใช้งานแผนก', icon:'📖', dept:'purchase' },
   ]},
@@ -187,6 +189,7 @@ const GROUP_DEFS = [
     { tab:'mold' },
     { tab:'track', view:'reduced' },
     { tab:'inspect' },
+    { tab:'stock' },
     { tab:'wi' },
     { tab:'dept_help', label:'วิธีใช้งานแผนก', icon:'📖', dept:'production' },
   ]},
@@ -472,6 +475,7 @@ function switchTab(name) {
   if (name === 'plating')    { fetchSuppliers(); fetchOrders(); platingInit(); }
   if (name === 'dashboard')  { if (typeof _dbInit    === 'function') _dbInit(); }
   if (name === 'inspect')    { if (typeof _inspInit  === 'function') _inspInit(); }
+  if (name === 'stock')      { if (typeof stockLoad    === 'function') stockLoad(); }
 }
 
 // ── Tab Manager UI ───────────────────────────────────

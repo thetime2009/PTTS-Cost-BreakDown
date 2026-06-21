@@ -62,7 +62,7 @@ function _supplierInput(id, val, placeholder) {
 }
 
 function supplierAddRow() {
-  _supplierCache.push({ code:'', name:'', address:'', taxId:'', contact:'', note:'' });
+  _supplierCache.push({ code:'', name:'', address:'', taxId:'', contact:'', note:'', leadTimeDays:0, matCodes:'' });
   _supplierEditIdx = _supplierCache.length - 1;
   renderSupplierTable();
 }
@@ -81,7 +81,9 @@ async function supplierSaveRow(i) {
     address: g('sup_addr_'+i),
     taxId:   g('sup_taxid_'+i),
     contact: g('sup_contact_'+i),
-    note:    g('sup_note_'+i),
+    note:         g('sup_note_'+i),
+    leadTimeDays: parseInt(g('sup_lead_'+i)) || 0,
+    matCodes:     g('sup_matcodes_'+i),
   };
   if (!data.name) { Swal.fire({icon:'warning',title:'กรุณาใส่ชื่อ Supplier',confirmButtonColor:'#6366f1'}); return; }
   if (!SCRIPT_URL) { Swal.fire({icon:'info',title:'ยังไม่ตั้งค่า URL',confirmButtonColor:'#6366f1'}); return; }
@@ -139,14 +141,23 @@ function renderSupplierTable() {
   const rows = _supplierCache.map((s, i) => {
     if (i === _supplierEditIdx) {
       return `<tr style="background:rgba(99,102,241,.08)">
-        <td style="padding:6px 8px" colspan="6">
+        <td style="padding:6px 8px" colspan="7">
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px">
             ${_supplierInput('sup_name_'+i, s.name, 'ชื่อบริษัท/Supplier')}
             ${_supplierInput('sup_taxid_'+i, s.taxId, 'เลขผู้เสียภาษี 13 หลัก')}
             ${_supplierInput('sup_contact_'+i, s.contact, 'ผู้ติดต่อ/เบอร์โทร')}
             ${_supplierInput('sup_note_'+i, s.note, 'หมายเหตุ')}
+            <div>
+              <div style="font-size:.68rem;color:var(--t3);margin-bottom:2px">Lead Time (วัน)</div>
+              <input id="sup_lead_${i}" type="number" min="0" value="${s.leadTimeDays||0}"
+                style="width:100%;box-sizing:border-box;padding:5px 8px;border-radius:6px;border:1px solid rgba(99,102,241,.35);background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem">
+            </div>
           </div>
           <div style="margin-top:6px">${_supplierInput('sup_addr_'+i, s.address, 'ที่อยู่')}</div>
+          <div style="margin-top:6px">
+            <div style="font-size:.68rem;color:var(--t3);margin-bottom:2px">MAT Codes ที่จัดหา (คั่นด้วยจุลภาค เช่น SPCC-0.6, SPCC-1.0)</div>
+            ${_supplierInput('sup_matcodes_'+i, s.matCodes||'', 'เช่น SPCC-0.6, SPCC-1.0, SUS304-1.0')}
+          </div>
           <div style="margin-top:8px;text-align:right">
             <button onclick="guardClick(this, () => supplierSaveRow(${i}))"
               style="padding:5px 14px;border-radius:6px;border:1px solid rgba(52,211,153,.4);
@@ -166,6 +177,7 @@ function renderSupplierTable() {
       <td style="padding:7px 10px;font-size:.78rem;color:var(--t3)">${s.address||'—'}</td>
       <td style="padding:7px 10px;font-size:.78rem;color:var(--t3)">${s.contact||'—'}</td>
       <td style="padding:7px 10px;font-size:.78rem;color:var(--t3)">${s.note||'—'}</td>
+      <td style="padding:7px 10px;font-size:.78rem;color:var(--t2);text-align:center">${s.leadTimeDays ? s.leadTimeDays+' วัน' : '—'}</td>
       <td style="padding:7px 10px;white-space:nowrap">
         <button onclick="supplierEditRow(${i})"
           style="padding:4px 8px;border-radius:6px;border:1px solid rgba(99,102,241,.35);
@@ -185,6 +197,7 @@ function renderSupplierTable() {
           <th style="padding:7px 10px;text-align:left">ที่อยู่</th>
           <th style="padding:7px 10px;text-align:left">ผู้ติดต่อ</th>
           <th style="padding:7px 10px;text-align:left">หมายเหตุ</th>
+          <th style="padding:7px 10px;text-align:center">Lead Time</th>
           <th style="width:80px"></th>
         </tr>
       </thead>
@@ -736,6 +749,25 @@ async function _poSave() {
       html:`เลขที่ PO: <b>${poNo}</b>`,
       background:'#0d1b2a', color:'#cce4ff',
       confirmButtonColor:'#6366f1', timer:1800, showConfirmButton:false});
+    // ── รับวัสดุเข้า Stock (ถ้า stock.js โหลดแล้ว) ──
+    if (typeof stockReceiveFromPO === 'function') {
+      const poItemsForStock = _poItems
+        .filter(it => it.name && parseFloat(it.qty) > 0)
+        .map(it => ({
+          matCode: it.name.trim(),
+          name:    it.spec || '',
+          qty:     parseFloat(it.qty) || 0,
+          unit:    it.unit || 'แผ่น'
+        }))
+        .filter(it => {
+          // กรองเฉพาะ matCode ที่มีใน _stockRows (เพื่อความแม่นยำ)
+          if (typeof _stockRows !== 'undefined' && _stockRows.length > 0) {
+            return _stockRows.some(r => r.matCode === it.matCode);
+          }
+          return true; // ถ้ายังไม่โหลด stock ให้แสดงทั้งหมด
+        });
+      await stockReceiveFromPO(poNo, poItemsForStock);
+    }
     if (btn) btn.textContent = btnOldText;
     await _poNewForm();
   } catch (err) {

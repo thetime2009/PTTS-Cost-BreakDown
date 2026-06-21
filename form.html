@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v10.08</span>
+      <span class="ph-chip ver">v10.18</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2062,6 +2062,45 @@
   <!-- rendered by inspect.js _inspInit() -->
 </div><!-- end tab-inspect -->
 
+<div id="tab-stock" class="tab-content">
+  <div style="max-width:900px;margin:0 auto;padding:0 4px">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <div>
+        <h2 style="margin:0;font-size:1.1rem;font-weight:800">📦 Stock MAT</h2>
+        <div style="font-size:.75rem;color:var(--t3);margin-top:2px">ควบคุมวัสดุคงคลัง · แจ้งเตือนเมื่อต่ำกว่าขั้นต่ำ</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="stockLoad()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--bc-div);background:transparent;color:var(--t2);cursor:pointer;font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:600">🔄 โหลดใหม่</button>
+        <button onclick="stockOpenForm(null)" style="padding:8px 18px;border-radius:8px;border:none;background:var(--c1);color:#fff;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:700">➕ เพิ่มวัสดุ</button>
+      </div>
+    </div>
+
+    <!-- Dashboard Summary -->
+    <div class="card" style="margin-bottom:14px;padding:14px 16px">
+      <div id="_stockDash" style="color:var(--t3);font-size:.82rem">⏳ กำลังโหลด...</div>
+    </div>
+
+    <!-- Reorder Report -->
+    <div class="card" style="margin-bottom:14px;padding:14px 16px">
+      <div style="font-size:.82rem;font-weight:700;margin-bottom:10px">🛒 รายงาน Reorder — ต้องสั่งวันนี้</div>
+      <div id="_stockReorder" style="color:var(--t3);font-size:.82rem">⏳ กำลังโหลด...</div>
+    </div>
+
+    <!-- Stock Table -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--bc-div);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:.82rem;font-weight:700">รายการวัสดุทั้งหมด</div>
+      </div>
+      <div id="_stockTable" style="padding:8px 0;min-height:80px">
+        <div style="text-align:center;padding:32px;color:var(--t3);font-size:.82rem">⏳ กำลังโหลด...</div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- end tab-stock -->
+
 <!-- ══ TAB: MAT ════════════════════════════════════ -->
 <div id="tab-mat" class="tab-content">
 <div style="max-width:620px;margin:0 auto;padding:12px 8px 100px">
@@ -3314,6 +3353,7 @@
 <script src="order.js?v=9.75"></script>
 <script src="dashboard.js?v=9.73"></script>
 <script src="inspect.js?v=10.08"></script>
+  <script src="stock.js?v=10.17"></script>
 <script src="purchase.js?v=9.58"></script>
 <script src="invoice.js?v=9.03"></script>
 <script src="plating.js?v=8.94"></script>
@@ -3457,9 +3497,109 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260621-AD',
+    ref: '#REV-20260621-AN',
     date: '21/06/2568',
     current: true,
+    items: [
+      'purchase.js: แท็บ Supplier — เพิ่มช่อง Lead Time (วัน) และ MAT Codes ในฟอร์มแก้ไข',
+      'purchase.js: supplierSaveRow — ส่ง leadTimeDays + matCodes ไป saveSupplier (Code.gs คอลัมน์ G-H)',
+      'purchase.js: ตาราง Supplier — เพิ่มคอลัมน์แสดง Lead Time ในแถว read-only',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AM',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'stock.js: ย้ายปุ่ม 🧾 สั่งเลย จาก dashboard วิกฤต/ใกล้หมด → ไปอยู่ใน card รายงาน Reorder แทน',
+      'stock.js: เพิ่มคอลัมน์ปุ่มสั่งเลยในตาราง Reorder (header+td) — dashboard กลับเป็น read-only',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AL',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'stock.js: _stockStatChip — ตัวเลข chip ใหญ่ขึ้น (2rem/font-weight:900), icon 1.6rem, padding넓게',
+      'stock.js: dashboard วิกฤต+ใกล้หมด — เพิ่มปุ่ม 🧾 สั่งเลย ในแต่ละแถว',
+      'stock.js: stockOrderNow() — confirm popup → เปิดแท็บ PO → pre-fill supplier + MAT code + จำนวน',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AK',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'stock.js: เพิ่มปุ่ม ➖ จ่ายออก แยกต่างหากจาก ⚙ ปรับ ในตาราง Stock MAT',
+      'stock.js: stockAdjust รองรับ type=OUT — ชื่อ/label/ปุ่มยืนยันต่างหาก สีส้ม',
+      'stock.js: เพิ่มฟังก์ชัน _stockRenderReorder() — รายงาน MAT ที่ต้องสั่งวันนี้ คำนวณจาก minStock+leadTime',
+      'form.html: เพิ่ม panel 🛒 รายงาน Reorder ใน tab-stock',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AJ',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'stock.js: เพิ่ม drag-and-drop เรียงลำดับแถวได้ — ลากที่ ⠿ บันทึกลง localStorage',
+      'stock.js: จัดกลุ่ม MAT-ฝา / MAT-ตะแกรง / MAT-อื่นๆ อัตโนมัติจาก _localMatFlap/_localMatMesh',
+      'stock.js: _stockGetGroup, _stockLoadOrder, _stockSaveOrder, _stockGetSortedRows, drag handlers',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AI',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'stock.js: เปลี่ยน POST mode cors → no-cors ทุก fetch (GAS ไม่รองรับ preflight OPTIONS)',
+      'stock.js: stockSaveRow, stockDeleteRow, _stockCommitMovements — optimistic local update แทนรอ response',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AH',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'stock.js: stockOpenForm — เปลี่ยนช่อง Supplier เป็น datalist (พิมพ์กรองได้) แทน select',
+      'stock.js: ถ้า _supplierCache ยังว่าง → auto-load fetchSuppliers() แล้ว rebuild datalist',
+      'stock.js: preConfirm suppCode — ตัด " (code)" ออกถ้าผู้ใช้พิมพ์ชื่อเต็ม',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AG',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'stock.js: stockOpenForm — เปลี่ยนช่องรหัสวัสดุเป็น datalist ดึงจาก _localMatFlap + _localMatMesh พร้อม filter/พิมพ์ได้',
+      'stock.js: _stockAutoFillName — auto-fill ชื่อรายการเมื่อเลือก MAT จาก list',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AF',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'core.js: เพิ่ม tab-stock ใน GROUP_DEFS ฝ่ายจัดซื้อ + ฝ่ายผลิต — แก้แท็บ Stock MAT ไม่แสดงใน sidebar',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AE',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'Code.gs: เพิ่ม getMatStock, saveMatStock, updateMatStockBatch, getMatMovement',
+      'Code.gs: อัป getSuppliers/saveSupplier รองรับ leadTimeDays + matCodes (8 col)',
+      'stock.js: สร้างใหม่ — Dashboard traffic light, CRUD MatStock, Movement log, auto-deduct/receive helpers',
+      'core.js: เพิ่ม tab Stock MAT ใน nav + switchTab → stockLoad()',
+      'form.html: เพิ่ม tab-stock panel + script stock.js?v=10.14',
+      'order.js: หลัง save Order → auto คำนวณแผ่น (_computeCutParts) → stockDeductFromOrder()',
+      'purchase.js: หลัง save PO → stockReceiveFromPO() — รับวัสดุเข้า stock',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AD',
+    date: '21/06/2568',
+    current: false,
     items: [
       'inspect.js: ปรับความกว้าง column ตารางรายการตรวจสอบ — col-id nowrap 120px, col-type 68px, col-po 82px, col-spec auto-fill, col-num 46px, col-date 82px, col-insp 75px, col-result 60px, col-act 120px',
     ],
