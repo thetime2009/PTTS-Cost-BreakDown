@@ -130,6 +130,31 @@ async function supplierDeleteRow(i) {
   });
 }
 
+// ── Supplier MAT Codes chip picker ───────────────────────────
+function _suppMatToggle(idx, code) {
+  var inp = document.getElementById('sup_matcodes_'+idx);
+  if (!inp) return;
+  var cur = inp.value.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+  var pos = cur.indexOf(code);
+  if (pos >= 0) cur.splice(pos, 1); else cur.push(code);
+  inp.value = cur.join(', ');
+  _suppMatChipsRefresh(idx);
+}
+function _suppMatChipsRefresh(idx) {
+  var inp = document.getElementById('sup_matcodes_'+idx);
+  var wrap = document.getElementById('sup_matchips_'+idx);
+  if (!inp || !wrap) return;
+  var cur = inp.value.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+  wrap.querySelectorAll('button').forEach(function(btn) {
+    var code = btn.textContent.replace(/ฝา|ตะแกรง/g,'').trim();
+    var on = cur.indexOf(code) >= 0;
+    btn.style.background = on ? '#6366f1' : 'rgba(99,102,241,.1)';
+    btn.style.color       = on ? '#fff'    : '#818cf8';
+    btn.style.borderColor = on ? '#6366f1' : 'rgba(99,102,241,.3)';
+  });
+}
+
+
 function renderSupplierTable() {
   const wrap = $('supplierTableWrap');
   if (!wrap) return;
@@ -163,9 +188,28 @@ function renderSupplierTable() {
         </td>
       </tr>
       <tr style="background:rgba(99,102,241,.04)">
-        <td colspan="7" style="padding:2px 6px 8px">
-          <div style="font-size:.68rem;color:var(--t3);margin-bottom:2px">📦 MAT Codes ที่จัดหา (คั่นด้วยจุลภาค)</div>
-          ${_supplierInput('sup_matcodes_'+i, s.matCodes||'', 'เช่น SPCC-0.6, SPCC-1.0, SUS304-1.0')}
+        <td colspan="7" style="padding:2px 6px 10px">
+          <div style="font-size:.68rem;color:var(--t3);margin-bottom:4px">📦 MAT Codes ที่จัดหา — กดเลือกจากรายการ หรือพิมพ์เพิ่มเอง</div>
+          <input id="sup_matcodes_${i}" value="${(s.matCodes||'').replace(/"/g,'&quot;')}" placeholder="เช่น SPCC-0.6, SPCC-1.0"
+            oninput="_suppMatChipsRefresh(${i})"
+            style="width:100%;box-sizing:border-box;padding:5px 8px;border-radius:6px;border:1px solid rgba(99,102,241,.35);background:var(--bg-input);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.8rem;margin-bottom:6px">
+          <div id="sup_matchips_${i}" style="display:flex;flex-wrap:wrap;gap:5px">
+            ${(function(){
+              var all = [];
+              if(typeof _localMatFlap!=='undefined') _localMatFlap.forEach(function(m){ if(m.code) all.push({code:m.code,grp:'ฝา'}); });
+              if(typeof _localMatMesh!=='undefined') _localMatMesh.forEach(function(m){ if(m.code) all.push({code:m.code,grp:'ตะแกรง'}); });
+              var cur = (s.matCodes||'').split(',').map(function(x){return x.trim();}).filter(Boolean);
+              return all.map(function(m){
+                var on = cur.indexOf(m.code) >= 0;
+                var bg  = on ? '#6366f1' : 'rgba(99,102,241,.1)';
+                var col = on ? '#fff'    : '#818cf8';
+                var bdr = on ? '#6366f1' : 'rgba(99,102,241,.3)';
+                return '<button type="button" onclick="_suppMatToggle('+i+',\''+m.code+'\')"'
+                  +' style="padding:3px 10px;border-radius:20px;border:1px solid '+bdr+';background:'+bg+';color:'+col+';font-size:.72rem;cursor:pointer;font-family:Sarabun,sans-serif;transition:all .15s">'
+                  +m.code+'<span style="font-size:.6rem;opacity:.7;margin-left:3px">'+m.grp+'</span></button>';
+              }).join('');
+            })()}
+          </div>
         </td>
       </tr>`;
     }

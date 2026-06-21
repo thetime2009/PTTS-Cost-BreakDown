@@ -35,6 +35,10 @@ async function _stockBgLoad() {
   var url = _stockUrl();
   if (!url) return;
   try {
+    // โหลด supplier ก่อนถ้ายังว่าง (ต้องการชื่อร้านแสดงในตาราง)
+    if (typeof _supplierCache !== 'undefined' && !_supplierCache.length && typeof fetchSuppliers === 'function') {
+      await fetchSuppliers();
+    }
     var res = await fetch(url + '?action=getMatStock', { mode:'cors' });
     var d   = await res.json();
     _stockRows = d.rows || [];
@@ -47,6 +51,10 @@ async function stockLoad() {
   var url = _stockUrl();
   if (!url) { _stockRenderDash(); return; }
   try {
+    // โหลด supplier ก่อนถ้ายังว่าง — ต้องใช้ชื่อร้านในตาราง
+    if (typeof _supplierCache !== 'undefined' && !_supplierCache.length && typeof fetchSuppliers === 'function') {
+      await fetchSuppliers();
+    }
     var res = await fetch(url + '?action=getMatStock', { mode:'cors' });
     var d   = await res.json();
     _stockRows = d.rows || [];
@@ -206,7 +214,20 @@ function _stockRenderTable() {
         '</td>' +
         '<td style="padding:8px 10px;text-align:center;font-size:.8rem;color:var(--t2)">' + r.minStock + '<div style="font-size:.67rem;color:var(--t3)">' + r.unit + '</div></td>' +
         '<td style="padding:8px 10px;text-align:center;font-size:.8rem;color:var(--t2)">' + r.orderQty + '</td>' +
-        '<td style="padding:8px 10px;font-size:.75rem;color:var(--t3)">' + (r.suppCode || '—') + (lead ? '<div style="color:#f59e0b">ถึง ' + lead + '</div>' : '') + '</td>' +
+        '<td style="padding:8px 10px;font-size:.75rem;color:var(--t3)">' + (function(){
+            if (!r.suppCode) return '—';
+            // หาชื่อร้านจาก _supplierCache
+            var suppName = '';
+            if (typeof _supplierCache !== 'undefined') {
+              var sup = _supplierCache.find(function(s){ return s.code === r.suppCode; });
+              if (sup) suppName = sup.name || '';
+            }
+            var txt = '<div style="font-weight:600;color:var(--t2)">' + r.suppCode + '</div>';
+            if (suppName) txt += '<div style="font-size:.7rem;color:var(--t3)">' + suppName + '</div>';
+            // แสดงกำหนดสั่งเฉพาะ critical/low เท่านั้น
+            if (lead && st !== 'ok') txt += '<div style="color:#f59e0b;font-size:.7rem">ถึง ' + lead + '</div>';
+            return txt;
+          })() + '</td>' +
         '<td style="padding:8px 6px;white-space:nowrap;text-align:right">' +
           '<button onclick="stockAdjust(\'' + code + '\',\'IN\')" style="' + _stockBtnCss('#16a34a') + '">➕ รับเข้า</button> ' +
           '<button onclick="stockAdjust(\'' + code + '\',\'OUT\')" style="' + _stockBtnCss('#ea580c') + '">➖ จ่ายออก</button> ' +
@@ -664,15 +685,71 @@ async function stockOrderNow(matCode) {
   if (!row) return;
   var shortage   = Math.max(row.minStock - row.stockQty, 0);
   var qtyToOrder = Math.max(shortage, parseFloat(row.orderQty) || 0) || row.minStock;
+
+  // ── หา Supplier ที่รองรับ MAT นี้ (จาก matCodes field) ─────
+  var suppList = (typeof _supplierCache !== 'undefined' ? _supplierCache : [])
+    .filter(function(s) {
+      if (!s.matCodes) return false;
+      return s.matCodes.split(',').map(function(c){ return c.trim(); }).indexOf(matCode) >= 0;
+    });
+  // fallback: ถ้าไม่มีใครระบุ matCodes ไว้ ให้ใช้ preferred supplier ของ MAT
+  if (!suppList.length && row.suppCode) {
+    var pref = (typeof _supplierCache !== 'undefined' ? _supplierCache : [])
+      .find(function(s){ return s.code === row.suppCode; });
+    if (pref) suppList = [pref];
+  }
+
+  // ── เลือก Supplier ────────────────────────────────────────
+  var chosenCode = row.suppCode || '';
+  if (suppList.length > 1) {
+    // มีหลายร้าน → แสดง popup ให้เลือก
+    var suppHtml = suppList.map(function(s, idx) {
+      var isPref = s.code === row.suppCode;
+      return '<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;' +
+        'border:1px solid rgba(99,102,241,.2);margin-bottom:6px;cursor:pointer;background:rgba(99,102,241,.05)">' +
+        '<input type="radio" name="suppPick" value="' + s.code + '"' + (idx===0?' checked':'') +
+        ' style="accent-color:#6366f1;width:15px;height:15px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;font-size:.82rem;color:var(--t1)">' + (s.name||s.code) +
+            (isPref ? ' <span style="font-size:.65rem;color:#818cf8;font-weight:400">(ร้านหลัก)</span>' : '') + '</div>' +
+          (s.leadTimeDays ? '<div style="font-size:.7rem;color:var(--t3)">Lead Time: ' + s.leadTimeDays + ' วัน</div>' : '') +
+        '</div></label>';
+    }).join('');
+
+    var pick = await Swal.fire({
+      title: '🏪 เลือกร้านค้า: ' + matCode,
+      html: '<div style="font-size:.78rem;color:var(--t3);margin-bottom:10px">พบ ' + suppList.length + ' ร้านที่จัดหา MAT นี้ได้</div>' + suppHtml,
+      background:'var(--bg-card)', color:'var(--t1)', width:420,
+      showCancelButton:true,
+      confirmButtonText:'✅ เลือกร้านนี้',
+      cancelButtonText:'ยกเลิก',
+      confirmButtonColor:'#6366f1',
+      preConfirm: function() {
+        var sel = document.querySelector('input[name="suppPick"]:checked');
+        return sel ? sel.value : suppList[0].code;
+      }
+    });
+    if (!pick.isConfirmed) return;
+    chosenCode = pick.value;
+  } else if (suppList.length === 1) {
+    chosenCode = suppList[0].code;
+  }
+
+  // ── Confirm สั่งซื้อ ──────────────────────────────────────
+  var suppName = (function(){
+    var s = (typeof _supplierCache !== 'undefined' ? _supplierCache : [])
+      .find(function(x){ return x.code === chosenCode; });
+    return s ? s.name : (chosenCode || '— ไม่ระบุ');
+  })();
   var confirmed = await Swal.fire({
     title: '🛒 สั่งซื้อ: ' + matCode,
     html:
       '<div style="text-align:left;font-size:.82rem;display:flex;flex-direction:column;gap:6px">' +
         (row.matName ? '<div style="color:var(--t2);font-size:.78rem">' + row.matName + '</div>' : '') +
         '<div>คงเหลือ: <strong style="color:#f87171">' + row.stockQty + ' ' + row.unit + '</strong>  /  ขั้นต่ำ: ' + row.minStock + ' ' + row.unit + '</div>' +
-        '<div>ซัพพลายเออร์: <strong>' + (row.suppCode || '— ไม่ระบุ') + '</strong></div>' +
+        '<div>ร้านค้า: <strong style="color:#818cf8">' + suppName + '</strong></div>' +
         '<div style="margin-top:8px;padding:10px 14px;background:rgba(234,88,12,.09);border:1px solid rgba(234,88,12,.25);border-radius:9px;font-weight:700;font-size:.84rem">' +
-          '📦 จะสร้าง PO สำหรับ <strong>' + matCode + '</strong> จำนวน <strong style="color:#ea580c">' + qtyToOrder + ' ' + row.unit + '</strong>' +
+          '📦 สร้าง PO: <strong>' + matCode + '</strong> จำนวน <strong style="color:#ea580c">' + qtyToOrder + ' ' + row.unit + '</strong>' +
         '</div>' +
       '</div>',
     background:'var(--bg-card)', color:'var(--t1)', width:400,
@@ -683,24 +760,18 @@ async function stockOrderNow(matCode) {
   });
   if (!confirmed.isConfirmed) return;
 
-  // สลับแท็บ PO
+  // ── เปิดแท็บ PO + pre-fill ───────────────────────────────
   if (typeof switchTab === 'function') switchTab('po');
   await new Promise(function(r){ setTimeout(r, 180); });
-
-  // รีเซ็ตฟอร์ม PO ใหม่
   if (typeof _poNewForm === 'function') await _poNewForm();
   await new Promise(function(r){ setTimeout(r, 220); });
 
-  // Pre-fill Supplier
-  if (row.suppCode) {
+  if (chosenCode) {
     var suppEl = document.getElementById('po_supplier');
-    if (suppEl) { suppEl.value = row.suppCode; }
+    if (suppEl) suppEl.value = chosenCode;
     if (typeof _poRenderSupplierItemChips === 'function') _poRenderSupplierItemChips();
   }
-
-  // เพิ่มรายการ MAT ลงใน PO
   if (typeof _poItems !== 'undefined' && typeof _poRenderItemsEditor === 'function') {
-    // ถ้ามีแถวว่างอยู่แล้ว 1 แถว ให้ใช้แทน
     if (_poItems.length === 1 && !_poItems[0].name && !_poItems[0].qty) {
       _poItems[0] = { name: matCode, spec: row.matName || '', qty: String(qtyToOrder), unit: row.unit || 'แผ่น', unitPrice: '', imageUrl: '' };
     } else {
@@ -832,13 +903,19 @@ function _stockRenderReorder() {
     var statusIcon  = item.status === 'critical' ? '🔴' : '🟡';
     var shortage = r.minStock - r.stockQty;
     var qtyToOrder = Math.max(shortage, r.orderQty || 0);
+    var suppName = '';
+    if (typeof _supplierCache !== 'undefined') {
+      var sup = _supplierCache.find(function(s){ return s.code === r.suppCode; });
+      if (sup) suppName = sup.name || '';
+    }
+    var suppCell = (r.suppCode || '—') + (suppName ? '<div style="font-size:.68rem;color:var(--t3);margin-top:1px">' + suppName + '</div>' : '');
     return '<tr>' +
       '<td style="padding:7px 10px;font-size:.78rem;font-weight:700;color:' + statusColor + '">' + statusIcon + ' ' + r.matCode + '</td>' +
       '<td style="padding:7px 10px;font-size:.75rem;color:var(--t2)">' + (r.matName || '—') + '</td>' +
       '<td style="padding:7px 10px;font-size:.78rem;color:var(--t1);text-align:center">' + r.stockQty + ' ' + r.unit + '</td>' +
       '<td style="padding:7px 10px;font-size:.78rem;color:var(--t3);text-align:center">' + r.minStock + '</td>' +
       '<td style="padding:7px 10px;font-size:.78rem;font-weight:700;color:#f59e0b;text-align:center">' + qtyToOrder + ' ' + r.unit + '</td>' +
-      '<td style="padding:7px 10px;font-size:.75rem;color:var(--t3)">' + (r.suppCode || '—') + '</td>' +
+      '<td style="padding:7px 10px;font-size:.75rem;color:var(--t2);font-weight:600">' + suppCell + '</td>' +
       '<td style="padding:7px 10px;font-size:.75rem;color:#f59e0b;font-weight:600">' + (item.lead || '—') + '</td>' +
       '<td style="padding:6px 8px;text-align:center">' +
         '<button onclick="stockOrderNow(\'' + r.matCode + '\')" style="font-size:.73rem;padding:5px 14px;border-radius:8px;border:none;background:#ea580c;color:#fff;cursor:pointer;font-weight:700;font-family:Sarabun,sans-serif;white-space:nowrap">🧾 สั่งเลย</button>' +
@@ -862,4 +939,265 @@ function _stockRenderReorder() {
       '</tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
     '</table></div>';
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// ── ใบตรวจนับวัตถุดิบ ─────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+
+// พิมพ์ใบตรวจนับ A4 (มีช่องว่างกรอกยอดจริง)
+function stockPrintCountSheet() {
+  if (!_stockRows.length) {
+    Swal.fire({ icon:'warning', title:'ยังไม่มีข้อมูล', text:'กรุณาโหลด Stock ก่อนพิมพ์ใบตรวจนับ', confirmButtonText:'ตกลง' });
+    return;
+  }
+
+  var today = new Date();
+  var dd = String(today.getDate()).padStart(2,'0');
+  var mm = String(today.getMonth()+1).padStart(2,'0');
+  var yyyy = today.getFullYear() + 543;
+  var dateStr = dd + '/' + mm + '/' + yyyy;
+
+  // จัดกลุ่มตาม group (MAT-ฝา / MAT-ตะแกรง / อื่นๆ)
+  var groups = {};
+  _stockRows.forEach(function(r) {
+    var g = r.matCode && r.matCode.indexOf('MESH') >= 0 ? 'MAT-ตะแกรง' :
+            r.matCode && r.matCode.indexOf('SPCC') >= 0 ? 'MAT-ฝา' : 'อื่นๆ';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(r);
+  });
+
+  var rowsHtml = '';
+  var seq = 0;
+  Object.keys(groups).forEach(function(g) {
+    rowsHtml += '<tr><td colspan="7" style="background:#f1f5f9;font-weight:700;font-size:.75rem;padding:5px 8px;color:#334155">' + g + '</td></tr>';
+    groups[g].forEach(function(r) {
+      seq++;
+      var statusColor = r.stockQty <= r.minStock ? '#dc2626' : r.stockQty <= r.minStock * 1.2 ? '#d97706' : '#16a34a';
+      rowsHtml +=
+        '<tr>' +
+        '<td style="padding:6px 8px;text-align:center;color:#64748b;font-size:.72rem">' + seq + '</td>' +
+        '<td style="padding:6px 8px;font-weight:700;font-size:.75rem">' + r.matCode + '</td>' +
+        '<td style="padding:6px 8px;font-size:.73rem;color:#475569">' + (r.matName || '') + '</td>' +
+        '<td style="padding:6px 8px;text-align:center;font-size:.73rem">' + r.unit + '</td>' +
+        '<td style="padding:6px 8px;text-align:center;font-weight:700;font-size:.78rem;color:' + statusColor + '">' + r.stockQty + '</td>' +
+        '<td style="padding:6px 8px;border:1.5px solid #94a3b8;min-width:70px">&nbsp;</td>' +
+        '<td style="padding:6px 8px;border:1.5px solid #e2e8f0;min-width:90px">&nbsp;</td>' +
+        '</tr>';
+    });
+  });
+
+  var html =
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+    '<style>' +
+    'body{font-family:Sarabun,sans-serif;font-size:13px;color:#1e293b;margin:0;padding:0}' +
+    '@page{size:A4 portrait;margin:15mm 12mm}' +
+    'table{width:100%;border-collapse:collapse}' +
+    'th{background:#1e3a5f;color:#fff;padding:7px 8px;font-size:.75rem;font-weight:700;text-align:center}' +
+    'tr:nth-child(even){background:#f8fafc}' +
+    'td{border-bottom:1px solid #e2e8f0}' +
+    '.header-box{border:2px solid #1e3a5f;border-radius:6px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}' +
+    '.title{font-size:1.1rem;font-weight:900;color:#1e3a5f}' +
+    '.sub{font-size:.75rem;color:#64748b;margin-top:3px}' +
+    '.sign-row{display:flex;gap:40px;margin-top:18px;font-size:.8rem}' +
+    '.sign-box{flex:1;border-top:1.5px solid #334155;padding-top:6px;text-align:center;color:#475569}' +
+    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
+    '</style></head><body>' +
+    '<div class="header-box">' +
+      '<div>' +
+        '<div class="title">📋 ใบตรวจนับวัตถุดิบ</div>' +
+        '<div class="sub">PTTS Cost Breakdown — Stock MAT Control</div>' +
+      '</div>' +
+      '<div style="text-align:right;font-size:.8rem">' +
+        '<div style="font-weight:700">วันที่ตรวจนับ</div>' +
+        '<div style="font-size:1rem;font-weight:900;color:#1e3a5f">' + dateStr + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<table>' +
+      '<thead><tr>' +
+        '<th style="width:32px">#</th>' +
+        '<th style="text-align:left;width:100px">รหัส MAT</th>' +
+        '<th style="text-align:left">ชื่อวัตถุดิบ</th>' +
+        '<th style="width:50px">หน่วย</th>' +
+        '<th style="width:70px">ยอดระบบ</th>' +
+        '<th style="width:80px">ยอดจริง ✏️</th>' +
+        '<th style="width:100px">หมายเหตุ</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rowsHtml + '</tbody>' +
+    '</table>' +
+    '<div class="sign-row" style="margin-top:30px">' +
+      '<div class="sign-box">ผู้ตรวจนับ<br><br><br></div>' +
+      '<div class="sign-box">ผู้ควบคุมคลัง<br><br><br></div>' +
+      '<div class="sign-box">ผู้อนุมัติ<br><br><br></div>' +
+    '</div>' +
+    '<script>(function(){' +
+      'function go(){try{window.focus();window.print();}catch(e){}}' +
+      'if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go).catch(function(){setTimeout(go,700);});}' +
+      'else{setTimeout(go,700);}' +
+    '})();<\/script>' +
+    '</body></html>';
+
+  var win = window.open('','_blank');
+  if (!win) { Swal.fire({icon:'warning',title:'Popup ถูกบล็อก',text:'กรุณาอนุญาต popup แล้วลองใหม่',confirmButtonText:'ตกลง'}); return; }
+  win.document.write(html);
+  win.document.close();
+}
+
+// ── modal กรอกผลตรวจนับ ────────────────────────────────────────
+function stockOpenCountForm() {
+  if (!_stockRows.length) {
+    Swal.fire({ icon:'warning', title:'ยังไม่มีข้อมูล', text:'กรุณาโหลด Stock ก่อน', confirmButtonText:'ตกลง' });
+    return;
+  }
+
+  var today = new Date();
+  var dd = String(today.getDate()).padStart(2,'0');
+  var mm = String(today.getMonth()+1).padStart(2,'0');
+  var yyyy = today.getFullYear() + 543;
+  var dateStr = dd + '/' + mm + '/' + yyyy;
+
+  var rowsHtml = _stockRows.map(function(r, i) {
+    var statusColor = r.stockQty <= r.minStock ? '#f87171' : r.stockQty <= r.minStock * 1.2 ? '#fbbf24' : '#4ade80';
+    return '<tr id="_cnt_row_' + i + '">' +
+      '<td style="padding:7px 10px;font-weight:700;font-size:.78rem;color:var(--t1)">' + r.matCode + '</td>' +
+      '<td style="padding:7px 10px;font-size:.73rem;color:var(--t2)">' + (r.matName || '') + '</td>' +
+      '<td style="padding:7px 10px;text-align:center;font-size:.78rem;font-weight:700;color:' + statusColor + '">' + r.stockQty + ' ' + r.unit + '</td>' +
+      '<td style="padding:5px 8px;text-align:center">' +
+        '<input type="number" id="_cnt_qty_' + i + '" min="0" step="1" placeholder="—"' +
+        ' oninput="_stockCountCalcDiff(' + i + ',' + r.stockQty + ')"' +
+        ' style="width:80px;padding:5px 8px;border-radius:7px;border:1.5px solid var(--bc-div);background:var(--bg-card);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.82rem;text-align:center">' +
+      '</td>' +
+      '<td id="_cnt_diff_' + i + '" style="padding:7px 10px;text-align:center;font-size:.78rem;font-weight:700;color:var(--t3)">—</td>' +
+      '<td style="padding:5px 8px">' +
+        '<input type="text" id="_cnt_note_' + i + '" placeholder="หมายเหตุ"' +
+        ' style="width:100%;padding:4px 8px;border-radius:6px;border:1px solid var(--bc-div);background:var(--bg-card);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.75rem">' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+
+  var html =
+    '<div style="font-family:Sarabun,sans-serif;text-align:left">' +
+    '<div style="font-size:.75rem;color:var(--t3);margin-bottom:10px">วันที่ตรวจนับ: <strong style="color:var(--t1)">' + dateStr + '</strong>' +
+    ' &nbsp;|&nbsp; กรอกเฉพาะรายการที่ตรวจนับ (ช่องว่าง = ไม่แก้ไข)</div>' +
+    '<div style="overflow-x:auto;max-height:55vh;overflow-y:auto;border:1px solid var(--bc-div);border-radius:10px">' +
+    '<table style="width:100%;border-collapse:collapse;font-family:Sarabun,sans-serif">' +
+      '<thead style="position:sticky;top:0;z-index:2"><tr style="background:var(--bg-tab);font-size:.72rem;color:var(--t3)">' +
+        '<th style="padding:8px 10px;text-align:left">รหัส MAT</th>' +
+        '<th style="padding:8px 10px;text-align:left">ชื่อ</th>' +
+        '<th style="padding:8px 10px;text-align:center">ยอดระบบ</th>' +
+        '<th style="padding:8px 10px;text-align:center">ยอดจริง ✏️</th>' +
+        '<th style="padding:8px 10px;text-align:center">ส่วนต่าง</th>' +
+        '<th style="padding:8px 10px;text-align:left">หมายเหตุ</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rowsHtml + '</tbody>' +
+    '</table></div>' +
+    '<div style="margin-top:10px;font-size:.72rem;color:var(--t3)">💡 ส่วนต่างบวก = ของจริงมากกว่าระบบ | ส่วนต่างลบ = ของจริงน้อยกว่าระบบ</div>' +
+    '</div>';
+
+  Swal.fire({
+    title: '📋 กรอกผลตรวจนับวัตถุดิบ',
+    html: html,
+    width: '860px',
+    showCancelButton: true,
+    confirmButtonText: '✅ บันทึกปรับ Stock',
+    cancelButtonText: '↩ ยกเลิก',
+    confirmButtonColor: '#16a34a',
+    focusConfirm: false,
+    preConfirm: function() { return stockSubmitCount(); }
+  });
+}
+
+// คำนวณส่วนต่างแบบ live
+function _stockCountCalcDiff(i, sysQty) {
+  var inp = document.getElementById('_cnt_qty_' + i);
+  var diffEl = document.getElementById('_cnt_diff_' + i);
+  if (!inp || !diffEl) return;
+  var v = inp.value.trim();
+  if (v === '' || isNaN(Number(v))) { diffEl.textContent = '—'; diffEl.style.color = 'var(--t3)'; return; }
+  var diff = Number(v) - sysQty;
+  diffEl.textContent = (diff > 0 ? '+' : '') + diff;
+  diffEl.style.color = diff > 0 ? '#4ade80' : diff < 0 ? '#f87171' : '#94a3b8';
+}
+
+// ส่งผลตรวจนับ → POST adjustMatStockBatch
+async function stockSubmitCount() {
+  var url = _stockUrl();
+  if (!url) { Swal.showValidationMessage('ยังไม่ได้ตั้งค่า Script URL'); return false; }
+
+  var items = [];
+  _stockRows.forEach(function(r, i) {
+    var inp = document.getElementById('_cnt_qty_' + i);
+    if (!inp) return;
+    var v = inp.value.trim();
+    if (v === '' || isNaN(Number(v))) return; // ข้ามช่องที่ไม่ได้กรอก
+    var noteEl = document.getElementById('_cnt_note_' + i);
+    items.push({
+      matCode: r.matCode,
+      newQty:  Number(v),
+      note:    noteEl ? noteEl.value.trim() : ''
+    });
+  });
+
+  if (!items.length) {
+    Swal.showValidationMessage('ยังไม่ได้กรอกยอดจริงรายการใดเลย');
+    return false;
+  }
+
+  // แสดงรายการที่จะปรับก่อนยืนยัน
+  var changed = items.filter(function(item) {
+    var r = _stockRows.find(function(x){ return x.matCode === item.matCode; });
+    return r && item.newQty !== r.stockQty;
+  });
+
+  var listHtml = changed.map(function(item) {
+    var r = _stockRows.find(function(x){ return x.matCode === item.matCode; });
+    var diff = item.newQty - r.stockQty;
+    var color = diff > 0 ? '#4ade80' : diff < 0 ? '#f87171' : '#94a3b8';
+    return '<div style="padding:4px 0;font-size:.8rem">' +
+      '<strong>' + item.matCode + '</strong> ' + r.matName +
+      ': <span style="color:var(--t3)">' + r.stockQty + '</span> → ' +
+      '<strong>' + item.newQty + '</strong> ' + r.unit +
+      ' <span style="color:' + color + ';font-weight:700">(' + (diff>0?'+':'') + diff + ')</span>' +
+    '</div>';
+  }).join('');
+
+  if (changed.length === 0 && items.length > 0) {
+    Swal.showValidationMessage('ยอดที่กรอกเท่ากับยอดในระบบทั้งหมด ไม่มีอะไรต้องปรับ');
+    return false;
+  }
+
+  var confirm2 = await Swal.fire({
+    title: 'ยืนยันปรับ Stock ' + changed.length + ' รายการ?',
+    html: '<div style="text-align:left;max-height:200px;overflow-y:auto;font-family:Sarabun,sans-serif">' + listHtml + '</div>',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: '✅ ยืนยัน',
+    cancelButtonText: '↩ กลับแก้ไข',
+    confirmButtonColor: '#16a34a'
+  });
+  if (!confirm2.isConfirmed) return false;
+
+  try {
+    var today = new Date();
+    var ref = 'COUNT-' + today.getFullYear() + String(today.getMonth()+1).padStart(2,'0') + String(today.getDate()).padStart(2,'0');
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'adjustMatStockBatch', items: items, by: 'stock', ref: ref })
+    });
+    // Optimistic update
+    items.forEach(function(item) {
+      var r = _stockRows.find(function(x){ return x.matCode === item.matCode; });
+      if (r) r.stockQty = item.newQty;
+    });
+    _stockUpdateBadge();
+    await Swal.fire({ icon:'success', title:'บันทึกสำเร็จ', text:'ปรับ Stock ' + changed.length + ' รายการแล้ว', timer:2000, showConfirmButton:false });
+    stockLoad();
+    return true;
+  } catch(e) {
+    Swal.showValidationMessage('เกิดข้อผิดพลาด: ' + e.message);
+    return false;
+  }
 }

@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v10.22</span>
+      <span class="ph-chip ver">v10.30</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
@@ -2063,7 +2063,7 @@
 </div><!-- end tab-inspect -->
 
 <div id="tab-stock" class="tab-content">
-  <div style="max-width:900px;margin:0 auto;padding:0 4px">
+  <div style="padding:0 8px">
 
     <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
@@ -2072,8 +2072,9 @@
         <div style="font-size:.75rem;color:var(--t3);margin-top:2px">ควบคุมวัสดุคงคลัง · แจ้งเตือนเมื่อต่ำกว่าขั้นต่ำ</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="stockPrintCountSheet()" style="padding:8px 16px;border-radius:8px;border:1px solid #3b82f6;background:rgba(59,130,246,.1);color:#60a5fa;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:700">🖨 พิมพ์ใบตรวจนับ</button>
+        <button onclick="stockOpenCountForm()" style="padding:8px 16px;border-radius:8px;border:1px solid #16a34a;background:rgba(22,163,74,.1);color:#4ade80;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:700">📋 กรอกผลตรวจนับ</button>
         <button onclick="stockLoad()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--bc-div);background:transparent;color:var(--t2);cursor:pointer;font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:600">🔄 โหลดใหม่</button>
-        <button onclick="stockOpenForm(null)" style="padding:8px 18px;border-radius:8px;border:none;background:var(--c1);color:#fff;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:700">➕ เพิ่มวัสดุ</button>
       </div>
     </div>
 
@@ -2091,7 +2092,8 @@
     <!-- Stock Table -->
     <div class="card" style="padding:0;overflow:hidden">
       <div style="padding:12px 16px;border-bottom:1px solid var(--bc-div);display:flex;align-items:center;justify-content:space-between">
-        <div style="font-size:.82rem;font-weight:700">รายการวัสดุทั้งหมด</div>
+        <div style="font-size:.82rem;font-weight:700">รายการ Stock วัตถุดิบทั้งหมด</div>
+        <button onclick="stockOpenForm(null)" style="padding:7px 18px;border-radius:8px;border:none;background:var(--c1);color:#fff;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.8rem;font-weight:700">➕ เพิ่ม Stock วัตถุดิบ</button>
       </div>
       <div id="_stockTable" style="padding:8px 0;min-height:80px">
         <div style="text-align:center;padding:32px;color:var(--t3);font-size:.82rem">⏳ กำลังโหลด...</div>
@@ -3353,7 +3355,7 @@
 <script src="order.js?v=9.75"></script>
 <script src="dashboard.js?v=9.73"></script>
 <script src="inspect.js?v=10.08"></script>
-  <script src="stock.js?v=10.19"></script>
+  <script src="stock.js?v=10.30"></script>
 <script src="purchase.js?v=9.58"></script>
 <script src="invoice.js?v=9.03"></script>
 <script src="plating.js?v=8.94"></script>
@@ -3497,9 +3499,82 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260621-AR',
+    ref: '#REV-20260621-AZ',
     date: '21/06/2568',
     current: true,
+    items: [
+      'stock.js: เพิ่ม stockPrintCountSheet() — พิมพ์ใบตรวจนับวัตถุดิบ A4 (ยอดระบบ+ช่องกรอกยอดจริง+ลายเซ็น)',
+      'stock.js: เพิ่ม stockOpenCountForm() — modal กรอกผลตรวจนับ แสดงส่วนต่าง live',
+      'stock.js: เพิ่ม stockSubmitCount() + _stockCountCalcDiff() — POST adjustMatStockBatch',
+      'Code.gs: เพิ่ม adjustMatStockBatch() — รับ newQty จริง บันทึก MatMovement type=COUNT',
+      'form.html: เพิ่มปุ่ม 🖨 พิมพ์ใบตรวจนับ และ 📋 กรอกผลตรวจนับ ในหัวแท็บ Stock MAT',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AY',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'stock.js: Reorder Report — คอลัมน์ ซัพพลายเออร์ แสดงชื่อร้านใต้รหัส (เหมือนตาราง Stock)',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AX',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'stock.js: _stockBgLoad + stockLoad — auto fetchSuppliers() ก่อนโหลด stock ถ้า _supplierCache ยังว่าง',
+      'stock.js: ชื่อร้านค้าแสดงใต้รหัสในคอลัมน์ ซัพพลายเออร์ ของตาราง Stock',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AW',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'form.html: ปุ่ม "เพิ่มวัสดุ" → "เพิ่ม Stock วัตถุดิบ" ย้ายเข้าไปอยู่ใน header การ์ดตาราง',
+      'form.html: หัวการ์ดตาราง "รายการวัสดุทั้งหมด" → "รายการ Stock วัตถุดิบทั้งหมด"',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AV',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'form.html: tab-stock — เอา max-width:900px ออก ให้การ์ดขยายเต็มพื้นที่หน้าจอ',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AU',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'stock.js: คอลัมน์ ซัพพลายเออร์ — แสดงชื่อร้านใต้รหัส (lookup จาก _supplierCache)',
+      'stock.js: กำหนดสั่ง "ถึง XX" — แสดงเฉพาะ critical/low เท่านั้น ซ่อนถ้าสถานะ ok',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AT',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'stock.js: stockOrderNow() — ถ้า MAT มีหลายร้านใน matCodes → popup ให้เลือกร้านก่อน แล้ว pre-fill PO',
+      'stock.js: fallback ถ้าไม่มีใครระบุ matCodes → ใช้ preferred suppCode ของ MAT เหมือนเดิม',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AS',
+    date: '21/06/2568',
+    current: false,
+    items: [
+      'purchase.js: MAT Codes — เพิ่ม chip picker กดเลือก MAT จาก _localMatFlap/_localMatMesh ได้เลย',
+      'purchase.js: _suppMatToggle, _suppMatChipsRefresh — toggle chip + sync กับ input text',
+    ],
+  },
+  {
+    ref: '#REV-20260621-AR',
+    date: '21/06/2568',
+    current: false,
     items: [
       'purchase.js: ฟอร์มแก้ไข Supplier — เปลี่ยนจาก colspan+grid เป็น td แยกตามคอลัมน์ให้ตรงกับ header',
       'purchase.js: MAT Codes แสดงใน row ที่ 2 (colspan=7) ใต้แถว input หลัก',
