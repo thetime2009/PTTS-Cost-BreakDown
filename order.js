@@ -1910,7 +1910,6 @@ function renderOrderTable() {
       <td style="padding:8px 10px;text-align:center;font-size:.8rem;color:var(--t1)">${r[ORDER_COLS.qty]||'—'}</td>
       <td style="padding:8px 10px;font-size:.72rem;color:var(--t2)">${[note, note2].filter(Boolean).join(' / ') || '—'}</td>
       <td style="padding:8px 10px;text-align:right;font-size:.78rem;font-weight:600;color:var(--c1);white-space:nowrap">${price ? price.toLocaleString('th-TH',{minimumFractionDigits:2}) : '—'} <span style="font-size:.65rem">฿</span></td>
-      <td style="padding:8px 10px;white-space:nowrap">${_ordStatusBadge(process)}</td>
       <td style="padding:8px 10px;text-align:center;white-space:nowrap">
         <button onclick="showOrderDetail('${noPO.replace(/'/g,"\\'")}')"
           style="padding:5px 10px;border-radius:7px;border:none;background:#2563eb;color:#fff;
