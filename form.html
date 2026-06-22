@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v10.40</span>
+      <span class="ph-chip ver">v10.41</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -3610,9 +3610,19 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260622-G',
+    ref: '#REV-20260622-H',
     date: '22/06/2568',
     current: true,
+    items: [
+      'hr.js: OT chip หัวพนักงาน — เริ่มที่ 0.0 ชม. และอัปเดตเฉพาะวันที่เช็ค ✅ อนุมัติแล้วเท่านั้น',
+      'hr.js: เพิ่ม _hrUpdateOTSum() — รวม OT จาก _hrPreview เฉพาะแถวที่ checkbox checked',
+      'hr.js: checkbox onchange → _hrUpdateOTSum() ทั้งใน _hrShowPreview และ _hrRecalcRow',
+    ],
+  },
+  {
+    ref: '#REV-20260622-G',
+    date: '22/06/2568',
+    current: false,
     items: [
       'hr.js: ไฟล์ใหม่ v1.0 — HR Module ครบ: นำเข้าจาก ZKTeco, คำนวณ OT/สาย, สรุปเวลา, พนักงาน CRUD, ตั้งค่า HR',
       'hr.js: สลิปเงินเดือน (สวย A4) + บันทึกภาพ + แชร์ LINE (navigator.share / download fallback)',

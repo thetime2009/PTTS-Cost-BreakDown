@@ -150,16 +150,64 @@ function hrHandleFile(input) {
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      const wb = XLSX.read(e.target.result, { type: 'binary', cellDates: false });
-      _hrPreview = _hrParseZKTeco(wb);
-      Swal.hideLoading(); Swal.close();
-      _hrShowPreview(_hrPreview);
+      const wb     = XLSX.read(e.target.result, { type: 'binary', cellDates: false });
+      const parsed = _hrParseZKTeco(wb);
+      // กรองเฉพาะพนักงานที่อยู่ในระบบ
+      _hrFilterAndPreview(parsed);
     } catch (err) {
       Swal.hideLoading(); Swal.close();
       Swal.fire('❌ อ่านไฟล์ไม่ได้', err.message, 'error');
     }
   };
   reader.readAsBinaryString(file);
+}
+
+// ── กรองเฉพาะพนักงานที่อยู่ในระบบก่อน Preview ───────────────
+function _hrFilterAndPreview(parsed) {
+  function _doFilter() {
+    var empIds   = _hrEmps.map(function(e) { return String(e.empId  || '').trim().toLowerCase(); });
+    var empNames = _hrEmps.map(function(e) { return String(e.name   || '').trim(); });
+
+    var skipped  = {};
+    var filtered = parsed.filter(function(r) {
+      var idMatch   = empIds.indexOf(String(r.empId   || '').trim().toLowerCase()) >= 0;
+      var nameMatch = empNames.indexOf(String(r.empName || '').trim()) >= 0;
+      if (!idMatch && !nameMatch) { skipped[r.empName || r.empId] = true; return false; }
+      return true;
+    });
+
+    _hrPreview = filtered;
+    Swal.hideLoading(); Swal.close();
+
+    var skippedNames = Object.keys(skipped);
+    if (skippedNames.length) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'ข้ามพนักงาน ' + skippedNames.length + ' คน',
+        html: 'ไม่พบในระบบ จึงไม่นำเข้า:<br><b style="color:#f87171">' + skippedNames.join(', ') + '</b><br>' +
+          '<span style="font-size:.78rem;color:#94a3b8">กรุณาเพิ่มพนักงานในแท็บ พนักงาน ก่อน</span>',
+        background: '#0d1b2a', color: '#cce4ff',
+        confirmButtonColor: '#4f46e5', confirmButtonText: 'รับทราบ'
+      }).then(function() { _hrShowPreview(_hrPreview); });
+    } else {
+      _hrShowPreview(_hrPreview);
+    }
+  }
+
+  if (_hrEmps.length) {
+    _doFilter();
+  } else {
+    // โหลด employees ก่อน แล้วค่อยกรอง
+    _hrGET('getHREmployees').then(function(res) {
+      _hrEmps = res.data || [];
+      _doFilter();
+    }).catch(function() {
+      // ถ้าโหลดไม่ได้ → นำเข้าทั้งหมดแบบไม่กรอง
+      _hrPreview = parsed;
+      Swal.hideLoading(); Swal.close();
+      _hrShowPreview(_hrPreview);
+    });
+  }
 }
 
 // ── ZKTeco Excel Parser ──────────────────────────────────────
@@ -312,14 +360,17 @@ function _hrShowPreview(rows) {
   });
 
   const DAYS_TH = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
-  let html = '<div style="font-size:.8rem;color:var(--t3);margin-bottom:10px">พบข้อมูล ' + rows.length + ' วัน (' + Object.keys(stats).length + ' คน) — ตรวจสอบก่อนบันทึก</div>';
+  let html = '<div style="font-size:.8rem;color:var(--t3);margin-bottom:10px">พบข้อมูล ' + rows.length + ' วัน (' + Object.keys(stats).length + ' คน) — ตรวจสอบและเช็ค ✅ อนุมัติ OT ก่อนบันทึก</div>';
 
   Object.keys(stats).forEach(function(empId) {
-    const st = stats[empId];
+    const st     = stats[empId];
+    const hasOT  = st.otH > 0;
+    const safeId = empId.replace(/[^a-zA-Z0-9]/g, '_');
+
     html += '<div style="background:var(--card);border:1px solid var(--bc-input);border-radius:12px;padding:14px 16px;margin-bottom:12px">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px">' +
         '<div style="font-weight:700;color:var(--c1)">' + st.name + ' <span style="font-size:.78rem;color:var(--t3)">' + st.dept + '</span></div>' +
-        '<div style="font-size:.78rem;color:var(--t3)">มา <b style="color:#34d399">' + st.present + '</b> | ขาด <b style="color:#f87171">' + st.absent + '</b> | หยุด ' + st.off + ' | สาย ' + st.lateMin + ' น. | OT ' + st.otH.toFixed(1) + ' ชม.</div>' +
+        '<div style="font-size:.78rem;color:var(--t3)">มา <b style="color:#34d399">' + st.present + '</b> | ขาด <b style="color:#f87171">' + st.absent + '</b> | หยุด ' + st.off + ' | สาย ' + st.lateMin + ' น. | OT <span id="otSumChip_' + safeId + '">0.0</span> ชม.</div>' +
       '</div>' +
       '<div style="overflow-x:auto">' +
       '<table style="width:100%;border-collapse:collapse;font-size:.76rem">' +
@@ -331,25 +382,63 @@ function _hrShowPreview(rows) {
           '<th style="text-align:center">สาย(น.)</th>' +
           '<th style="text-align:center">OT(ชม.)</th>' +
           '<th style="text-align:center">สถานะ</th>' +
+          (hasOT ? '<th style="text-align:center;color:#818cf8;white-space:nowrap">✅ อนุมัติ OT</th><th style="text-align:left;color:var(--t3);white-space:nowrap;min-width:160px">หมายเหตุ OT</th>' : '') +
         '</tr>' +
         st.rows.map(function(r) {
-          const dParts = String(r.date || '').split('/');
-          const dLabel = dParts[0] + '/' + (dParts[1] || '');
-          const sDow   = DAYS_TH[r.dow] || '';
-          const dowColor = r.dow === 0 ? 'color:#f87171' : r.dow === 6 ? 'color:#fbbf24' : '';
-          const sColor   = r.status === 'absent' ? '#f87171' : r.status === 'off' ? 'var(--t3)' : '#34d399';
-          const sTx      = r.status === 'absent' ? 'ขาด' : r.status === 'off' ? 'หยุด' : 'มา';
-          return '<tr style="border-top:1px solid var(--bc-input)">' +
-            '<td style="padding:3px 8px">' + dLabel + '</td>' +
-            '<td style="text-align:center;' + dowColor + '">' + sDow + '</td>' +
-            '<td style="text-align:center">' + (r.clockIn || '—') + '</td>' +
-            '<td style="text-align:center">' + (r.lastScan || '—') + '</td>' +
+          const dParts     = String(r.date || '').split('/');
+          const dLabel     = dParts[0] + '/' + (dParts[1] || '');
+          const sDow       = DAYS_TH[r.dow] || '';
+          const isSun      = r.dow === 0;
+          const isSat      = r.dow === 6;
+          const dowColor   = isSun ? 'color:#f87171' : isSat ? 'color:#fbbf24' : '';
+          const sColor     = r.status === 'absent' ? '#f87171' : r.status === 'off' ? 'var(--t3)' : '#34d399';
+          const sTx        = r.status === 'absent' ? 'ขาด' : r.status === 'off' ? 'หยุด' : 'มา';
+          const hasRowOT   = (parseFloat(r.otHours) || 0) > 0;
+          const dateKey    = String(r.date).replace(/\//g, '-');
+          const ckId       = 'otck_' + safeId + '_' + dateKey;
+          const noteId     = 'otnote_' + safeId + '_' + dateKey;
+          const ciId       = 'ci_' + safeId + '_' + dateKey;
+          const lsId       = 'ls_' + safeId + '_' + dateKey;
+          const otDispId   = 'otdisp_' + safeId + '_' + dateKey;
+          const ckWrapId   = 'otckwrap_' + safeId + '_' + dateKey;
+          const noteWrapId = 'notewrap_' + safeId + '_' + dateKey;
+          const recalc     = '_hrRecalcRow(\'' + safeId + '\',\'' + dateKey + '\',' + r.dow + ')';
+          const tStyle     = 'padding:3px 6px;border-radius:4px;border:1px solid #cbd5e1;background:#fff;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.8rem;width:88px';
+
+          // แถวอาทิตย์ไฮไลต์เด่นชัด
+          var rowBg = isSun
+            ? 'background:rgba(248,113,113,.13);border-left:3px solid #f87171;'
+            : (hasRowOT ? 'background:rgba(129,140,248,.06);' : '');
+
+          return '<tr style="border-top:1px solid var(--bc-input);' + rowBg + '">' +
+            '<td style="padding:3px 8px' + (isSun ? ';font-weight:700;color:#f87171' : '') + '">' + dLabel + '</td>' +
+            '<td style="text-align:center;' + dowColor + (isSun ? ';font-weight:700' : '') + '">' + sDow + '</td>' +
+            '<td style="text-align:center;padding:2px 4px">' +
+              '<input type="time" id="' + ciId + '" value="' + (r.clockIn || '') + '" oninput="' + recalc + '" style="' + tStyle + '">' +
+            '</td>' +
+            '<td style="text-align:center;padding:2px 4px">' +
+              '<input type="time" id="' + lsId + '" value="' + (r.lastScan || '') + '" oninput="' + recalc + '" style="' + tStyle + '">' +
+            '</td>' +
             '<td style="text-align:center' + (r.lateMin > 0 ? ';color:#f87171' : '') + '">' + (r.lateMin || 0) + '</td>' +
-            '<td style="text-align:center' + (r.otHours > 0 ? ';color:#818cf8' : '') + '">' + (r.otHours > 0 ? Number(r.otHours).toFixed(1) : '—') + '</td>' +
+            '<td style="text-align:center" id="' + otDispId + '"><span style="' + (hasRowOT ? 'color:#818cf8;font-weight:700' : '') + '">' + (hasRowOT ? Number(r.otHours).toFixed(1) : '—') + '</span></td>' +
             '<td style="text-align:center;color:' + sColor + '">' + sTx + '</td>' +
+            (hasOT
+              ? '<td style="text-align:center;padding:2px 6px" id="' + ckWrapId + '">' + (hasRowOT
+                  ? '<input type="checkbox" id="' + ckId + '" onchange="_hrUpdateOTSum(\'' + safeId + '\')" style="width:16px;height:16px;accent-color:#818cf8;cursor:pointer" title="เช็ค = อนุมัติ OT วันนี้">'
+                  : '') + '</td>' +
+                '<td style="padding:2px 6px" id="' + noteWrapId + '">' + (hasRowOT
+                  ? '<input type="text" id="' + noteId + '" placeholder="เช่น ซ่อมเครื่อง, ปิดงานด่วน..." style="width:100%;min-width:150px;padding:3px 7px;border-radius:5px;border:1px solid #cbd5e1;background:#fff;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.74rem">'
+                  : '') + '</td>'
+              : '') +
             '</tr>';
         }).join('') +
-      '</table></div></div>';
+      '</table></div>';
+
+    if (hasOT) {
+      html += '<div style="margin-top:6px;font-size:.72rem;color:var(--t3)">⚠️ วันที่ไม่ได้เช็ค ✅ จะถูกตัด OT ออกอัตโนมัติ</div>';
+    }
+
+    html += '</div>';
   });
 
   p.innerHTML = html;
@@ -361,28 +450,124 @@ function _hrShowPreview(rows) {
 
 function hrConfirmImport() {
   if (!_hrPreview.length) return;
+
+  // อ่าน checkbox + เลขใบจาก DOM แล้วสร้าง rows สำหรับบันทึก
+  var cutCount = 0;
+  var rows = _hrPreview.map(function(r) {
+    var copy    = Object.assign({}, r);
+    var safeId  = String(r.empId).replace(/[^a-zA-Z0-9]/g, '_');
+    var hasRowOT = (parseFloat(r.otHours) || 0) > 0;
+
+    if (hasRowOT) {
+      var ckId     = 'otck_' + safeId + '_' + String(r.date).replace(/\//g, '-');
+      var noteId   = 'otnote_' + safeId + '_' + String(r.date).replace(/\//g, '-');
+      var ck       = document.getElementById(ckId);
+      var approved = ck ? ck.checked : false;
+      var noteEl   = document.getElementById(noteId);
+      copy.otNote  = (approved && noteEl) ? noteEl.value.trim() : '';
+      if (!approved) { copy.otHours = 0; cutCount++; }
+    } else {
+      copy.otNote = '';
+    }
+    return copy;
+  });
+
+  var msg = 'จะบันทึก ' + rows.length + ' รายการ';
+  if (cutCount > 0) msg += '\n(ตัด OT ออก ' + cutCount + ' วัน — ไม่ได้เช็คอนุมัติ)';
+
   Swal.fire({
     title: 'บันทึกข้อมูล?',
-    text: 'จะบันทึก ' + _hrPreview.length + ' รายการเข้า HR_Attendance',
+    text: msg,
     icon: 'question', showCancelButton: true,
     confirmButtonText: '✅ บันทึก', cancelButtonText: 'ยกเลิก'
   }).then(function(res) {
     if (!res.isConfirmed) return;
-    Swal.fire({ title: '⏳ กำลังบันทึก...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
-    _hrPOST('saveHRAttendance', { rows: _hrPreview }).then(function(r) {
-      Swal.hideLoading(); Swal.close();
-      if (r.status === 'ok') {
-        Swal.fire({ icon: 'success', title: '✅ บันทึกสำเร็จ', text: 'บันทึก ' + (r.saved || _hrPreview.length) + ' รายการ', timer: 1800, showConfirmButton: false });
-        _hrPreview = [];
-        _hrAtt = [];
-        document.getElementById('hrImportPreview').innerHTML = '';
-        document.getElementById('hrImportActions').innerHTML = '';
-        setTimeout(function() { hrSubSwitch('2'); }, 1900);
-      } else {
-        Swal.fire('❌ ผิดพลาด', r.message || 'ไม่ทราบสาเหตุ', 'error');
-      }
-    }).catch(function(e) { Swal.hideLoading(); Swal.close(); Swal.fire('❌ Error', String(e), 'error'); });
+    _hrDoSave(rows);
   });
+}
+
+// ── บันทึกจริง ────────────────────────────────────────────────
+function _hrDoSave(rows) {
+  Swal.fire({ title: '⏳ กำลังบันทึก...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+  _hrPOST('saveHRAttendance', { rows: rows }).then(function(r) {
+    Swal.hideLoading(); Swal.close();
+    if (r.status === 'ok') {
+      Swal.fire({ icon: 'success', title: '✅ บันทึกสำเร็จ', text: 'บันทึก ' + (r.saved || rows.length) + ' รายการ', timer: 1800, showConfirmButton: false });
+      _hrPreview = [];
+      _hrAtt = [];
+      document.getElementById('hrImportPreview').innerHTML = '';
+      document.getElementById('hrImportActions').innerHTML = '';
+      setTimeout(function() { hrSubSwitch('2'); }, 1900);
+    } else {
+      Swal.fire('❌ ผิดพลาด', r.message || 'ไม่ทราบสาเหตุ', 'error');
+    }
+  }).catch(function(e) { Swal.hideLoading(); Swal.close(); Swal.fire('❌ Error', String(e), 'error'); });
+}
+
+// ── คำนวณ OT ใหม่เมื่อแก้เวลาใน Preview ────────────────────────
+function _hrRecalcRow(safeId, dateKey, dow) {
+  var s        = _hrCfg();
+  var ciEl     = document.getElementById('ci_' + safeId + '_' + dateKey);
+  var lsEl     = document.getElementById('ls_' + safeId + '_' + dateKey);
+  var clockIn  = ciEl  ? ciEl.value  : '';
+  var lastScan = lsEl  ? lsEl.value  : '';
+
+  var calc     = _hrCalcDay(clockIn, lastScan, dow, s);
+  var hasRowOT = calc.otHours > 0;
+
+  // อัปเดต OT display
+  var otDisp = document.getElementById('otdisp_' + safeId + '_' + dateKey);
+  if (otDisp) {
+    otDisp.innerHTML = '<span style="' + (hasRowOT ? 'color:#818cf8;font-weight:700' : '') + '">' +
+      (hasRowOT ? Number(calc.otHours).toFixed(1) : '—') + '</span>';
+  }
+
+  // อัปเดต checkbox
+  var ckWrap = document.getElementById('otckwrap_' + safeId + '_' + dateKey);
+  if (ckWrap) {
+    ckWrap.innerHTML = hasRowOT
+      ? '<input type="checkbox" id="otck_' + safeId + '_' + dateKey + '" onchange="_hrUpdateOTSum(\'' + safeId + '\')" style="width:16px;height:16px;accent-color:#818cf8;cursor:pointer" title="เช็ค = อนุมัติ OT วันนี้">'
+      : '';
+  }
+
+  // อัปเดต note
+  var noteWrap = document.getElementById('notewrap_' + safeId + '_' + dateKey);
+  if (noteWrap) {
+    noteWrap.innerHTML = hasRowOT
+      ? '<input type="text" id="otnote_' + safeId + '_' + dateKey + '" placeholder="เช่น ซ่อมเครื่อง, ปิดงานด่วน..." style="width:100%;min-width:150px;padding:3px 7px;border-radius:5px;border:1px solid #cbd5e1;background:#fff;color:#1e293b;font-family:Sarabun,sans-serif;font-size:.74rem">'
+      : '';
+  }
+
+  // อัปเดต _hrPreview
+  var originalDate = dateKey.replace(/-/g, '/');
+  _hrPreview.forEach(function(r) {
+    if (String(r.empId).replace(/[^a-zA-Z0-9]/g, '_') === safeId && r.date === originalDate) {
+      r.clockIn  = clockIn;
+      r.lastScan = lastScan;
+      r.otHours  = calc.otHours;
+      r.otRate   = calc.otRate;
+      r.lateMin  = calc.lateMin;
+      r.status   = calc.status;
+    }
+  });
+
+  // อัปเดต OT chip บนหัวพนักงาน
+  _hrUpdateOTSum(safeId);
+}
+
+// ── รวม OT เฉพาะวันที่เช็ค ✅ แล้วอัปเดต chip หัวพนักงาน ──────
+function _hrUpdateOTSum(safeId) {
+  var total = 0;
+  _hrPreview.forEach(function(r) {
+    if (String(r.empId).replace(/[^a-zA-Z0-9]/g, '_') !== safeId) return;
+    var ot = parseFloat(r.otHours) || 0;
+    if (ot <= 0) return;
+    var dk = String(r.date).replace(/\//g, '-');
+    var ck = document.getElementById('otck_' + safeId + '_' + dk);
+    if (ck && ck.checked) total += ot;
+  });
+  var chip = document.getElementById('otSumChip_' + safeId);
+  if (chip) chip.textContent = total.toFixed(1);
 }
 
 // ══════════════════════════════════════════════════════════════
