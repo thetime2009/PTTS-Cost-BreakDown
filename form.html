@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v10.41</span>
+      <span class="ph-chip ver">v10.59</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -2197,6 +2197,10 @@
       style="padding:8px 18px;border-radius:10px;border:1px solid var(--bc-input);background:transparent;color:var(--t3);font-family:'Sarabun',sans-serif;font-size:.84rem;font-weight:700;cursor:pointer">
       ⚙️ ตั้งค่า HR
     </button>
+    <button id="hrBtn5" onclick="hrSubSwitch('5')"
+      style="padding:8px 18px;border-radius:10px;border:1px solid var(--bc-input);background:transparent;color:var(--t3);font-family:'Sarabun',sans-serif;font-size:.84rem;font-weight:700;cursor:pointer">
+      📅 ปฏิทินวันหยุด
+    </button>
   </div>
 
   <!-- Sub-tab panels (rendered by hr.js) -->
@@ -2204,6 +2208,7 @@
   <div id="hrPanel2" style="display:none"></div>
   <div id="hrPanel3" style="display:none"></div>
   <div id="hrPanel4" style="display:none"></div>
+  <div id="hrPanel5" style="display:none"></div>
 </div>
 </div><!-- end tab-hr -->
 
@@ -3465,7 +3470,7 @@
   <script src="stock.js?v=10.32"></script>
   <script src="report.js?v=1.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="hr.js?v=1.0"></script>
+  <script src="hr.js?v=2.3"></script>
   <script src="imageEditor.js?v=1.1"></script>
 <script src="purchase.js?v=9.58"></script>
 <script src="invoice.js?v=9.03"></script>
@@ -3610,9 +3615,187 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
+    ref: '#REV-20260622-Z',
+    date: '22/06/2569',
+    current: true,
+    items: [
+      'hr.js?v=2.3: _hrRenderSummary() — โหลดข้อมูลอัตโนมัติเมื่อเปิดแทบ (ไม่ต้องกดปุ่ม)',
+    ],
+  },
+  {
+    ref: '#REV-20260622-Y',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js?v=2.2: ตาราง สรุปเวลางาน — เพิ่มความเข้มสีตัวเลข (มา/ขาด/สาย/OT) + ปุ่มสลิป/รายงาน/แก้ไข',
+    ],
+  },
+  {
+    ref: '#REV-20260622-X',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js?v=2.1: hrEditAtt() — เพิ่มความเข้มสีแถว + เส้นซ้าย (ขาด=แดง, อาทิตย์=ม่วง, เสาร์=น้ำเงิน, สาย=เหลือง)',
+    ],
+  },
+  {
+    ref: '#REV-20260622-W',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'Code.gs: _hrFmtTime() — แปลง Sheets time/Date object → HH:mm ใน getHRAttendance',
+      'hr.js?v=2.0: hrEditAtt() — color-code แถว (ขาด=แดง, อาทิตย์=ม่วง, เสาร์=ม่วงอ่อน)',
+      'hr.js: วันอาทิตย์ auto-set เป็น วันหยุด, ล็อก input ไม่ให้กรอกเวลา',
+    ],
+  },
+  {
+    ref: '#REV-20260622-V',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js?v=1.9: hrEditAtt() — popup แก้ไขเวลางานรายวันหลัง save (status, เข้า, ออก, สาย, OT)',
+      'hr.js: ตาราง สรุปเวลางาน — เพิ่มปุ่ม ✏️ แก้ไข ข้างปุ่มรายงาน',
+    ],
+  },
+  {
+    ref: '#REV-20260622-U',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js?v=1.8: hrPrintAttReport() — รายงานการเข้างานรายบุคคล (พิมพ์แจ้งพนักงาน)',
+      'hr.js: ตาราง สรุปเวลางาน — เพิ่มปุ่ม 🖨️ รายงาน ข้างปุ่มสลิป',
+      'hr.js: รายงานแสดง: วันที่, วัน, สถานะ, เวลาเข้า-ออก, สาย (นาที), OT + สรุปยอดด้านล่าง',
+    ],
+  },
+  {
+    ref: '#REV-20260622-T',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js?v=1.7: _hrSumTableHtml() — แยก section รายเดือน / รายวัน พร้อม header แสดงจำนวน',
+    ],
+  },
+  {
+    ref: '#REV-20260622-S',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js?v=1.5: ระบบรอบการจ่ายเงินเดือน (Pay Cycle) — ครึ่งเดือน / รายเดือน',
+      'hr.js: _hrPayCfg() + HR_PAY_DEF — default งวด1 (11-25 → จ่าย 1) งวด2 (26-10 → จ่าย 16)',
+      'hr.js: _hrPayCycleCard() + hrSavePayCfg() — UI ตั้งค่ารอบ ปรับวันได้ ใน HR Settings',
+      'hr.js: Employee card — เพิ่ม dropdown "รอบการจ่าย" per-employee override',
+      'hr.js: _hrPeriodSelect() + _hrFilterByPeriod() + _hrApplyFilter() — filter ตามงวด',
+      'hr.js: สรุปเวลางาน — dropdown เลือกงวด, โหลดเดือนก่อนอัตโนมัติสำหรับงวด 2',
+      'hr.js: _hrCalcPayslip() — basePay = salary/2 สำหรับงวดครึ่งเดือน, periodLabel',
+      'hr.js: _hrSlipHtml() — header แสดงช่วงงวดแทนชื่อเดือน',
+    ],
+  },
+  {
+    ref: '#REV-20260622-R',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js?v=1.4: _hrCalPrint() — อ่านชื่อบริษัทจาก ptts_company_cfg.name (แทน ptts_company_name)',
+      'hr.js: _hrSlipHtml() — อ่านชื่อบริษัทจาก ptts_company_cfg.name เช่นกัน',
+    ],
+  },
+  {
+    ref: '#REV-20260622-Q',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js?v=1.3: ลบ debug console.log ออก (เหลือแค่ production code)',
+      'ปฏิทินวันหยุดทำงานสมบูรณ์ — วันหยุดแสดงสี+ชื่อถูกต้อง',
+    ],
+  },
+  {
+    ref: '#REV-20260622-P',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js?v=1.2: _hrNormDate() — ใช้ regex แทน new Date() รองรับ Apps Script Date string "Thu Jan 01 2026 ..."',
+      'hr.js: debug log แสดง sample dates หลัง normalize เพื่อยืนยัน format',
+    ],
+  },
+  {
+    ref: '#REV-20260622-O',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js: _hrNormDate() — normalize date format ทุกรูปแบบ (Date object string, CE, BE) → dd/MM/yyyy BE',
+      'hr.js: _hrCalLoad() — map _hrHolidays ผ่าน _hrNormDate ทุก item ก่อนใช้งาน',
+      'Code.gs: getHRHolidays() — handle Date object (yr<2500 CE→BE) แทน String() ตรงๆ',
+    ],
+  },
+  {
+    ref: '#REV-20260622-N',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js?v=1.1: bump version ให้ browser โหลดไฟล์ใหม่ (ไม่ใช่ cache เก่า)',
+      'hr.js: _hrCalLoad() — แสดง warning popup เมื่อ HR_Holidays ว่าง, แสดง error text เมื่อ fetch ล้มเหลว',
+    ],
+  },
+  {
+    ref: '#REV-20260622-M',
+    date: '22/06/2569',
+    current: false,
+    items: [
+      'hr.js: ลบการ์ด "จัดการวันหยุดทั้งหมด" ออกจาก HR Settings — ใช้ tab ปฏิทินแทนได้ครบ',
+      'hr.js: ลบ functions _hrHolLoadManage, _hrHolRenderManage, hrAddHoliday, hrDeleteHoliday',
+    ],
+  },
+  {
+    ref: '#REV-20260622-L',
+    date: '22/06/2568',
+    current: false,
+    items: [
+      'form.html: เพิ่ม sub-tab 5 "📅 ปฏิทินวันหยุด" + hrPanel5 ใน tab-hr',
+      'hr.js: _hrRenderCal() — ปฏิทิน interactive 12 เดือน เลือกปีได้ โหลดวันหยุดจาก Sheet',
+      'hr.js: _hrCalDraw() — render grid 3×4 เดือน วันหยุดไฮไลต์ตามประเภท คลิกได้ทุกวัน',
+      'hr.js: _hrCalClick() — คลิกวันว่าง: popup เพิ่ม | คลิกวันหยุด: แก้ชื่อหรือลบ',
+      'hr.js: _hrCalPrint() — พิมพ์ปฏิทิน A4 12 เดือน + รายการวันหยุดแยกประเภท + ช่องลงนาม 3 ช่อง',
+    ],
+  },
+  {
+    ref: '#REV-20260622-K',
+    date: '22/06/2568',
+    current: false,
+    items: [
+      'hr.js: การ์ด "จัดการวันหยุดทั้งหมด" — โหลดจาก Sheet, เพิ่มวันหยุดบริษัทเอง (date picker + ชื่อ + ประเภท), ลบทีละแถว',
+      'hr.js: hrAddHoliday() — แปลง yyyy-MM-dd → dd/MM/yyyy (BE) แล้ว POST seedHRHolidays',
+      'hr.js: hrDeleteHoliday(date) — confirm แล้ว POST deleteHRHoliday, reload + sync _hrHolidays cache',
+      'Code.gs: deleteHRHoliday() — ลบแถวตาม date จาก HR_Holidays sheet',
+    ],
+  },
+  {
+    ref: '#REV-20260622-J',
+    date: '22/06/2568',
+    current: false,
+    items: [
+      'hr.js: เพิ่มปุ่ม "สร้างวันหยุด" ใน HR Settings — dropdown เลือกปี 2569-2574 + preview รายการก่อนสร้าง',
+      'hr.js: HR_HOLIDAY_BUDDHIST lookup table มาฆบูชา/วิสาขบูชา/อาสาฬหบูชา 2569-2574',
+      'hr.js: _hrBuildHolidays(beYear) — สร้างรายการวันหยุดพร้อมคำนวณวันชดเชย (อาทิตย์→จันทร์, เสาร์→จันทร์) อัตโนมัติ',
+      'hr.js: hrSeedHolidays() POST seedHRHolidays → อัปเดต _hrHolidays cache หลังสร้าง',
+      'Code.gs: seedHRHolidays() — append วันหยุดใหม่ลง HR_Holidays โดยข้ามวันที่ซ้ำ รายงาน added/skipped',
+    ],
+  },
+  {
+    ref: '#REV-20260622-I',
+    date: '22/06/2568',
+    current: false,
+    items: [
+      'hr.js: ระดับ 1 ตารางวันหยุด — โหลด HR_Holidays ก่อน import, วันหยุดที่ไม่มีสแกน → "หยุด" (ไม่ใช่ขาด)',
+      'hr.js: _hrCalcDay รับ dateStr ใหม่, เช็ค _hrHolidays set ก่อนตัดสิน status',
+      'hr.js: preview — highlight แถววันหยุดสีเหลือง 🎉, prefill ชื่อวันหยุดในช่องหมายเหตุ',
+      'hr.js: _hrFilterAndPreview โหลด getHRHolidays พร้อม getHREmployees (Promise.all)',
+      'Code.gs: getHRHolidays() — สร้าง sheet HR_Holidays + pre-fill วันหยุดราชการไทย 2569 (18 วัน)',
+    ],
+  },
+  {
     ref: '#REV-20260622-H',
     date: '22/06/2568',
-    current: true,
+    current: false,
     items: [
       'hr.js: OT chip หัวพนักงาน — เริ่มที่ 0.0 ชม. และอัปเดตเฉพาะวันที่เช็ค ✅ อนุมัติแล้วเท่านั้น',
       'hr.js: เพิ่ม _hrUpdateOTSum() — รวม OT จาก _hrPreview เฉพาะแถวที่ checkbox checked',
