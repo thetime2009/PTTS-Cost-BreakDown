@@ -28,6 +28,7 @@ let _wiCache = []; // WI list โหลดจาก backend (match ด้วย 
 const ORDER_LOAD_LIMIT = 100; // โหลดปกติ = 100 รายการล่าสุด, กด "โหลดทั้งหมด" = 0 (ทั้งหมด)
 let _itemMasterCache = []; // รายการสินค้า/บริการที่ใช้บ่อย (Item Master) — โหลดจาก fetchItemMaster()
 let _ordEditNoPO = null;
+let _ordPoFileBlobs = {};  // { prefix: File } — เก็บ blob หลังแก้ไขรูป PO
 let _trkPage = parseInt(localStorage.getItem('ptts_trk_page')) || 1;
 const TRK_PAGE_SIZE = 10;
 
@@ -266,16 +267,21 @@ function _ordPoFileChanged(prefix) {
   const clearEl = $(prefix + '_poFileClear');
   const imgEl   = $(prefix + '_poFilePreview');
   const iconEl  = $(prefix + '_poDropIcon');
+  const editBtn = $(prefix + '_poEditBtn');
   if (!file) { _ordClearPoFile(prefix); return; }
+  // ไฟล์ใหม่ — ล้าง blob เดิม (ถ้ามี)
+  delete _ordPoFileBlobs[prefix];
   if (nameEl)  nameEl.textContent = file.name;
   if (clearEl) clearEl.style.display = 'inline-block';
   if (imgEl) {
     if (file.type && file.type.startsWith('image/')) {
       imgEl.src = URL.createObjectURL(file);
       imgEl.style.display = 'block';
+      if (editBtn) editBtn.style.display = 'inline-flex';
     } else {
       imgEl.style.display = 'none';
       imgEl.removeAttribute('src');
+      if (editBtn) editBtn.style.display = 'none';
     }
   }
 }
@@ -285,10 +291,30 @@ function _ordClearPoFile(prefix) {
   const nameEl = $(prefix + '_poFileName');
   const clearEl = $(prefix + '_poFileClear');
   const imgEl  = $(prefix + '_poFilePreview');
+  const editBtn = $(prefix + '_poEditBtn');
   if (input)  input.value = '';
   if (nameEl) nameEl.textContent = 'ยังไม่ได้เลือกไฟล์ใด';
   if (clearEl) clearEl.style.display = 'none';
   if (imgEl) { imgEl.style.display = 'none'; imgEl.removeAttribute('src'); }
+  if (editBtn) editBtn.style.display = 'none';
+  delete _ordPoFileBlobs[prefix];
+}
+
+// เปิด image editor สำหรับรูป PO
+function _ordOpenPoEditor(prefix) {
+  const imgEl = $(prefix + '_poFilePreview');
+  if (!imgEl || !imgEl.src || imgEl.style.display === 'none') {
+    Swal.fire({ icon:'warning', title:'ไม่มีรูปให้แก้ไข', text:'กรุณาเลือกไฟล์รูปภาพ PO ก่อน', confirmButtonText:'ตกลง' });
+    return;
+  }
+  _imgEditorOpen(imgEl.src, function(file, url) {
+    // อัปเดต blob store + preview
+    _ordPoFileBlobs[prefix] = file;
+    imgEl.src = url;
+    imgEl.style.display = 'block';
+    const nameEl = $(prefix + '_poFileName');
+    if (nameEl) nameEl.textContent = '✅ แก้ไขแล้ว — ' + file.name;
+  });
 }
 
 // เมื่อเลือกไฟล์รูป Drawing (แบบงาน) ใหม่ — แสดงรูปตัวอย่าง + ปุ่มลบ
@@ -474,7 +500,7 @@ async function createOrder() {
       didOpen: () => Swal.showLoading()
     });
 
-    const poFile = $('ord_poFile')?.files?.[0];
+    const poFile = _ordPoFileBlobs['ord'] || $('ord_poFile')?.files?.[0];
     if (poFile) {
       _ordSetProgress('⏳ กำลังอัปโหลดไฟล์ PO...');
       const up = await _ordUploadPoFile(poFile, noPO);
@@ -695,7 +721,7 @@ async function createGeneralOrder() {
   if (createBtn) createBtn.disabled = true;
 
   try {
-    const poFile = $('gord_poFile')?.files?.[0];
+    const poFile = _ordPoFileBlobs['gord'] || $('gord_poFile')?.files?.[0];
     if (poFile) {
       if (statusEl) statusEl.textContent = '⏳ กำลังอัปโหลดไฟล์ PO...';
       const up = await _ordUploadPoFile(poFile, noPO);
@@ -2995,7 +3021,7 @@ async function saveOrderEdit() {
   });
 
   try {
-    const poFile = $('ordEdit_poFile')?.files?.[0];
+    const poFile = _ordPoFileBlobs['ordEdit'] || $('ordEdit_poFile')?.files?.[0];
     if (poFile) {
       if (statusEl) statusEl.textContent = '⏳ กำลังอัปโหลดไฟล์ PO...';
       const up = await _ordUploadPoFile(poFile, _ordEditNoPO);

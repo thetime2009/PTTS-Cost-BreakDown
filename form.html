@@ -20,7 +20,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css?v=7.42">
+<link rel="stylesheet" href="style.css?v=7.44">
 </head>
 <body>
 
@@ -38,8 +38,9 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v10.31</span>
+      <span class="ph-chip ver">v10.37</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
+      <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
     </div>
   </div>
@@ -897,6 +898,9 @@
     <button class="btn btn-calc" onclick="moldReload()" style="padding:10px 14px;font-size:.88rem">
       🔄 โหลดใหม่
     </button>
+    <button onclick="moldPrintCheckSheet()" style="padding:10px 16px;border-radius:8px;border:1px solid #3b82f6;background:rgba(59,130,246,.1);color:#60a5fa;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.88rem;font-weight:700">
+      🖨 พิมพ์ใบตรวจสอบแม่พิมพ์
+    </button>
     <span id="moldTableStatus" style="font-size:.78rem;color:#7c7a9a;margin-left:4px"></span>
   </div>
 
@@ -1512,7 +1516,11 @@
       </div>
       <!-- แนบไฟล์ PO + พรีวิวภาพ -->
       <div style="display:flex;flex-direction:column">
-        <img id="ord_poFilePreview" style="display:none;width:100%;flex:1;min-height:200px;max-height:380px;object-fit:contain;border-radius:10px;border:1px solid var(--bc-div);margin-bottom:8px;background:var(--bg1,#fff)">
+        <img id="ord_poFilePreview" style="display:none;width:100%;flex:1;min-height:200px;max-height:380px;object-fit:contain;border-radius:10px;border:1px solid var(--bc-div);margin-bottom:6px;background:var(--bg1,#fff)">
+        <button type="button" id="ord_poEditBtn" onclick="_ordOpenPoEditor('ord')"
+          style="display:none;align-items:center;gap:6px;padding:6px 14px;margin-bottom:8px;border-radius:8px;border:1px solid #3b82f6;background:rgba(59,130,246,.12);color:#60a5fa;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.78rem;font-weight:700;width:fit-content">
+          ✏️ แก้ไขรูป (Redact / Annotate)
+        </button>
         <div class="field"><label>แนบไฟล์ PO</label>
           <input type="file" id="ord_poFile" accept="image/*,.pdf" style="display:none" onchange="_ordPoFileChanged('ord')">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -1554,7 +1562,7 @@
 
 
   <!-- รายการ Order -->
-  <div class="card" style="margin-top:14px">
+  <div id="ordListCard" class="card" style="margin-top:14px">
     <div class="card-header">
       <div class="icon ic-ext">🗂️</div>
       <h2>รายการ Order</h2>
@@ -1728,7 +1736,11 @@
 
     <div class="field" style="margin-bottom:12px">
       <label>แนบไฟล์ PO (ถ้ามี)</label>
-      <img id="gord_poFilePreview" style="display:none;width:100%;max-height:260px;object-fit:contain;border-radius:10px;border:1px solid var(--bc-div);margin-bottom:8px;background:var(--bg1,#fff)">
+      <img id="gord_poFilePreview" style="display:none;width:100%;max-height:260px;object-fit:contain;border-radius:10px;border:1px solid var(--bc-div);margin-bottom:6px;background:var(--bg1,#fff)">
+      <button type="button" id="gord_poEditBtn" onclick="_ordOpenPoEditor('gord')"
+        style="display:none;align-items:center;gap:6px;padding:5px 12px;margin-bottom:8px;border-radius:7px;border:1px solid #3b82f6;background:rgba(59,130,246,.12);color:#60a5fa;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.75rem;font-weight:700;width:fit-content">
+        ✏️ แก้ไขรูป
+      </button>
       <input type="file" id="gord_poFile" accept="image/*,.pdf" style="display:none" onchange="_ordPoFileChanged('gord')">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <button type="button" class="btn" onclick="$('gord_poFile').click()" style="padding:6px 14px;font-size:.78rem">เลือกไฟล์</button>
@@ -1950,7 +1962,11 @@
           <button type="button" id="ordEdit_poFileClear" onclick="_ordClearPoFile('ordEdit')" title="ลบไฟล์"
             style="display:none;border:none;background:none;color:#ef4444;font-size:1rem;cursor:pointer;line-height:1;padding:2px 4px">✕</button>
         </div>
-        <img id="ordEdit_poFilePreview" style="display:none;max-width:120px;max-height:120px;margin-top:6px;border-radius:6px;border:1px solid var(--bc-div)">
+        <img id="ordEdit_poFilePreview" style="display:none;max-width:300px;max-height:180px;margin-top:6px;border-radius:6px;border:1px solid var(--bc-div)">
+        <button type="button" id="ordEdit_poEditBtn" onclick="_ordOpenPoEditor('ordEdit')"
+          style="display:none;align-items:center;gap:6px;padding:5px 12px;margin-top:6px;border-radius:7px;border:1px solid #3b82f6;background:rgba(59,130,246,.12);color:#60a5fa;cursor:pointer;font-family:Sarabun,sans-serif;font-size:.75rem;font-weight:700;width:fit-content">
+          ✏️ แก้ไขรูป
+        </button>
         <div id="ordEdit_poLinkWrap" style="margin-top:4px;font-size:.74rem"></div>
       </div>
       <div class="field" style="grid-column:1/-1"><label>รูป Drawing (แบบงาน)</label>
@@ -3347,15 +3363,16 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="core.js?v=8.94"></script>
+<script src="core.js?v=8.99"></script>
 <script src="data.js?v=8.94"></script>
 <script src="formcalc.js?v=9.06"></script>
 <script src="aifeatures.js?v=8.94"></script>
 <script src="theme.js?v=9.10"></script>
-<script src="order.js?v=9.75"></script>
+<script src="order.js?v=9.77"></script>
 <script src="dashboard.js?v=9.73"></script>
 <script src="inspect.js?v=10.08"></script>
   <script src="stock.js?v=10.30"></script>
+  <script src="imageEditor.js?v=1.1"></script>
 <script src="purchase.js?v=9.58"></script>
 <script src="invoice.js?v=9.03"></script>
 <script src="plating.js?v=8.94"></script>
@@ -3499,9 +3516,37 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260622-A',
+    ref: '#REV-20260622-D',
     date: '22/06/2568',
     current: true,
+    items: [
+      'style.css: Sidebar Style B — Section header solid blue, sub-tab inactive light blue, active darker blue',
+      'imageEditor.js: Redact default สีขาว (เปลี่ยนจากดำ)',
+    ],
+  },
+  {
+    ref: '#REV-20260622-C',
+    date: '22/06/2568',
+    current: false,
+    items: [
+      'imageEditor.js: ไฟล์ใหม่ — Canvas Image Editor (Redact/วาด/ข้อความ/Undo) สำหรับรูป PO',
+      'order.js: เพิ่ม _ordPoFileBlobs, _ordOpenPoEditor() — แก้รูปก่อน upload, hook 3 prefix (ord/gord/ordEdit)',
+      'form.html: ปุ่ม ✏️ แก้ไขรูป (Redact/Annotate) หลัง preview ทั้ง 3 จุด + script imageEditor.js?v=1.0',
+    ],
+  },
+  {
+    ref: '#REV-20260622-B',
+    date: '22/06/2568',
+    current: false,
+    items: [
+      'formcalc.js: เพิ่ม moldPrintCheckSheet() — ใบตรวจสอบแม่พิมพ์ A4 landscape แต่ละ ID = 1 แถว สีสลับกลุ่ม OD',
+      'form.html: เพิ่มปุ่ม 🖨 พิมพ์ใบตรวจสอบแม่พิมพ์ ในหัวแท็บแม่พิมพ์',
+    ],
+  },
+  {
+    ref: '#REV-20260622-A',
+    date: '22/06/2568',
+    current: false,
     items: [
       'style.css: sidebar active tab — ทุกแท็บในกลุ่มเมื่อ active แสดงพื้นหลัง var(--c1) + ตัวอักษรขาว เหมือนแท็บแดชบอร์ด',
     ],

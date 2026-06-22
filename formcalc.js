@@ -1919,3 +1919,126 @@ function moldDelete(idx) {
   });
 }
 
+
+// ── ใบตรวจสอบแม่พิมพ์ ─────────────────────────────────────────
+function moldPrintCheckSheet() {
+  if (!_moldData || !_moldData.length) {
+    Swal.fire({ icon:'warning', title:'ยังไม่มีข้อมูล', text:'กรุณากด 🔄 โหลดใหม่ ก่อนพิมพ์ใบตรวจสอบ',
+      background:'#0d1b2a', color:'#cce4ff', confirmButtonColor:'#3b82f6' });
+    return;
+  }
+
+  var today = new Date();
+  var dd   = String(today.getDate()).padStart(2,'0');
+  var mm   = String(today.getMonth()+1).padStart(2,'0');
+  var yyyy = today.getFullYear() + 543;
+  var dateStr = dd + '/' + mm + '/' + yyyy;
+
+  // สีพื้นหลังสลับกลุ่ม
+  var groupColors = ['#f8f9fb', '#ffffff'];
+
+  var seq = 0;
+  var rowsHtml = '';
+
+  _moldData.forEach(function(m, gi) {
+    var ids = (m.ids && m.ids.length) ? m.ids : ['—'];
+    var bg  = groupColors[gi % 2];
+
+    ids.forEach(function(idVal, ii) {
+      var isFirst   = ii === 0;
+      var isNoMold  = idVal === '—' || idVal.includes('ไม่มีพิมพ์');
+      var checkCell = isNoMold
+        ? '<td style="text-align:center;font-size:.85rem;color:#94a3b8">—</td>'
+        : '<td style="text-align:center"><span style="display:inline-block;width:14px;height:14px;border:1.5px solid #94a3b8;border-radius:3px"></span></td>';
+
+      var odCell = isFirst
+        ? '<td style="padding:7px 10px;font-weight:700;font-size:.82rem;color:#1e3a5f;' +
+          'border-right:2px solid #e2e8f0;vertical-align:top;white-space:nowrap">' + m.od + '</td>'
+        : '<td style="border-right:2px solid #e2e8f0"></td>';
+
+      var idCell = isNoMold
+        ? '<td style="padding:7px 10px;font-size:.75rem;color:#94a3b8;font-style:italic">ไม่มีพิมพ์</td>'
+        : '<td style="padding:7px 10px;font-size:.82rem;color:#334155;font-weight:600">' + idVal + '</td>';
+
+      var statusCell = isFirst
+        ? '<td style="padding:7px 10px;font-size:.7rem;color:#64748b;white-space:nowrap">ดี &nbsp;/&nbsp; ชำรุด &nbsp;/&nbsp; สูญหาย</td>'
+        : '<td></td>';
+
+      seq++;
+      rowsHtml +=
+        '<tr style="background:' + bg + ';border-bottom:1px solid #e2e8f0">' +
+          '<td style="padding:7px 8px;text-align:center;font-size:.7rem;color:#94a3b8">' + seq + '</td>' +
+          odCell +
+          idCell +
+          checkCell +
+          statusCell +
+          '<td style="padding:7px 10px;border-bottom:1px solid #cbd5e1;min-width:70px"></td>' +
+          '<td style="padding:7px 10px;border-bottom:1px solid #cbd5e1;min-width:120px"></td>' +
+        '</tr>';
+    });
+  });
+
+  var html =
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+    '<style>' +
+    'body{font-family:Sarabun,sans-serif;font-size:13px;color:#1e293b;margin:0;padding:0}' +
+    '@page{size:A4 landscape;margin:12mm 14mm}' +
+    'table{width:100%;border-collapse:collapse}' +
+    'th{background:#1e3a5f;color:#fff;padding:8px 10px;font-size:.72rem;font-weight:700;white-space:nowrap}' +
+    '.header-box{display:flex;justify-content:space-between;align-items:flex-start;' +
+      'border-bottom:2px solid #1e3a5f;padding-bottom:10px;margin-bottom:14px}' +
+    '.title{font-size:1.05rem;font-weight:900;color:#1e3a5f}' +
+    '.sub{font-size:.72rem;color:#64748b;margin-top:3px}' +
+    '.sign-row{display:flex;gap:32px;margin-top:20px}' +
+    '.sign-box{flex:1;border-top:1.5px solid #334155;padding-top:6px;text-align:center;' +
+      'font-size:.75rem;color:#475569}' +
+    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}' +
+    '</style></head><body>' +
+
+    '<div class="header-box">' +
+      '<div>' +
+        '<div class="title">🔩 ใบตรวจสอบแม่พิมพ์</div>' +
+        '<div class="sub">PTTS Cost Breakdown — Mold Inspection Check Sheet</div>' +
+      '</div>' +
+      '<div style="text-align:right;font-size:.78rem">' +
+        '<div style="color:#64748b">วันที่ตรวจสอบ</div>' +
+        '<div style="font-size:.95rem;font-weight:900;color:#1e3a5f">' + dateStr + '</div>' +
+        '<div style="margin-top:4px;color:#64748b;font-size:.7rem">รอบตรวจ: _______________</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<table>' +
+      '<thead><tr>' +
+        '<th style="width:28px;text-align:center">#</th>' +
+        '<th style="width:70px">OD (mm)</th>' +
+        '<th style="width:70px">ID (mm)</th>' +
+        '<th style="width:52px;text-align:center">มีจริง ✓</th>' +
+        '<th style="width:150px">สภาพ</th>' +
+        '<th style="width:90px">ที่เก็บ</th>' +
+        '<th>หมายเหตุ</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rowsHtml + '</tbody>' +
+    '</table>' +
+
+    '<div class="sign-row">' +
+      '<div class="sign-box">ผู้ตรวจสอบ<br><br><br></div>' +
+      '<div class="sign-box">ผู้ควบคุมการผลิต<br><br><br></div>' +
+      '<div class="sign-box">วันที่: _____ / _____ / _____<br><br></div>' +
+    '</div>' +
+
+    '<script>(function(){' +
+      'function go(){try{window.focus();window.print();}catch(e){}}' +
+      'if(document.fonts&&document.fonts.ready){document.fonts.ready.then(go).catch(function(){setTimeout(go,700);});}' +
+      'else{setTimeout(go,700);}' +
+    '})();<\/script>' +
+    '</body></html>';
+
+  var win = window.open('', '_blank');
+  if (!win) {
+    Swal.fire({ icon:'warning', title:'Popup ถูกบล็อก', text:'กรุณาอนุญาต popup แล้วลองใหม่',
+      background:'#0d1b2a', color:'#cce4ff', confirmButtonColor:'#3b82f6' });
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+}

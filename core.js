@@ -166,7 +166,7 @@ const GROUP_DEFS = [
   { id:'sales', icon:'💼', label:'ฝ่ายขาย', items: [
     { tab:'dashboard' },
     { tab:'breakdown' },
-    { tab:'order', label:'ใบเสนอราคา', icon:'📝' },
+    { tab:'order', label:'ใบเสนอราคา', icon:'📝', view:'quo' },
     { tab:'order' },
     { tab:'data' },
     { tab:'labor' },
@@ -184,14 +184,16 @@ const GROUP_DEFS = [
     { tab:'dept_help', label:'วิธีใช้งานแผนก', icon:'📖', dept:'purchase' },
   ]},
   { id:'production', icon:'🏭', label:'ฝ่ายผลิต', items: [
-    { tab:'order', label:'Job Order', icon:'📋' },
+    { tab:'order', label:'Job Order', icon:'📋', view:'job' },
     { tab:'calc', label:'คำนวณตัดเหล็ก' },
     { tab:'mold' },
     { tab:'track', view:'reduced' },
     { tab:'inspect' },
-    { tab:'stock' },
     { tab:'wi' },
     { tab:'dept_help', label:'วิธีใช้งานแผนก', icon:'📖', dept:'production' },
+  ]},
+  { id:'store', icon:'🏪', label:'Store', items: [
+    { tab:'stock' },
   ]},
   { id:'account', icon:'💰', label:'บัญชี', items: [
     { tab:'invoice', label:'ใบกำกับภาษี', icon:'📑', subTab:'1' },
@@ -199,7 +201,6 @@ const GROUP_DEFS = [
     { tab:'invoice', label:'รายงานภาษีขาย', icon:'📊', subTab:'3' },
     { tab:'invoice', label:'ใบวางบิล', icon:'📑', subTab:'4' },
     { tab:'invoice', label:'ใบเสร็จ', icon:'🧾', subTab:'5' },
-    { tab:'invoice', label:'รายงานภาษี', icon:'📈', subTab:'3' },
     { tab:'dept_help', label:'วิธีใช้งานแผนก', icon:'📖', dept:'account' },
   ]},
   { id:'settings', icon:'⚙️', label:'ตั้งค่า', items: [
@@ -221,6 +222,8 @@ function _placeholderAlert(label) {
 
 // แท็บย่อยที่กำลังเปิดอยู่ (ใช้ไฮไลต์เมนูย่อยใน sidebar เช่น ใบกำกับภาษี / เพิ่มลูกค้า / รายงานภาษีขาย / ใบวางบิล)
 let _activeSubTab = null;
+// view ล่าสุดที่ถูก click จาก sidebar (ใช้แยก tab เดียวกันที่มีหลาย entry เช่น order/quo vs order/job)
+let _activeSbView = localStorage.getItem('ptts_sb_view') || null;
 // โหมดแสดงผลของหน้าติดตามงาน/แดชบอร์ด ('full' = แดชบอร์ด แสดงทุกการ์ดสรุป, 'reduced' = ติดตามงาน ซ่อนการ์ดที่ไม่จำเป็น)
 let _trkViewMode = 'full';
 let _activeHelpDept = localStorage.getItem('ptts_help_dept') || 'sales';
@@ -241,11 +244,24 @@ function _renderDeptHelp(dept) {
 }
 function _sbGoto(tab, subTab, view) {
   _activeSubTab = subTab || null;
+  _activeSbView = view || null;
   if (tab === 'track' && view) _trkViewMode = view;
   localStorage.setItem('ptts_trk_view_mode', _trkViewMode);
   localStorage.setItem('ptts_active_subtab', _activeSubTab || '');
+  localStorage.setItem('ptts_sb_view', _activeSbView || '');
   switchTab(tab);
   if (subTab && typeof _invSubTabSwitch === 'function') _invSubTabSwitch(subTab);
+  // Order sub-tab switching: ใบเสนอราคา (view=quo) → sub2, Job Order / no view → sub1 + scroll
+  if (tab === 'order' && typeof _ordSubTabSwitch === 'function') {
+    _ordSubTabSwitch(view === 'quo' ? '2' : '1');
+    if (view === 'job') {
+      setTimeout(function() {
+        var el = document.getElementById('ordListCard');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (typeof fetchOrders === 'function') fetchOrders();
+      }, 80);
+    }
+  }
   if (tab === 'track' && typeof renderTrackDashboard === 'function') renderTrackDashboard();
   renderTabBar();
 }
@@ -318,7 +334,7 @@ function _renderTabBarInner() {
         const icon  = it.icon  || def.icon;
         const isActive = it.dept
           ? (it.tab === _activeTab && it.dept === _activeHelpDept)
-          : (it.tab === _activeTab && (it.subTab||null) === (_activeSubTab||null));
+          : (it.tab === _activeTab && (it.subTab||null) === (_activeSubTab||null) && (it.view||null) === (_activeSbView||null));
         const viewArg = it.view ? `,'${it.view}'` : '';
         const click = it.dept
           ? `_openDeptHelp('${it.dept}')`
