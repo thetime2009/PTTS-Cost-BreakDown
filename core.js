@@ -152,6 +152,7 @@ const TAB_DEFS = [
   { id:'inspect',   icon:'🔍', label:'ตรวจสอบ' },
   { id:'stock',     icon:'📦', label:'Stock MAT' },
   { id:'report',    icon:'📊', label:'Report'    },
+  { id:'hr',        icon:'👷', label:'HR'         },
 ];
 
 // ── Sidebar Group Menu (เดสก์ท็อป ≥1024px) ─────────────
@@ -209,6 +210,12 @@ const GROUP_DEFS = [
     { tab:'report', label:'ใบวางบิลทั้งหมด', icon:'🧾', view:'outstanding' },
     { tab:'report', label:'ยอดซื้อ PO', icon:'🛒', view:'po' },
     { tab:'report', label:'ค่าชุบแยกโรงชุบ', icon:'🧪', view:'plating' },
+  ]},
+  { id:'hr', icon:'👷', label:'HR', items: [
+    { tab:'hr', label:'นำเข้าข้อมูล',  icon:'📥', view:'import'  },
+    { tab:'hr', label:'สรุปเวลางาน',   icon:'📊', view:'summary' },
+    { tab:'hr', label:'พนักงาน',        icon:'👤', view:'emps'    },
+    { tab:'hr', label:'ตั้งค่า HR',     icon:'⚙️', view:'settings'},
   ]},
   { id:'settings', icon:'⚙️', label:'ตั้งค่า', items: [
     { tab:'api' },
@@ -276,6 +283,12 @@ function _sbGoto(tab, subTab, view) {
       else if (view === 'po'          && typeof rptPO          === 'function') rptPO();
       else if (view === 'plating'     && typeof rptPlating     === 'function') rptPlating();
       else if (view === 'sales'       && typeof rptSales       === 'function') rptSales();
+    }, 80);
+  }
+  if (tab === 'hr' && view && typeof hrSubSwitch === 'function') {
+    setTimeout(function() {
+      const MAP = { import:'1', summary:'2', emps:'3', settings:'4' };
+      hrSubSwitch(MAP[view] || '1');
     }, 80);
   }
   renderTabBar();
@@ -515,6 +528,7 @@ function switchTab(name) {
   if (name === 'dashboard')  { if (typeof _dbInit    === 'function') _dbInit(); }
   if (name === 'inspect')    { if (typeof _inspInit  === 'function') _inspInit(); }
   if (name === 'stock')      { if (typeof stockLoad    === 'function') stockLoad(); }
+  if (name === 'hr')        { if (typeof hrInitTab    === 'function') hrInitTab(); }
 }
 
 // ── Tab Manager UI ───────────────────────────────────

@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v10.39</span>
+      <span class="ph-chip ver">v10.40</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -2171,6 +2171,42 @@
 </div>
 </div><!-- end tab-report -->
 
+<!-- ══ TAB: HR ═════════════════════════════════════ -->
+<div id="tab-hr" class="tab-content">
+<div style="max-width:920px;margin:0 auto;padding:12px 8px 100px">
+  <div class="tab-title" style="padding-top:16px">
+    <div class="ticon" style="background:rgba(99,102,241,.15);color:#818cf8">👷</div>
+    <div>HR<span style="font-size:.75rem;color:var(--t3);margin-left:8px">นำเข้าข้อมูล | สรุปเวลา | พนักงาน | ตั้งค่า | สลิปเงินเดือน</span></div>
+  </div>
+
+  <!-- Sub-tab bar -->
+  <div style="display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap">
+    <button id="hrBtn1" onclick="hrSubSwitch('1')"
+      style="padding:8px 18px;border-radius:10px;border:1px solid var(--c1);background:var(--c1);color:#fff;font-family:'Sarabun',sans-serif;font-size:.84rem;font-weight:700;cursor:pointer">
+      📥 นำเข้าข้อมูล
+    </button>
+    <button id="hrBtn2" onclick="hrSubSwitch('2')"
+      style="padding:8px 18px;border-radius:10px;border:1px solid var(--bc-input);background:transparent;color:var(--t3);font-family:'Sarabun',sans-serif;font-size:.84rem;font-weight:700;cursor:pointer">
+      📊 สรุปเวลางาน
+    </button>
+    <button id="hrBtn3" onclick="hrSubSwitch('3')"
+      style="padding:8px 18px;border-radius:10px;border:1px solid var(--bc-input);background:transparent;color:var(--t3);font-family:'Sarabun',sans-serif;font-size:.84rem;font-weight:700;cursor:pointer">
+      👤 พนักงาน
+    </button>
+    <button id="hrBtn4" onclick="hrSubSwitch('4')"
+      style="padding:8px 18px;border-radius:10px;border:1px solid var(--bc-input);background:transparent;color:var(--t3);font-family:'Sarabun',sans-serif;font-size:.84rem;font-weight:700;cursor:pointer">
+      ⚙️ ตั้งค่า HR
+    </button>
+  </div>
+
+  <!-- Sub-tab panels (rendered by hr.js) -->
+  <div id="hrPanel1"></div>
+  <div id="hrPanel2" style="display:none"></div>
+  <div id="hrPanel3" style="display:none"></div>
+  <div id="hrPanel4" style="display:none"></div>
+</div>
+</div><!-- end tab-hr -->
+
 <!-- ══ TAB: MAT ════════════════════════════════════ -->
 <div id="tab-mat" class="tab-content">
 <div style="max-width:620px;margin:0 auto;padding:12px 8px 100px">
@@ -3428,6 +3464,8 @@
 <script src="inspect.js?v=10.09"></script>
   <script src="stock.js?v=10.32"></script>
   <script src="report.js?v=1.0"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="hr.js?v=1.0"></script>
   <script src="imageEditor.js?v=1.1"></script>
 <script src="purchase.js?v=9.58"></script>
 <script src="invoice.js?v=9.03"></script>
@@ -3572,9 +3610,21 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260622-F',
+    ref: '#REV-20260622-G',
     date: '22/06/2568',
     current: true,
+    items: [
+      'hr.js: ไฟล์ใหม่ v1.0 — HR Module ครบ: นำเข้าจาก ZKTeco, คำนวณ OT/สาย, สรุปเวลา, พนักงาน CRUD, ตั้งค่า HR',
+      'hr.js: สลิปเงินเดือน (สวย A4) + บันทึกภาพ + แชร์ LINE (navigator.share / download fallback)',
+      'form.html: เพิ่ม #tab-hr (4 sub-tabs), SheetJS CDN, script hr.js?v=1.0',
+      'core.js: เพิ่ม tab-hr ใน TAB_DEFS + กลุ่ม HR ใน GROUP_DEFS + _sbGoto handler',
+      'Code.gs: เพิ่ม getHREmployees, getHRAttendance (GET) + saveHREmployee, deleteHREmployee, saveHRAttendance (POST) + 3 ชีตใหม่ (HR_Employees, HR_Attendance)',
+    ],
+  },
+  {
+    ref: '#REV-20260622-F',
+    date: '22/06/2568',
+    current: false,
     items: [
       'report.js: ไฟล์ใหม่ v1.0 — Report Hub 4 รายงาน (ยอดขาย/ใบวางบิล/ยอดซื้อ PO/ค่าชุบ)',
       'form.html: เพิ่ม #tab-report — 4 report cards เปิด Swal + พิมพ์ A4',
