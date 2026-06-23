@@ -2785,12 +2785,16 @@ function _hrLoanTableHtml(filter) {
     var ts      = typeStyle[l.type] || { bg:'#f1f5f9', color:'#475569', label: l.type };
 
     // ── day circle ──
-    var dayCircle =
-      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-        'width:52px;height:52px;border-radius:50%;border:3px solid ' + ringClr + ';flex-shrink:0">' +
-        '<span style="font-size:1.1rem;font-weight:800;color:' + ringClr + ';line-height:1">' + days + '</span>' +
-        '<span style="font-size:.6rem;color:' + ringClr + ';margin-top:1px">วันที่แล้ว</span>' +
-      '</div>';
+    var dayCircle = l.status === 'closed'
+      ? '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+          'width:52px;height:52px;border-radius:50%;background:#d1fae5;border:3px solid #10b981;flex-shrink:0">' +
+          '<span style="font-size:1.5rem;line-height:1">✅</span>' +
+        '</div>'
+      : '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+          'width:52px;height:52px;border-radius:50%;border:3px solid ' + ringClr + ';flex-shrink:0">' +
+          '<span style="font-size:1.1rem;font-weight:800;color:' + ringClr + ';line-height:1">' + days + '</span>' +
+          '<span style="font-size:.6rem;color:' + ringClr + ';margin-top:1px">วันที่แล้ว</span>' +
+        '</div>';
 
     // ── action buttons ──
     var actionArea = '';
@@ -2804,16 +2808,23 @@ function _hrLoanTableHtml(filter) {
       actionArea =
         '<button onclick="hrLoanClose(\'' + l.requestId + '\')" style="width:100%;background:#0f172a;color:#fff;border:none;border-radius:8px;padding:8px 10px;cursor:pointer;font-size:.84rem;font-family:inherit;font-weight:600">💳 บันทึกโอนเงิน / ปิดรายการ</button>';
     } else if (l.status === 'closed') {
-      var xfAmt  = l.transferAmount ? '฿' + _hrFmt(l.transferAmount) : '';
-      var xfDate = l.transferDate   ? _hrFmtDateShort(l.transferDate).slice(0,10) : '';
-      var xfNote = l.transferNote   ? l.transferNote : '';
+      var xfAmt  = parseFloat(l.transferAmount || l.amount || 0);
+      var xfDate = l.closedDate || l.transferDate || '';
+      var xfNote = l.transferNote || '';
       actionArea =
-        '<div style="background:var(--bg2);border-radius:8px;padding:8px 10px;font-size:.8rem;display:flex;flex-wrap:wrap;gap:8px;align-items:center">' +
-          (xfDate ? '<span style="color:var(--t2)">📅 ' + xfDate + '</span>' : '') +
-          (xfAmt  ? '<span style="color:#059669;font-weight:700">' + xfAmt + '</span>' : '') +
-          (xfNote ? '<span style="color:var(--t3)">' + xfNote + '</span>' : '') +
-          (l.slipImageUrl ? '<a href="' + l.slipImageUrl + '" target="_blank" style="color:#3b82f6;text-decoration:none">🖼️ ใบโอน</a>' : '') +
-          (l.closedDate ? '<span style="color:var(--t4);font-size:.75rem;margin-left:auto">ปิด ' + _hrFmtDateShort(l.closedDate).slice(0,10) + '</span>' : '') +
+        '<div style="background:linear-gradient(135deg,#d1fae5 0%,#a7f3d0 100%);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px">' +
+          '<div style="width:40px;height:40px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;box-shadow:0 2px 8px rgba(16,185,129,.25)">✅</div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:.78rem;font-weight:700;color:#065f46;letter-spacing:.3px">💸 เงินเข้าแล้ว</div>' +
+            '<div style="font-size:1.15rem;font-weight:900;color:#047857;line-height:1.2">฿' + _hrFmt(xfAmt) + '</div>' +
+            '<div style="font-size:.73rem;color:#059669;margin-top:2px">' +
+              (xfDate ? '📅 ' + _hrFmtDateShort(xfDate).slice(0,10) : '') +
+              (xfNote ? ' &nbsp;·&nbsp; ' + xfNote : '') +
+            '</div>' +
+          '</div>' +
+          (l.slipImageUrl
+            ? '<a href="' + l.slipImageUrl + '" target="_blank" style="background:#fff;color:#059669;border-radius:8px;padding:6px 10px;font-size:.78rem;font-weight:700;text-decoration:none;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.08)">🖼️ ใบโอน</a>'
+            : '') +
         '</div>';
     } else if (l.status === 'approved' && !isManagerView) {
       actionArea = '<div style="font-size:.8rem;color:#059669">✅ อนุมัติโดย ' + (l.approvedBy || '—') + '</div>';
