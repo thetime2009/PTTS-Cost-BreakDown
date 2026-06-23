@@ -6,30 +6,24 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#eef5fc",
+  "background_color": "#ffffff",
   "theme_color": "#3b82f6",
   "lang": "th",
   "icons": [
     {
-      "src": "PTS.png",
+      "src": "PTS-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "PTS.png",
+      "src": "PTS-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "PTS.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "PTS.png",
+      "src": "PTS-icon-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
