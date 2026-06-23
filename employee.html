@@ -374,7 +374,7 @@
         <div class="ph-sub">หน้าพนักงาน</div>
       </div>
       <div class="ph-right">
-        <span class="ph-chip ver">v1.8</span>
+        <span class="ph-chip ver">v1.9</span>
         <span class="ph-chip" id="empConnChip" style="display:none">✓ Online</span>
         <button class="theme-fab" onclick="location.reload()" title="รีเฟรช" style="font-size:1rem">🔄</button>
       </div>
@@ -557,7 +557,7 @@ function empDoLogin() {
   // ตรวจ PIN พนักงานผ่าน Code.gs
   var url = localStorage.getItem('ptts_script_url') || '';
   if (!url) {
-    errEl.textContent = '⚠️ ยังไม่ได้ตั้งค่า Script URL — กรุณาใส่ด้านบน';
+    errEl.textContent = '';
     document.getElementById('empUrlNote').style.display = 'block';
     return;
   }

@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v10.92</span>
+      <span class="ph-chip ver">v10.93</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -3626,9 +3626,17 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260623-AG',
+    ref: '#REV-20260623-AH',
     date: '23/06/2569',
     current: true,
+    items: [
+      'employee.html v1.9: แก้ warning Script URL ขึ้นซ้อน 2 ชั้น — ล้าง errEl เมื่อ empUrlNote แสดงอยู่แล้ว',
+    ]
+  },
+  {
+    ref: '#REV-20260623-AG',
+    date: '23/06/2569',
+    current: false,
     items: [
       'employee.html v1.8: ตั้งค่า Script URL ผ่าน Swal popup แทน inline input — กดแถบเหลืองเพื่อกรอก URL',
       'employee.html v1.8: แก้ bug display="" → display="block" ทำให้ empUrlNote แสดงถูกต้อง',
