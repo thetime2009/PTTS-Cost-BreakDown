@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v10.82</span>
+      <span class="ph-chip ver">v10.87</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -3475,7 +3475,8 @@
   <script src="stock.js?v=10.32"></script>
   <script src="report.js?v=1.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="hr.js?v=4.3"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="hr.js?v=4.6"></script>
   <script src="imageEditor.js?v=1.1"></script>
 <script src="purchase.js?v=9.58"></script>
 <script src="invoice.js?v=9.03"></script>
@@ -3620,9 +3621,55 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260623-W',
+    ref: '#REV-20260623-AB',
     date: '23/06/2569',
     current: true,
+    items: [
+      'employee.html v1.5: redesign tab bar — สลิปปุ่มกลมนูนกลาง, เวลางาน/เบิก-กู้/ปฏิทินซ้าย-ขวา',
+      'employee.html v1.5: สรุปเวลางาน — view รายวัน read-only (เข้างาน/ออกงาน/สถานะ/สาย/OT)',
+    ]
+  },
+  {
+    ref: '#REV-20260623-AA',
+    date: '23/06/2569',
+    current: false,
+    items: [
+      'employee.html v1.4: สลิปเงินเดือน — แสดง preview inline ทันที ไม่ต้องกดปุ่ม',
+      'employee.html v1.4: auto-select งวดตามวันที่, reload เมื่อเปลี่ยนเดือน/งวด',
+      'Code.gs: เพิ่ม hrLogin() function (แก้ bug ReferenceError)',
+    ]
+  },
+  {
+    ref: '#REV-20260623-Z',
+    date: '23/06/2569',
+    current: false,
+    items: [
+      'hr.js v4.6: QR modal — เพิ่มปุ่มยืนยันโอนแล้ว (toast) + ยกเลิก',
+    ]
+  },
+  {
+    ref: '#REV-20260623-Y',
+    date: '23/06/2569',
+    current: false,
+    items: [
+      'hr.js v4.5: สรุปเวลางาน — auto-select งวดตามวันที่ปัจจุบัน (p1=11-25, p2=อื่นๆ)',
+    ]
+  },
+  {
+    ref: '#REV-20260623-X',
+    date: '23/06/2569',
+    current: false,
+    items: [
+      'hr.js v4.4: การ์ดสรุปเวลางาน — แสดงรายละเอียดสลิปโดยตรงในการ์ด (เงินเดือน/OT/หัก/รับสุทธิ)',
+      'hr.js v4.4: ปุ่ม QR พร้อมเพย์ในการ์ดพนักงาน — สแกนโอนเงินเดือนได้ทันที',
+      'hr.js v4.4: _hrPayRow(), _hrPromptPayPayload(), _hrCRC16(), hrShowPromptPayQR()',
+      'form.html + employee.html: เพิ่ม qrcode.js (cdnjs)',
+    ]
+  },
+  {
+    ref: '#REV-20260623-W',
+    date: '23/06/2569',
+    current: false,
     items: [
       'Code.gs: uploadEmployeeFile — เปลี่ยน URL เป็น thumbnail?sz=w400 (โหลดได้ใน img)',
       'hr.js?v=4.3: _hrDriveThumb() — แปลง Drive URL ทุกรูปแบบ → thumbnail URL อัตโนมัติ',

@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════
-// hr.js v4.3  —  HR Module
+// hr.js v4.6  —  HR Module
 // นำเข้าข้อมูลสแกนหน้า | สรุปเวลางาน | พนักงาน | ตั้งค่า | สลิปเงินเดือน
 // ══════════════════════════════════════════════════════════════
 
@@ -621,6 +621,13 @@ function _hrRenderSummary() {
   const now = new Date();
   if (!_hrSumMon) _hrSumMon = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
 
+  // Auto-select งวดตามวันที่ปัจจุบัน (เฉพาะครั้งแรกที่เปิด หรือเมื่อยังเป็น all)
+  var _autopc = _hrPayCfg();
+  if (_autopc.mode === 'semi' && _hrSumPeriod === 'all') {
+    var _d = now.getDate();
+    _hrSumPeriod = (_d >= _autopc.p1.start && _d <= _autopc.p1.end) ? 'p1' : 'p2';
+  }
+
   p.innerHTML =
     '<div style="max-width:900px">' +
     '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">' +
@@ -773,7 +780,14 @@ function _hrSumTableHtml(rows) {
     if (rate >= 2) e.otSun += ot; else e.otWD += ot;
   });
 
-  // แยกกลุ่ม: รายเดือน ก่อน, รายวัน หลัง
+  // แผนที่ attendance รายบุคคล สำหรับคำนวณ payslip
+  const attByEmp = {};
+  rows.forEach(function(r) {
+    const id = String(r.empId);
+    if (!attByEmp[id]) attByEmp[id] = [];
+    attByEmp[id].push(r);
+  });
+
   const monthly = Object.keys(emp).filter(function(id) { return emp[id].type !== 'daily'; });
   const daily   = Object.keys(emp).filter(function(id) { return emp[id].type === 'daily'; });
 
@@ -790,6 +804,28 @@ function _hrSumTableHtml(rows) {
     const e = emp[id];
     const isManager = !_hrSession || _hrSession.role === 'manager';
     const ac = e.type === 'daily' ? '#0891b2' : '#4f46e5';
+
+    // คำนวณ payslip inline
+    const empRec = _hrEmps.find(function(x) { return String(x.empId) === id; }) || null;
+    const ps = _hrCalcPayslip(empRec, attByEmp[id] || [], _hrSumMon, _hrSumPeriod);
+    const phone = (empRec && empRec.phone) ? empRec.phone.replace(/[^0-9]/g,'') : '';
+
+    // สร้างแถวรายได้
+    var payRows = '';
+    var baseLabel = ps.type === 'daily'
+      ? 'ค่าแรง (' + ps.present + ' วัน × ฿' + _hrFmt(ps.dailyRate) + ')'
+      : 'เงินเดือน';
+    payRows += _hrPayRow(baseLabel, ps.basePay, false);
+    if (ps.otPayWD  > 0) payRows += _hrPayRow('OT ปกติ ('  + ps.otWDH  + ' ชม.)', ps.otPayWD,  false);
+    if (ps.otPaySun > 0) payRows += _hrPayRow('OT อาทิตย์ (' + ps.otSunH + ' ชม.)', ps.otPaySun, false);
+    payRows += _hrPayRow('รวมรายได้', ps.gross, true);
+    if (ps.absentDeduct > 0) payRows += _hrPayRow('ขาดงาน ' + ps.absent + ' วัน', -ps.absentDeduct, false);
+
+    var qrBtnHtml = phone
+      ? '<button onclick="hrShowPromptPayQR(\''+phone+'\','+ps.net.toFixed(2)+',\''+encodeURIComponent(e.name||'')+'\',\''+id+'\')" ' +
+          'style="width:100%;padding:7px 4px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.82rem;font-weight:700;margin-top:2px">🔲 QR พร้อมเพย์</button>'
+      : '';
+
     return '<div style="background:var(--bg-card);border:1.5px solid var(--bc-card);border-radius:14px;overflow:hidden">' +
       '<div style="background:' + ac + '18;padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid ' + ac + '30">' +
         '<div style="width:36px;height:36px;border-radius:50%;background:' + ac + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0">' +
@@ -803,21 +839,29 @@ function _hrSumTableHtml(rows) {
         '</div>' +
       '</div>' +
       '<div style="display:flex;gap:2px;padding:10px 10px;border-bottom:1px solid var(--bc-input)">' +
-        stat(e.present,          'มา',         '#059669') +
-        stat(e.absent,           'ขาด',        e.absent  > 0 ? '#dc2626' : 'var(--t4)') +
-        stat(e.lateTimes,        'สายครั้ง',   e.lateMin > 0 ? '#d97706' : 'var(--t4)') +
-        stat(e.lateMin,          'สายนาที',    e.lateMin > 0 ? '#d97706' : 'var(--t4)', 'น.') +
-        stat(e.otWD.toFixed(1),  'OT ปกติ',   '#4338ca', 'ชม.') +
-        stat(e.otSun.toFixed(1), 'OT อา.',     '#b45309', 'ชม.') +
+        stat(e.present,          'มา',       '#059669') +
+        stat(e.absent,           'ขาด',      e.absent  > 0 ? '#dc2626' : 'var(--t4)') +
+        stat(e.lateTimes,        'สายครั้ง', e.lateMin > 0 ? '#d97706' : 'var(--t4)') +
+        stat(e.lateMin,          'สายนาที',  e.lateMin > 0 ? '#d97706' : 'var(--t4)', 'น.') +
+        stat(e.otWD.toFixed(1),  'OT ปกติ', '#4338ca', 'ชม.') +
+        stat(e.otSun.toFixed(1), 'OT อา.',  '#b45309', 'ชม.') +
+      '</div>' +
+      '<div style="padding:8px 12px 4px;border-bottom:1px solid var(--bc-input)">' +
+        '<table style="width:100%;border-collapse:collapse;font-size:.78rem">' + payRows + '</table>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#059669,#10b981);border-radius:8px;padding:7px 10px;margin-top:6px">' +
+          '<span style="color:#fff;font-weight:700;font-size:.82rem">💰 รับสุทธิ</span>' +
+          '<span style="color:#fff;font-weight:800;font-size:1.05rem">฿' + _hrFmt(ps.net) + '</span>' +
+        '</div>' +
       '</div>' +
       '<div style="display:flex;gap:6px;padding:8px 10px;flex-wrap:wrap">' +
-        '<button onclick="hrOpenPayslip(\'' + id + '\',\'' + _hrSumMon + '\',\''+_hrSumPeriod+'\')" ' +
+        '<button onclick="hrOpenPayslip(\''+id+'\',\''+_hrSumMon+'\',\''+_hrSumPeriod+'\')" ' +
           'style="flex:1;min-width:60px;padding:6px 2px;background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;border-radius:8px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.77rem;font-weight:600">🧾 สลิป</button>' +
-        '<button onclick="hrPrintAttReport(\'' + id + '\',\'' + _hrSumMon + '\',\''+_hrSumPeriod+'\')" ' +
+        '<button onclick="hrPrintAttReport(\''+id+'\',\''+_hrSumMon+'\',\''+_hrSumPeriod+'\')" ' +
           'style="flex:1;min-width:60px;padding:6px 2px;background:#e0e7ff;color:#3730a3;border:1px solid #a5b4fc;border-radius:8px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.77rem;font-weight:600">🖨️ รายงาน</button>' +
         (isManager ?
-          '<button onclick="hrEditAtt(\'' + id + '\',\'' + _hrSumMon + '\',\''+_hrSumPeriod+'\')" ' +
+          '<button onclick="hrEditAtt(\''+id+'\',\''+_hrSumMon+'\',\''+_hrSumPeriod+'\')" ' +
             'style="flex:1;min-width:60px;padding:6px 2px;background:#ffedd5;color:#9a3412;border:1px solid #fdba74;border-radius:8px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.77rem;font-weight:600">✏️ แก้ไข</button>' : '') +
+        (qrBtnHtml ? '<div style="width:100%">' + qrBtnHtml + '</div>' : '') +
       '</div>' +
     '</div>';
   }
@@ -845,6 +889,97 @@ function _hrSumTableHtml(rows) {
 
   html += '</div>';
   return html;
+}
+
+// ══════════════════════════════════════════════════════════════
+// UTILITY — payslip row + PromptPay QR
+// ══════════════════════════════════════════════════════════════
+
+function _hrPayRow(label, val, bold) {
+  var neg = val < 0;
+  var color = neg ? '#dc2626' : bold ? '#1e293b' : '#374151';
+  return '<tr>' +
+    '<td style="padding:3px 0;color:' + (bold ? '#374151' : '#64748b') + ';' + (bold ? 'font-weight:700' : '') + '">' + label + '</td>' +
+    '<td style="padding:3px 0;text-align:right;color:' + color + ';' + (bold ? 'font-weight:700' : '') + ';' + (bold ? 'border-top:1px solid #e2e8f0;padding-top:5px' : '') + '">' +
+      (neg ? '−' : '') + '฿' + _hrFmt(Math.abs(val)) +
+    '</td></tr>';
+}
+
+function _hrCRC16(str) {
+  var crc = 0xFFFF;
+  for (var i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (var j = 0; j < 8; j++) {
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc;
+}
+
+function _hrPromptPayPayload(phone, amount) {
+  function tlv(id, val) { return id + String(val.length).padStart(2,'0') + val; }
+  // Normalize phone → 0066XXXXXXXXX (13 digits)
+  var p = phone.replace(/[^0-9]/g,'');
+  if (p.startsWith('66')) p = p.slice(2);
+  if (p.startsWith('0')) p = p.slice(1);
+  p = '0066' + p;
+  var acctInfo = tlv('00','A000000677010111') + tlv('01', p);
+  var payload =
+    tlv('00','01') +
+    tlv('01','12') +
+    tlv('29', acctInfo) +
+    tlv('52','0000') +
+    tlv('53','764') +
+    (amount > 0 ? tlv('54', parseFloat(amount).toFixed(2)) : '') +
+    tlv('58','TH') +
+    tlv('59','N/A') +
+    tlv('60','Bangkok') +
+    '6304';
+  var crc = _hrCRC16(payload).toString(16).toUpperCase().padStart(4,'0');
+  return payload + crc;
+}
+
+function hrShowPromptPayQR(phone, amount, nameEncoded, empId) {
+  var name = decodeURIComponent(nameEncoded || '');
+  var payload = _hrPromptPayPayload(phone, amount);
+  // Remove existing modal
+  var old = document.getElementById('hrQRModal');
+  if (old) old.remove();
+
+  var ovl = document.createElement('div');
+  ovl.id = 'hrQRModal';
+  ovl.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ovl.onclick = function(ev) { if (ev.target === ovl) ovl.remove(); };
+  ovl.innerHTML =
+    '<div style="background:#fff;border-radius:20px;padding:24px 20px;max-width:300px;width:100%;text-align:center;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.25)">' +
+      '<button onclick="document.getElementById(\'hrQRModal\').remove()" ' +
+        'style="position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#94a3b8;line-height:1">✕</button>' +
+      '<div style="font-size:.72rem;color:#7c3aed;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">พร้อมเพย์</div>' +
+      '<div style="font-size:1rem;font-weight:800;color:#1e293b;margin-bottom:2px">' + name + '</div>' +
+      '<div style="font-size:.78rem;color:#64748b;margin-bottom:14px">📱 0' + phone.replace(/^0+66/,'').replace(/^0+/,'').replace(/(\d{2})(\d{3})(\d{4})/,'$1-$2-$3') + '</div>' +
+      '<div id="hrQRCanvas" style="display:inline-block;padding:10px;background:#fff;border:2px solid #e2e8f0;border-radius:12px;margin-bottom:14px"></div>' +
+      '<div style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:10px 20px;border-radius:10px;font-size:1.25rem;font-weight:800">฿' + _hrFmt(amount) + '</div>' +
+      '<div style="font-size:.7rem;color:#94a3b8;margin-top:8px;margin-bottom:14px">สแกนเพื่อโอนเงินเดือน — พร้อมเพย์</div>' +
+      '<div style="display:flex;gap:8px;margin-top:2px">' +
+        '<button onclick="document.getElementById(\'hrQRModal\').remove();setTimeout(function(){var t=document.createElement(\'div\');t.style.cssText=\'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#059669;color:#fff;padding:10px 24px;border-radius:12px;font-family:Sarabun,sans-serif;font-size:.9rem;font-weight:700;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,.2)\';t.textContent=\'✅ บันทึกการโอนแล้ว\';document.body.appendChild(t);setTimeout(function(){t.remove();},2500);},50)" ' +
+          'style="flex:1;padding:10px;background:#059669;color:#fff;border:none;border-radius:10px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.88rem;font-weight:700">✅ ยืนยันโอนแล้ว</button>' +
+        '<button onclick="document.getElementById(\'hrQRModal\').remove()" ' +
+          'style="flex:1;padding:10px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;border-radius:10px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.88rem;font-weight:600">ยกเลิก</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(ovl);
+
+  // Generate QR after render
+  setTimeout(function() {
+    var canvas = document.getElementById('hrQRCanvas');
+    if (!canvas) return;
+    if (typeof QRCode !== 'undefined') {
+      new QRCode(canvas, { text: payload, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+    } else {
+      canvas.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(payload) + '" style="width:220px;height:220px">';
+    }
+  }, 80);
 }
 
 // ══════════════════════════════════════════════════════════════
