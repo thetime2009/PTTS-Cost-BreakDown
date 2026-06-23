@@ -2661,11 +2661,14 @@ function _hrLoansPanelHtml() {
   const isManager = _hrSession && _hrSession.role === 'manager';
   const sessionName = _hrSession ? (_hrSession.name || _hrSession.empId) : '';
   // นับแต่ละสถานะ
-  const cntPending  = _hrLoans.filter(function(l) { return l.status === 'pending';  }).length;
-  const cntApproved = _hrLoans.filter(function(l) { return l.status === 'approved'; }).length;
-  const cntRejected = _hrLoans.filter(function(l) { return l.status === 'rejected'; }).length;
-  const cntClosed   = _hrLoans.filter(function(l) { return l.status === 'closed';   }).length;
-  const cntAll      = _hrLoans.length;
+  // คำนวณยอดสะสมแยกตามประเภท (นับเฉพาะ pending+approved+closed ไม่นับ rejected)
+  var totalAdvance = 0, totalLoan = 0;
+  _hrLoans.forEach(function(l) {
+    if (l.status === 'rejected') return;
+    var amt = parseFloat(l.amount || 0);
+    if (l.type === 'advance') totalAdvance += amt;
+    else if (l.type === 'loan') totalLoan += amt;
+  });
 
   return '<div style="padding:0 4px">' +
     // session info bar (ซ่อนใน employee.html เพราะมี session bar ของตัวเองแล้ว — ยังคงไว้สำหรับ form.html)
@@ -2675,13 +2678,18 @@ function _hrLoansPanelHtml() {
       '</div>' +
       '<button onclick="hrLogout()" style="background:transparent;color:var(--t3);border:1px solid var(--bc-input);border-radius:6px;padding:4px 12px;cursor:pointer;font-family:inherit;font-size:.78rem">🔓 ออกจากระบบ</button>' +
     '</div>' +
-    // ── สถานะขนาดใหญ่ ──
-    '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px">' +
-      _hrLoanStatusCard('all',      '📋', 'ทั้งหมด',     cntAll,      '#6366f1', 'rgba(99,102,241,.08)') +
-      _hrLoanStatusCard('pending',  '⏳', 'รออนุมัติ',   cntPending,  '#f59e0b', 'rgba(245,158,11,.08)') +
-      _hrLoanStatusCard('approved', '✅', 'อนุมัติแล้ว', cntApproved, '#10b981', 'rgba(16,185,129,.08)') +
-      _hrLoanStatusCard('rejected', '❌', 'ปฏิเสธ',      cntRejected, '#ef4444', 'rgba(239,68,68,.08)') +
-      _hrLoanStatusCard('closed',   '🔒', 'ปิดแล้ว',     cntClosed,   '#64748b', 'rgba(100,116,139,.08)') +
+    // ── สรุปยอดสะสม 2 ช่อง ──
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">' +
+      '<div style="background:linear-gradient(135deg,#e0e7ff 0%,#c7d2fe 100%);border:2px solid #818cf8;border-radius:12px;padding:14px 16px">' +
+        '<div style="font-size:.75rem;font-weight:600;color:#4338ca;margin-bottom:4px">💸 ยอดเงินเบิกสะสม</div>' +
+        '<div style="font-size:1.4rem;font-weight:900;color:#3730a3">฿' + _hrFmt(totalAdvance) + '</div>' +
+        '<div style="font-size:.72rem;color:#6366f1;margin-top:3px">รวม ' + _hrLoans.filter(function(l){ return l.type==='advance' && l.status!=='rejected'; }).length + ' รายการ</div>' +
+      '</div>' +
+      '<div style="background:linear-gradient(135deg,#fce7f3 0%,#fbcfe8 100%);border:2px solid #f472b6;border-radius:12px;padding:14px 16px">' +
+        '<div style="font-size:.75rem;font-weight:600;color:#9d174d;margin-bottom:4px">🏦 ยอดเงินกู้สะสม</div>' +
+        '<div style="font-size:1.4rem;font-weight:900;color:#831843">฿' + _hrFmt(totalLoan) + '</div>' +
+        '<div style="font-size:.72rem;color:#ec4899;margin-top:3px">รวม ' + _hrLoans.filter(function(l){ return l.type==='loan' && l.status!=='rejected'; }).length + ' รายการ</div>' +
+      '</div>' +
     '</div>' +
     // header bar
     '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">' +
