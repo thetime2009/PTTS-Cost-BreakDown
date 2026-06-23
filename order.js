@@ -256,6 +256,7 @@ function dtAddOrder(idx) {
     _ordResetCard();   // ล้างค่าเก่าก่อน
     _ordSourceRow = r; // แล้วค่อยตั้งแถวใหม่
     switchTab('order');
+    _ordSubTabSwitch('1'); // force กลับ Sub-tab 1 เสมอ
   });
 }
 

@@ -136,7 +136,7 @@ const TAB_DEFS = [
   { id:'calc',      icon:'🔢', label:'คำนวณ'    },
   { id:'labor',     icon:'👷', label:'แรงงาน'  },
   { id:'mold',      icon:'🔩', label:'แม่พิมพ์' },
-  { id:'data',      icon:'🗂️', label:'DATA'     },
+  { id:'data',      icon:'🗂️', label:'DATA(ใบเสนอราคา)' },
   { id:'order',     icon:'📦', label:'Order'    },
   { id:'track',     icon:'🚀', label:'ติดตามงาน' },
   { id:'po',        icon:'🧾', label:'ใบสั่งซื้อ' },
@@ -168,7 +168,6 @@ const GROUP_DEFS = [
   { id:'sales', icon:'💼', label:'ฝ่ายขาย', items: [
     { tab:'dashboard' },
     { tab:'breakdown' },
-    { tab:'order', label:'ใบเสนอราคา', icon:'📝', view:'quo' },
     { tab:'order' },
     { tab:'data' },
     { tab:'labor' },

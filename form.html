@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v10.78</span>
+      <span class="ph-chip ver">v10.82</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -3464,18 +3464,18 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="core.js?v=8.99"></script>
+<script src="core.js?v=9.00"></script>
 <script src="data.js?v=8.94"></script>
 <script src="formcalc.js?v=9.07"></script>
 <script src="aifeatures.js?v=8.94"></script>
 <script src="theme.js?v=9.10"></script>
-<script src="order.js?v=9.77"></script>
+<script src="order.js?v=9.78"></script>
 <script src="dashboard.js?v=9.73"></script>
 <script src="inspect.js?v=10.09"></script>
   <script src="stock.js?v=10.32"></script>
   <script src="report.js?v=1.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="hr.js?v=4.1"></script>
+  <script src="hr.js?v=4.3"></script>
   <script src="imageEditor.js?v=1.1"></script>
 <script src="purchase.js?v=9.58"></script>
 <script src="invoice.js?v=9.03"></script>
@@ -3620,9 +3620,42 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260623-S',
+    ref: '#REV-20260623-W',
     date: '23/06/2569',
     current: true,
+    items: [
+      'Code.gs: uploadEmployeeFile — เปลี่ยน URL เป็น thumbnail?sz=w400 (โหลดได้ใน img)',
+      'hr.js?v=4.3: _hrDriveThumb() — แปลง Drive URL ทุกรูปแบบ → thumbnail URL อัตโนมัติ',
+    ]
+  },
+  {
+    ref: '#REV-20260623-V',
+    date: '23/06/2569',
+    current: false,
+    items: [
+      'hr.js?v=4.2: การ์ดพนักงาน — พื้นที่รูปโปรไฟล์ขนาดใหญ่ 88px กลางการ์ด, placeholder ชัดเจนเมื่อยังไม่มีรูป',
+    ]
+  },
+  {
+    ref: '#REV-20260623-U',
+    date: '23/06/2569',
+    current: false,
+    items: [
+      'core.js?v=9.00: เปลี่ยนชื่อ DATA→DATA(ใบเสนอราคา), ลบแทป ใบเสนอราคา ออกจาก sidebar ฝ่ายขาย',
+    ]
+  },
+  {
+    ref: '#REV-20260623-T',
+    date: '23/06/2569',
+    current: false,
+    items: [
+      'order.js?v=9.78: dtAddOrder() — force _ordSubTabSwitch("1") หลัง switchTab เสมอ (แก้บัค Sub-tab ค้างที่ 2)',
+    ]
+  },
+  {
+    ref: '#REV-20260623-S',
+    date: '23/06/2569',
+    current: false,
     items: [
       'Code.gs: uploadEmployeeFile() — อัปโหลดรูป/บัตรไป Drive/PTS-Management System/HR-Employees (สร้างอัตโนมัติ)',
       'Code.gs: saveHREmployee/getHREmployees — เพิ่มฟิลด์ idCard, address, profileUrl, idCardUrl',

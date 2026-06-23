@@ -1,5 +1,5 @@
 // ══════════════════════════════════════════════════════════════
-// hr.js v3.3  —  HR Module
+// hr.js v4.3  —  HR Module
 // นำเข้าข้อมูลสแกนหน้า | สรุปเวลางาน | พนักงาน | ตั้งค่า | สลิปเงินเดือน
 // ══════════════════════════════════════════════════════════════
 
@@ -863,6 +863,17 @@ function _hrRenderEmps() {
   });
 }
 
+// แปลง Google Drive URL ทุกรูปแบบ → thumbnail URL ที่โหลดได้ใน <img>
+function _hrDriveThumb(url) {
+  if (!url) return '';
+  // ดึง file ID จาก URL รูปแบบต่างๆ
+  var m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
+          url.match(/\/d\/([a-zA-Z0-9_-]+)/) ||
+          url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (m) return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w400-h400';
+  return url; // fallback URL เดิม
+}
+
 function _hrEmpsHtml() {
   const addBtn = '<div style="display:flex;justify-content:flex-end;margin-bottom:14px">' +
     '<button onclick="hrAddEmp()" style="padding:8px 20px;background:var(--c1);color:#fff;border:none;border-radius:10px;font-family:\'Sarabun\',sans-serif;font-size:.86rem;font-weight:700;cursor:pointer">➕ เพิ่มพนักงาน</button>' +
@@ -875,41 +886,47 @@ function _hrEmpsHtml() {
     const ac = isDaily ? '#0891b2' : '#4f46e5';
     const payLabel = isDaily ? 'ค่าแรง/วัน' : 'เงินเดือน';
     const payVal = _hrFmt(isDaily ? e.dailyRate : e.salary);
+    const initials = e.name ? e.name.trim().charAt(0).toUpperCase() : '?';
 
-    // avatar — รูปโปรไฟล์ หรืออักษรย่อ
-    const avatar = e.profileUrl
-      ? '<img src="' + e.profileUrl + '" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid ' + ac + ';flex-shrink:0" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
-        '<div style="display:none;width:44px;height:44px;border-radius:50%;background:' + ac + ';color:#fff;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;flex-shrink:0">' + (e.name ? e.name.charAt(0) : '?') + '</div>'
-      : '<div style="width:44px;height:44px;border-radius:50%;background:' + ac + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;flex-shrink:0">' + (e.name ? e.name.charAt(0) : '?') + '</div>';
+    // photo zone — 96px circle centered
+    const thumbUrl = _hrDriveThumb(e.profileUrl);
+    const photoZone = thumbUrl
+      ? '<img src="' + thumbUrl + '" alt="photo" ' +
+          'style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid ' + ac + ';background:var(--bg2)" ' +
+          'onerror="this.outerHTML=\'<div style=&quot;width:88px;height:88px;border-radius:50%;background:' + ac + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800&quot;>' + initials + '</div>\'">'
+      : '<div style="width:88px;height:88px;border-radius:50%;background:' + ac + '22;border:2px dashed ' + ac + '60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">' +
+          '<span style="font-size:2rem;line-height:1;color:' + ac + ';font-weight:800">' + initials + '</span>' +
+          '<span style="font-size:.55rem;color:' + ac + ';opacity:.7">ยังไม่มีรูป</span>' +
+        '</div>';
 
     function infoItem(label, val) {
       if (!val) return '';
-      return '<div style="display:flex;gap:6px;align-items:flex-start;padding:4px 0;border-bottom:1px solid var(--bc-input)">' +
-        '<span style="font-size:.68rem;color:var(--t3);white-space:nowrap;min-width:80px;padding-top:1px">' + label + '</span>' +
+      return '<div style="display:flex;gap:6px;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--bc-input)">' +
+        '<span style="font-size:.68rem;color:var(--t3);white-space:nowrap;min-width:84px;padding-top:1px">' + label + '</span>' +
         '<span style="font-size:.8rem;color:var(--t1);word-break:break-word">' + val + '</span>' +
       '</div>';
     }
 
     return '<div style="background:var(--bg-card);border:1.5px solid var(--bc-card);border-radius:14px;overflow:hidden">' +
-      // ── header ──
-      '<div style="background:' + ac + '18;padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid ' + ac + '30">' +
-        avatar +
-        '<div style="flex:1;min-width:0">' +
-          '<div style="font-weight:700;font-size:.96rem;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + e.name + '</div>' +
-          '<div style="font-size:.7rem;color:' + ac + ';font-weight:600;margin-top:1px">' + (e.dept || '—') + (e.position ? ' · ' + e.position : '') + '</div>' +
+      // ── photo + name header ──
+      '<div style="background:' + ac + '12;padding:16px 14px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;border-bottom:1.5px solid ' + ac + '25;position:relative">' +
+        '<span style="position:absolute;top:10px;right:10px;background:' + ac + '22;color:' + ac + ';border-radius:6px;padding:2px 8px;font-size:.65rem;font-weight:700">' + (isDaily ? 'รายวัน' : 'รายเดือน') + '</span>' +
+        photoZone +
+        '<div style="text-align:center">' +
+          '<div style="font-weight:700;font-size:.96rem;color:var(--t1)">' + e.name + '</div>' +
+          '<div style="font-size:.7rem;color:' + ac + ';font-weight:600;margin-top:2px">' + (e.dept || '—') + (e.position ? ' · ' + e.position : '') + '</div>' +
         '</div>' +
-        '<span style="background:' + ac + '22;color:' + ac + ';border-radius:6px;padding:2px 8px;font-size:.68rem;font-weight:700;white-space:nowrap;flex-shrink:0">' + (isDaily ? 'รายวัน' : 'รายเดือน') + '</span>' +
       '</div>' +
       // ── รายละเอียด ──
       '<div style="padding:10px 14px">' +
         infoItem('รหัส', e.empId) +
         infoItem('เบอร์โทร', e.phone) +
-        infoItem('บัตรประชาชน', e.idCard ? (e.idCard.replace(/(.{1})(.{4})(.{5})(.{2})(.{1})/, '$1-$2-$3-$4-$5')) : '') +
+        infoItem('บัตรประชาชน', e.idCard ? e.idCard.replace(/(\d{1})(\d{4})(\d{5})(\d{2})(\d{1})/, '$1-$2-$3-$4-$5') : '') +
         infoItem('ที่อยู่', e.address) +
         infoItem(payLabel, '฿' + payVal) +
         infoItem('OT ปกติ/อา.', (e.otRateWD||100) + '% / ' + (e.otRateSun||200) + '%') +
         infoItem('วงเงินเบิก/เดือน', e.advanceBudget ? '฿' + _hrFmt(e.advanceBudget) : '') +
-        (e.idCardUrl ? '<div style="margin-top:4px"><a href="' + e.idCardUrl + '" target="_blank" style="font-size:.75rem;color:#3b82f6;text-decoration:none">🪪 ดูสแกนบัตร</a></div>' : '') +
+        (e.idCardUrl ? '<div style="margin-top:6px"><a href="' + e.idCardUrl + '" target="_blank" style="font-size:.75rem;color:#3b82f6;text-decoration:none">🪪 ดูสแกนบัตร</a></div>' : '') +
       '</div>' +
       // ── ปุ่ม ──
       '<div style="display:flex;gap:8px;padding:8px 12px;border-top:1px solid var(--bc-input)">' +
@@ -920,7 +937,7 @@ function _hrEmpsHtml() {
   }).join('');
 
   return '<div>' + addBtn +
-    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">' + cards + '</div></div>';
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px">' + cards + '</div></div>';
 }
 function hrAddEmp()   { _hrEmpModal(null, -1); }
 function hrEditEmp(i) { _hrEmpModal(_hrEmps[i], i); }
