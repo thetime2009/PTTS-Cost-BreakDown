@@ -513,6 +513,7 @@ function _empCheckOnline() {
 
 // ── SAVE SCRIPT URL ──────────────────────────────────────────
 function empAskUrl() {
+  if (document.activeElement) document.activeElement.blur();
   Swal.fire({
     title: 'ตั้งค่า Script URL',
     input: 'url',
