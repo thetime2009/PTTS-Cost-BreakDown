@@ -17,8 +17,9 @@
 #empLoginOverlay {
   position: fixed; inset: 0; z-index: 9999;
   background: var(--bg);
-  display: flex; align-items: center; justify-content: center;
-  padding: 16px;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 40px 16px 32px;
+  overflow-y: auto;
 }
 .emp-login-card {
   background: var(--bg-card);
@@ -318,7 +319,7 @@
 <div id="empLoginOverlay">
   <div class="emp-login-card">
     <div class="emp-login-logo">
-      <img src="PTS.png" alt="PTS" onerror="this.style.display='none'">
+      <img src="PTS.png" alt="PTS" onerror="this.outerHTML='<span style=&quot;font-size:1.4rem;font-weight:900;color:var(--c1)&quot;>PTS</span>'">
     </div>
     <div class="emp-login-title">PTS Smart Factory</div>
     <div class="emp-login-sub">ระบบพนักงาน — กรุณาเข้าสู่ระบบ</div>
@@ -374,7 +375,7 @@
         <div class="ph-sub">หน้าพนักงาน</div>
       </div>
       <div class="ph-right">
-        <span class="ph-chip ver">v1.5</span>
+        <span class="ph-chip ver">v1.6</span>
         <span class="ph-chip" id="empConnChip" style="display:none">✓ Online</span>
         <button class="theme-fab" onclick="location.reload()" title="รีเฟรช" style="font-size:1rem">🔄</button>
       </div>
