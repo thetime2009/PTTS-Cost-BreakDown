@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v10.87</span>
+      <span class="ph-chip ver">v10.88</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -2176,7 +2176,7 @@
 <div style="max-width:920px;margin:0 auto;padding:12px 8px 100px">
   <div class="tab-title" style="padding-top:16px">
     <div class="ticon" style="background:rgba(99,102,241,.15);color:#818cf8">👷</div>
-    <div>HR<span style="font-size:.75rem;color:var(--t3);margin-left:8px">นำเข้าข้อมูล | สรุปเวลา | พนักงาน | ตั้งค่า | สลิปเงินเดือน</span></div>
+    <div>HR<span style="font-size:.75rem;color:var(--t3);margin-left:8px">นำเข้าข้อมูล | สรุปเวลา | สรุปเงินเดือน | พนักงาน | ตั้งค่า | สลิปเงินเดือน</span></div>
   </div>
 
   <!-- Sub-tab bar -->
@@ -2191,17 +2191,21 @@
     </button>
     <button id="hrBtn3" onclick="hrSubSwitch('3')"
       style="padding:8px 18px;border-radius:10px;border:1px solid var(--bc-input);background:transparent;color:var(--t3);font-family:'Sarabun',sans-serif;font-size:.84rem;font-weight:700;cursor:pointer">
-      👤 พนักงาน
+      💰 สรุปเงินเดือน
     </button>
     <button id="hrBtn4" onclick="hrSubSwitch('4')"
       style="padding:8px 18px;border-radius:10px;border:1px solid var(--bc-input);background:transparent;color:var(--t3);font-family:'Sarabun',sans-serif;font-size:.84rem;font-weight:700;cursor:pointer">
-      ⚙️ ตั้งค่า HR
+      👤 พนักงาน
     </button>
     <button id="hrBtn5" onclick="hrSubSwitch('5')"
       style="padding:8px 18px;border-radius:10px;border:1px solid var(--bc-input);background:transparent;color:var(--t3);font-family:'Sarabun',sans-serif;font-size:.84rem;font-weight:700;cursor:pointer">
-      📅 ปฏิทินวันหยุด
+      ⚙️ ตั้งค่า HR
     </button>
     <button id="hrBtn6" onclick="hrSubSwitch('6')"
+      style="padding:8px 18px;border-radius:10px;border:1px solid var(--bc-input);background:transparent;color:var(--t3);font-family:'Sarabun',sans-serif;font-size:.84rem;font-weight:700;cursor:pointer">
+      📅 ปฏิทินวันหยุด
+    </button>
+    <button id="hrBtn7" onclick="hrSubSwitch('7')"
       style="padding:8px 18px;border-radius:10px;border:1px solid var(--bc-input);background:transparent;color:var(--t3);font-family:'Sarabun',sans-serif;font-size:.84rem;font-weight:700;cursor:pointer">
       💰 เบิก/กู้
     </button>
@@ -2214,6 +2218,7 @@
   <div id="hrPanel4" style="display:none"></div>
   <div id="hrPanel5" style="display:none"></div>
   <div id="hrPanel6" style="display:none"></div>
+  <div id="hrPanel7" style="display:none"></div>
 </div>
 </div><!-- end tab-hr -->
 
@@ -3476,7 +3481,7 @@
   <script src="report.js?v=1.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="hr.js?v=4.6"></script>
+<script src="hr.js?v=4.7"></script>
   <script src="imageEditor.js?v=1.1"></script>
 <script src="purchase.js?v=9.58"></script>
 <script src="invoice.js?v=9.03"></script>
@@ -3621,9 +3626,20 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
   {
-    ref: '#REV-20260623-AB',
+    ref: '#REV-20260623-AC',
     date: '23/06/2569',
     current: true,
+    items: [
+      'form.html v10.88: เพิ่ม sub-tab "💰 สรุปเงินเดือน" (hrBtn3/hrPanel3) ในแท็บ HR — เลื่อน tab พนักงาน/ตั้งค่า/ปฏิทิน/เบิก-กู้ เป็น 4-7',
+      'hr.js v4.7: แยก empCard — สรุปเวลางาน แสดงเฉพาะสถิติ+แก้ไข, สรุปเงินเดือน แสดงสลิป+QR',
+      'hr.js v4.7: เพิ่ม _hrRenderPayroll(), _hrPayTableHtml(), payCard(), _hrPayLoadAndRender()',
+      'hr.js v4.7: hrSubSwitch รองรับ 7 tabs, panel numbering shift 3→4, 4→5, 5→6, 6→7',
+    ]
+  },
+  {
+    ref: '#REV-20260623-AB',
+    date: '23/06/2569',
+    current: false,
     items: [
       'employee.html v1.5: redesign tab bar — สลิปปุ่มกลมนูนกลาง, เวลางาน/เบิก-กู้/ปฏิทินซ้าย-ขวา',
       'employee.html v1.5: สรุปเวลางาน — view รายวัน read-only (เข้างาน/ออกงาน/สถานะ/สาย/OT)',

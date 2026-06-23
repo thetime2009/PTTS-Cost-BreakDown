@@ -107,7 +107,7 @@ function _hrPOST(action, body) {
 // ── Sub-tab navigation ────────────────────────────────────────
 function hrSubSwitch(n) {
   _hrSubCur = String(n);
-  ['1', '2', '3', '4', '5', '6'].forEach(function(k) {
+  ['1', '2', '3', '4', '5', '6', '7'].forEach(function(k) {
     const btn = document.getElementById('hrBtn' + k);
     const pan = document.getElementById('hrPanel' + k);
     if (btn) {
@@ -118,10 +118,11 @@ function hrSubSwitch(n) {
     if (pan) pan.style.display = k === _hrSubCur ? '' : 'none';
   });
   if (n === '2') _hrRenderSummary();
-  if (n === '3') _hrRenderEmps();
-  if (n === '4') _hrRenderSettings();
-  if (n === '5') _hrRenderCal();
-  if (n === '6') _hrRenderLoans();
+  if (n === '3') _hrRenderPayroll();
+  if (n === '4') _hrRenderEmps();
+  if (n === '5') _hrRenderSettings();
+  if (n === '6') _hrRenderCal();
+  if (n === '7') _hrRenderLoans();
 }
 
 function hrInitTab() {
@@ -805,27 +806,6 @@ function _hrSumTableHtml(rows) {
     const isManager = !_hrSession || _hrSession.role === 'manager';
     const ac = e.type === 'daily' ? '#0891b2' : '#4f46e5';
 
-    // คำนวณ payslip inline
-    const empRec = _hrEmps.find(function(x) { return String(x.empId) === id; }) || null;
-    const ps = _hrCalcPayslip(empRec, attByEmp[id] || [], _hrSumMon, _hrSumPeriod);
-    const phone = (empRec && empRec.phone) ? empRec.phone.replace(/[^0-9]/g,'') : '';
-
-    // สร้างแถวรายได้
-    var payRows = '';
-    var baseLabel = ps.type === 'daily'
-      ? 'ค่าแรง (' + ps.present + ' วัน × ฿' + _hrFmt(ps.dailyRate) + ')'
-      : 'เงินเดือน';
-    payRows += _hrPayRow(baseLabel, ps.basePay, false);
-    if (ps.otPayWD  > 0) payRows += _hrPayRow('OT ปกติ ('  + ps.otWDH  + ' ชม.)', ps.otPayWD,  false);
-    if (ps.otPaySun > 0) payRows += _hrPayRow('OT อาทิตย์ (' + ps.otSunH + ' ชม.)', ps.otPaySun, false);
-    payRows += _hrPayRow('รวมรายได้', ps.gross, true);
-    if (ps.absentDeduct > 0) payRows += _hrPayRow('ขาดงาน ' + ps.absent + ' วัน', -ps.absentDeduct, false);
-
-    var qrBtnHtml = phone
-      ? '<button onclick="hrShowPromptPayQR(\''+phone+'\','+ps.net.toFixed(2)+',\''+encodeURIComponent(e.name||'')+'\',\''+id+'\')" ' +
-          'style="width:100%;padding:7px 4px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.82rem;font-weight:700;margin-top:2px">🔲 QR พร้อมเพย์</button>'
-      : '';
-
     return '<div style="background:var(--bg-card);border:1.5px solid var(--bc-card);border-radius:14px;overflow:hidden">' +
       '<div style="background:' + ac + '18;padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid ' + ac + '30">' +
         '<div style="width:36px;height:36px;border-radius:50%;background:' + ac + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0">' +
@@ -843,25 +823,15 @@ function _hrSumTableHtml(rows) {
         stat(e.absent,           'ขาด',      e.absent  > 0 ? '#dc2626' : 'var(--t4)') +
         stat(e.lateTimes,        'สายครั้ง', e.lateMin > 0 ? '#d97706' : 'var(--t4)') +
         stat(e.lateMin,          'สายนาที',  e.lateMin > 0 ? '#d97706' : 'var(--t4)', 'น.') +
-        stat(e.otWD.toFixed(1),  'OT ปกติ', '#4338ca', 'ชม.') +
+        stat(e.otWD.toFixed(1),  'OT ปรกติ', '#4338ca', 'ชม.') +
         stat(e.otSun.toFixed(1), 'OT อา.',  '#b45309', 'ชม.') +
       '</div>' +
-      '<div style="padding:8px 12px 4px;border-bottom:1px solid var(--bc-input)">' +
-        '<table style="width:100%;border-collapse:collapse;font-size:.78rem">' + payRows + '</table>' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#059669,#10b981);border-radius:8px;padding:7px 10px;margin-top:6px">' +
-          '<span style="color:#fff;font-weight:700;font-size:.82rem">💰 รับสุทธิ</span>' +
-          '<span style="color:#fff;font-weight:800;font-size:1.05rem">฿' + _hrFmt(ps.net) + '</span>' +
-        '</div>' +
-      '</div>' +
       '<div style="display:flex;gap:6px;padding:8px 10px;flex-wrap:wrap">' +
-        '<button onclick="hrOpenPayslip(\''+id+'\',\''+_hrSumMon+'\',\''+_hrSumPeriod+'\')" ' +
-          'style="flex:1;min-width:60px;padding:6px 2px;background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;border-radius:8px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.77rem;font-weight:600">🧾 สลิป</button>' +
-        '<button onclick="hrPrintAttReport(\''+id+'\',\''+_hrSumMon+'\',\''+_hrSumPeriod+'\')" ' +
+        '<button onclick="hrPrintAttReport(\'' + id + '\',\'' + _hrSumMon + '\',\'' + _hrSumPeriod + '\')" ' +
           'style="flex:1;min-width:60px;padding:6px 2px;background:#e0e7ff;color:#3730a3;border:1px solid #a5b4fc;border-radius:8px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.77rem;font-weight:600">🖨️ รายงาน</button>' +
         (isManager ?
-          '<button onclick="hrEditAtt(\''+id+'\',\''+_hrSumMon+'\',\''+_hrSumPeriod+'\')" ' +
+          '<button onclick="hrEditAtt(\'' + id + '\',\'' + _hrSumMon + '\',\'' + _hrSumPeriod + '\')" ' +
             'style="flex:1;min-width:60px;padding:6px 2px;background:#ffedd5;color:#9a3412;border:1px solid #fdba74;border-radius:8px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.77rem;font-weight:600">✏️ แก้ไข</button>' : '') +
-        (qrBtnHtml ? '<div style="width:100%">' + qrBtnHtml + '</div>' : '') +
       '</div>' +
     '</div>';
   }
@@ -887,6 +857,227 @@ function _hrSumTableHtml(rows) {
     daily.forEach(function(id) { html += empCard(id); });
   }
 
+  html += '</div>';
+  return html;
+}
+
+// ══════════════════════════════════════════════════════════════
+// PANEL 3 — สรุปเงินเดือน (Payroll)
+// ══════════════════════════════════════════════════════════════
+function _hrRenderPayroll() {
+  const p = document.getElementById('hrPanel3');
+  if (!p) return;
+
+  const now = new Date();
+  if (!_hrSumMon) _hrSumMon = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+  // Auto-select งวดตามวันที่ปัจจุบัน (เฉพาะครั้งแรกที่เปิด)
+  var _autopc = _hrPayCfg();
+  if (_autopc.mode === 'semi' && _hrSumPeriod === 'all') {
+    var _d = now.getDate();
+    _hrSumPeriod = (_d >= _autopc.p1.start && _d <= _autopc.p1.end) ? 'p1' : 'p2';
+  }
+
+  p.innerHTML =
+    '<div style="max-width:900px">' +
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">' +
+      '<button onclick="_hrPayPrev()" style="padding:6px 14px;border-radius:8px;border:1px solid var(--bc-input);background:transparent;color:var(--t2);cursor:pointer;font-size:1rem">◀</button>' +
+      '<div style="font-weight:700;font-size:.95rem;color:var(--c1);min-width:110px;text-align:center" id="hrPayMonLabel">' + _hrMLab(_hrSumMon) + '</div>' +
+      '<button onclick="_hrPayNext()" style="padding:6px 14px;border-radius:8px;border:1px solid var(--bc-input);background:transparent;color:var(--t2);cursor:pointer;font-size:1rem">▶</button>' +
+      _hrPeriodSelectPay() +
+      '<button onclick="_hrPayLoadAndRender()" style="padding:6px 16px;border-radius:8px;background:rgba(99,102,241,.15);color:#818cf8;border:1px solid rgba(99,102,241,.4);cursor:pointer;font-size:.82rem;font-family:Sarabun,sans-serif">🔄 โหลดข้อมูล</button>' +
+    '</div>' +
+    '<div id="hrPayTable"><div style="color:var(--t3);font-size:.85rem">⏳ กำลังโหลด...</div></div>' +
+    '</div>';
+
+  _hrPayLoadAndRender();
+}
+
+function _hrPeriodSelectPay() {
+  var pc = _hrPayCfg();
+  if (pc.mode !== 'semi') return '';
+  var opts = [
+    ['all',  'ทั้งเดือน'],
+    ['p1',   'งวด 1 ('+pc.p1.start+'-'+pc.p1.end+')'],
+    ['p2',   'งวด 2 ('+pc.p2.start+' เดือนก่อน – '+pc.p2.end+' เดือนนี้)'],
+  ];
+  return '<select id="hrPayPeriodSel" onchange="_hrSumPeriod=this.value;_hrApplyPayFilter()" ' +
+    'style="padding:6px 10px;border-radius:8px;border:1px solid var(--bc-input);background:var(--bg);color:var(--t1);font-family:Sarabun,sans-serif;font-size:.82rem">' +
+    opts.map(function(o){ return '<option value="'+o[0]+'"'+(_hrSumPeriod===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('') +
+  '</select>';
+}
+
+function _hrApplyPayFilter() {
+  var tbl = document.getElementById('hrPayTable');
+  if (!tbl || !_hrAtt.length) return;
+  var base = _hrAtt.filter(function(r) { return _hrMKey(r.date) === _hrSumMon; });
+  if (_hrSumPeriod === 'p2') {
+    var mp = _hrSumMon.split('-').map(Number);
+    var pM = mp[1] === 1 ? 12 : mp[1] - 1;
+    var pY = mp[1] === 1 ? mp[0]-1 : mp[0];
+    var prevMon = pY + '-' + String(pM).padStart(2,'0');
+    var prevRecs = _hrAtt.filter(function(r) { return _hrMKey(r.date) === prevMon; });
+    base = base.concat(prevRecs);
+  }
+  tbl.innerHTML = _hrPayTableHtml(_hrFilterByPeriod(base, _hrSumPeriod, _hrSumMon));
+}
+
+function _hrPayLoadAndRender() {
+  const tbl = document.getElementById('hrPayTable');
+  if (!tbl) return;
+  tbl.innerHTML = '<div style="color:var(--t3);font-size:.85rem">⏳ กำลังโหลด...</div>';
+
+  var months = [_hrSumMon];
+  if (_hrSumPeriod === 'p2') {
+    var mp2 = _hrSumMon.split('-').map(Number);
+    var pM2 = mp2[1] === 1 ? 12 : mp2[1]-1;
+    var pY2 = mp2[1] === 1 ? mp2[0]-1 : mp2[0];
+    months.push(pY2+'-'+String(pM2).padStart(2,'0'));
+  }
+  Promise.all([
+    Promise.all(months.map(function(m){ return _hrGET('getHRAttendance', { month: m }); })),
+    _hrGET('getHREmployees')
+  ]).then(function(results) {
+    _hrAtt  = results[0].reduce(function(a,r){ return a.concat(r.data||[]); }, []);
+    _hrEmps = results[1].data || [];
+    var base = _hrAtt.filter(function(r) { return _hrMKey(r.date) === _hrSumMon; });
+    if (_hrSumPeriod === 'p2') {
+      var mp = _hrSumMon.split('-').map(Number);
+      var pM = mp[1]===1?12:mp[1]-1, pY = mp[1]===1?mp[0]-1:mp[0];
+      var prev = pY+'-'+String(pM).padStart(2,'0');
+      base = base.concat(_hrAtt.filter(function(r){ return _hrMKey(r.date)===prev; }));
+    }
+    tbl.innerHTML = _hrPayTableHtml(_hrFilterByPeriod(base, _hrSumPeriod, _hrSumMon));
+  }).catch(function(e) {
+    tbl.innerHTML = '<div style="color:#f87171;font-size:.85rem">❌ ' + e + '</div>';
+  });
+}
+
+function _hrPayPrev() {
+  var mp = _hrSumMon.split('-').map(Number);
+  var m = mp[1] - 1, y = mp[0];
+  if (m < 1) { m = 12; y--; }
+  _hrSumMon = y + '-' + String(m).padStart(2, '0');
+  var lbl = document.getElementById('hrPayMonLabel');
+  if (lbl) lbl.textContent = _hrMLab(_hrSumMon);
+  _hrPayLoadAndRender();
+}
+
+function _hrPayNext() {
+  var mp = _hrSumMon.split('-').map(Number);
+  var m = mp[1] + 1, y = mp[0];
+  if (m > 12) { m = 1; y++; }
+  _hrSumMon = y + '-' + String(m).padStart(2, '0');
+  var lbl = document.getElementById('hrPayMonLabel');
+  if (lbl) lbl.textContent = _hrMLab(_hrSumMon);
+  _hrPayLoadAndRender();
+}
+
+function _hrPayTableHtml(rows) {
+  if (!rows.length) {
+    return '<div style="color:var(--t3);font-size:.85rem">ไม่พบข้อมูลเดือน ' + _hrMLab(_hrSumMon) + ' — กรุณานำเข้าข้อมูลก่อน</div>';
+  }
+
+  const empTypeMap = {};
+  _hrEmps.forEach(function(e) { empTypeMap[String(e.empId)] = e.type || 'monthly'; });
+
+  const emp = {};
+  rows.forEach(function(r) {
+    const id = String(r.empId);
+    if (!emp[id]) emp[id] = {
+      name: r.empName || r.name, dept: r.dept,
+      type: empTypeMap[id] || 'monthly',
+      present: 0, absent: 0, off: 0, lateTimes: 0, lateMin: 0, otWD: 0, otSun: 0,
+    };
+    const e  = emp[id];
+    const st = r.status;
+    if (st === 'present') e.present++;
+    else if (st === 'absent') e.absent++;
+    else e.off++;
+    if ((parseInt(r.lateMin) || 0) > 0) { e.lateTimes++; e.lateMin += parseInt(r.lateMin) || 0; }
+    const ot   = parseFloat(r.otHours) || 0;
+    const rate = parseFloat(r.otRate) || 1;
+    if (rate >= 2) e.otSun += ot; else e.otWD += ot;
+  });
+
+  const attByEmp = {};
+  rows.forEach(function(r) {
+    const id = String(r.empId);
+    if (!attByEmp[id]) attByEmp[id] = [];
+    attByEmp[id].push(r);
+  });
+
+  const monthly = Object.keys(emp).filter(function(id) { return emp[id].type !== 'daily'; });
+  const daily   = Object.keys(emp).filter(function(id) { return emp[id].type === 'daily'; });
+
+  function payCard(id) {
+    const e = emp[id];
+    const ac = e.type === 'daily' ? '#0891b2' : '#4f46e5';
+    const empRec = _hrEmps.find(function(x) { return String(x.empId) === id; }) || null;
+    const ps = _hrCalcPayslip(empRec, attByEmp[id] || [], _hrSumMon, _hrSumPeriod);
+    const phone = (empRec && empRec.phone) ? empRec.phone.replace(/[^0-9]/g,'') : '';
+
+    var payRows = '';
+    var baseLabel = ps.type === 'daily'
+      ? 'ค่าแรง (' + ps.present + ' วัน × ฿' + _hrFmt(ps.dailyRate) + ')'
+      : 'เงินเดือน';
+    payRows += _hrPayRow(baseLabel, ps.basePay, false);
+    if (ps.otPayWD  > 0) payRows += _hrPayRow('OT ปรกติ ('  + ps.otWDH  + ' ชม.)', ps.otPayWD,  false);
+    if (ps.otPaySun > 0) payRows += _hrPayRow('OT อาทิตย์ (' + ps.otSunH + ' ชม.)', ps.otPaySun, false);
+    payRows += _hrPayRow('รวมรายได้', ps.gross, true);
+    if (ps.absentDeduct > 0) payRows += _hrPayRow('ขาดงาน ' + ps.absent + ' วัน', -ps.absentDeduct, false);
+
+    var qrBtnHtml = phone
+      ? '<button onclick="hrShowPromptPayQR(\'' + phone + '\',' + ps.net.toFixed(2) + ',\'' + encodeURIComponent(e.name||'') + '\',\'' + id + '\')" ' +
+          'style="width:100%;padding:7px 4px;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.82rem;font-weight:700;margin-top:2px">🔲 QR พร้อมเพย์</button>'
+      : '';
+
+    return '<div style="background:var(--bg-card);border:1.5px solid var(--bc-card);border-radius:14px;overflow:hidden">' +
+      '<div style="background:' + ac + '18;padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1.5px solid ' + ac + '30">' +
+        '<div style="width:36px;height:36px;border-radius:50%;background:' + ac + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0">' +
+          (e.name ? e.name.charAt(0) : '?') +
+        '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;font-size:.93rem;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + e.name + '</div>' +
+          '<div style="font-size:.7rem;color:' + ac + ';font-weight:600;margin-top:1px">' +
+            (e.dept || '—') + ' · ' + (e.type === 'daily' ? 'รายวัน' : 'รายเดือน') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:8px 12px 4px;border-bottom:1px solid var(--bc-input)">' +
+        '<table style="width:100%;border-collapse:collapse;font-size:.78rem">' + payRows + '</table>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#059669,#10b981);border-radius:8px;padding:7px 10px;margin-top:6px">' +
+          '<span style="color:#fff;font-weight:700;font-size:.82rem">💰 รับสุทธิ</span>' +
+          '<span style="color:#fff;font-weight:800;font-size:1.05rem">฿' + _hrFmt(ps.net) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;padding:8px 10px;flex-wrap:wrap">' +
+        '<button onclick="hrOpenPayslip(\'' + id + '\',\'' + _hrSumMon + '\',\'' + _hrSumPeriod + '\')" ' +
+          'style="flex:1;min-width:60px;padding:6px 2px;background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;border-radius:8px;cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:.77rem;font-weight:600">🧾 สลิป</button>' +
+        (qrBtnHtml ? '<div style="width:100%">' + qrBtnHtml + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  function sectionLabel(label, count, color) {
+    return '<div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;margin-top:4px">' +
+      '<div style="flex:1;height:2px;border-radius:2px;background:' + color + '40"></div>' +
+      '<span style="font-size:.78rem;font-weight:700;color:' + color + ';white-space:nowrap">' +
+        label + ' <span style="font-weight:400;opacity:.75">(' + count + ' คน)</span>' +
+      '</span>' +
+      '<div style="flex:1;height:2px;border-radius:2px;background:' + color + '40"></div>' +
+    '</div>';
+  }
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px">';
+  if (monthly.length) {
+    html += sectionLabel('💼 รายเดือน', monthly.length, '#4f46e5');
+    monthly.forEach(function(id) { html += payCard(id); });
+  }
+  if (daily.length) {
+    html += sectionLabel('🔧 รายวัน', daily.length, '#0891b2');
+    daily.forEach(function(id) { html += payCard(id); });
+  }
   html += '</div>';
   return html;
 }
@@ -986,7 +1177,7 @@ function hrShowPromptPayQR(phone, amount, nameEncoded, empId) {
 // PANEL 3 — พนักงาน
 // ══════════════════════════════════════════════════════════════
 function _hrRenderEmps() {
-  const p = document.getElementById('hrPanel3');
+  const p = document.getElementById('hrPanel4');
   if (!p) return;
   p.innerHTML = '<div style="color:var(--t3);font-size:.85rem">⏳ กำลังโหลด...</div>';
 
@@ -1243,7 +1434,7 @@ const _CAL_MONTHS = ['มกราคม','กุมภาพันธ์','ม�
 const _CAL_DAYS   = ['อา','จ','อ','พ','พฤ','ศ','ส'];
 
 function _hrRenderCal() {
-  const p = document.getElementById('hrPanel5');
+  const p = document.getElementById('hrPanel6');
   if (!p) return;
   const now = new Date();
   const curBE = now.getFullYear() + 543;
@@ -1540,7 +1731,7 @@ function _hrCalPrint() {
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Sarabun',sans-serif;font-size:10pt;color:#1f2937;background:#fff;padding:14mm 12mm}
+body{font-family:Sarabun,sans-serif;font-size:10pt;color:#1f2937;background:#fff;padding:14mm 12mm}
 h1{font-size:18pt;font-weight:800;text-align:center;color:#1e3a8a;margin-bottom:2px}
 .sub{text-align:center;font-size:11pt;color:#6b7280;margin-bottom:12px}
 .cal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
@@ -1677,7 +1868,7 @@ function _hrBuildHolidays(beYear) {
 // PANEL 4 — ตั้งค่า HR
 // ══════════════════════════════════════════════════════════════
 function _hrRenderSettings() {
-  const p = document.getElementById('hrPanel4');
+  const p = document.getElementById('hrPanel5');
   if (!p) return;
   const s = _hrCfg();
   const roundTime = _hrOTRoundTime(s);
@@ -2427,7 +2618,7 @@ function _hrSlipHtml(p) {
 let _hrLoans = [];
 
 function _hrRenderLoans() {
-  const p = document.getElementById('hrPanel6');
+  const p = document.getElementById('hrPanel7');
   if (!p) return;
   _hrLoanBadgeClear(); // ล้าง badge เมื่อเปิดหน้าเบิก/กู้
   // ยังไม่ login → แสดงหน้า login
@@ -3103,7 +3294,7 @@ function hrLogout() {
 
 // เรียกจาก _hrRenderLoans() — ถ้ายังไม่ login → แสดง popup login
 function _hrShowLoanLogin() {
-  const p = document.getElementById('hrPanel6');
+  const p = document.getElementById('hrPanel7');
   if (!p) return;
   p.innerHTML = '<div style="max-width:400px;margin:40px auto;padding:32px 28px;' +
     'background:var(--bg-card);border:1px solid var(--bc-card);border-radius:20px;text-align:center">' +
