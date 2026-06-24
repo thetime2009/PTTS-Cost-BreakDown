@@ -3566,7 +3566,7 @@ function _hrLoanBadgeUpdate(cnt) {
     'text-align:center;line-height:16px;pointer-events:none;box-shadow:0 0 0 2px var(--bg)';
 
   // --- badge บน sub-tab เบิก/กู้ ---
-  var btn = document.getElementById('hrBtn6');
+  var btn = document.getElementById('hrBtn7');
   if (btn) {
     var badge = document.getElementById('hrLoanBadge');
     if (cnt > 0) {

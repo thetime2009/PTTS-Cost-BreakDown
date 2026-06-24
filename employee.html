@@ -371,15 +371,19 @@
               style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-weight:700">PT</span>
       </div>
       <div class="ph-divider"></div>
-      <div class="ph-text">
-        <div class="ph-title">PTS Smart Factory</div>
-        <div class="ph-sub">หน้าพนักงาน</div>
-      </div>
-      <div class="ph-right">
-        <span class="ph-chip ver">v2.3</span>
-        <span class="ph-chip" id="empConnChip" style="display:none">✓ Online</span>
-        <button class="theme-fab" onclick="location.reload()" title="รีเฟรช" style="font-size:1rem">🔄</button>
-        <button id="empLogoutTopBtn" onclick="empLogout()" style="display:none;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:8px;padding:4px 12px;font-family:'Sarabun',sans-serif;font-size:.78rem;cursor:pointer;font-weight:600">ออก</button>
+      <div class="ph-text" style="flex:1;display:flex;flex-direction:column;gap:2px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="ph-title" style="margin:0">PTS Smart Factory</div>
+          <span class="ph-chip ver">v2.5</span>
+          <span class="ph-chip" id="empConnChip" style="display:none">✓ Online</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="ph-sub" style="margin:0">หน้าพนักงาน</div>
+          <div id="empLogoutTopBtn" style="display:none;margin-left:auto;align-items:center;gap:5px">
+            <button class="theme-fab" onclick="location.reload()" title="รีเฟรช" style="font-size:.9rem;width:28px;height:28px;min-width:28px">🔄</button>
+            <button onclick="empLogoutConfirm()" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:8px;padding:3px 10px;font-family:'Sarabun',sans-serif;font-size:.75rem;cursor:pointer;font-weight:600">ลงชื่อออก</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -401,14 +405,7 @@
       <div id="empHeaderStats" style="display:none;flex-direction:column;gap:5px;flex-shrink:0;width:120px"></div>
     </div>
 
-    <!-- Tab nav chips -->
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-      <button id="empTabBtn-summary" class="emp-nav-chip"         onclick="empTabSwitch('summary')">⏱️ เวลางาน</button>
-      <button id="empTabBtn-slip"    class="emp-nav-chip active"  onclick="empTabSwitch('slip')">🧾 สลิปเงินเดือน</button>
-      <button id="empTabBtn-loan"     class="emp-nav-chip"         onclick="empTabSwitch('loan')">💰 เบิกล่วงหน้า</button>
-      <button id="empTabBtn-contract" class="emp-nav-chip"        onclick="empTabSwitch('contract')">📋 สัญญาเงินกู้</button>
-      <button id="empTabBtn-cal"     class="emp-nav-chip"         onclick="empTabSwitch('cal')">📅 ปฏิทินวันหยุด</button>
-    </div>
+
 
     <!-- ── PANEL: เบิก/กู้ (rendered by hr.js _hrRenderLoans) ── -->
     <div id="hrPanel7"></div>
@@ -452,15 +449,15 @@
     <button id="empBotBtn-summary" class="emp-tab-btn"        onclick="empTabSwitch('summary')">
       <span class="et-icon">⏱️</span><span>เวลางาน</span>
     </button>
+    <button id="empBotBtn-loan"     class="emp-tab-btn"        onclick="empTabSwitch('loan')">
+      <span class="et-icon">💰</span><span>เบิกล่วงหน้า</span>
+    </button>
     <div class="emp-tab-center-slot">
       <button id="empBotBtn-slip" class="emp-tab-center-btn" onclick="empTabSwitch('slip')">
         <span class="et-icon">🧾</span>
         <span>สลิป</span>
       </button>
     </div>
-    <button id="empBotBtn-loan"     class="emp-tab-btn"        onclick="empTabSwitch('loan')">
-      <span class="et-icon">💰</span><span>เบิกล่วงหน้า</span>
-    </button>
     <button id="empBotBtn-contract" class="emp-tab-btn"       onclick="empTabSwitch('contract')">
       <span class="et-icon">📋</span><span>สัญญากู้</span>
     </button>
@@ -473,7 +470,7 @@
 
 <!-- ══ SCRIPTS ════════════════════════════════════════════════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="hr.js?v=4.40"></script>
+<script src="hr.js?v=4.41"></script>
 <script>
 // ────────────────────────────────────────────────────────────
 // EMPLOYEE PORTAL — employee.html v1.5
@@ -638,7 +635,7 @@ function empShowApp() {
   }
 
   var _logBtn = document.getElementById('empLogoutTopBtn');
-  if (_logBtn) _logBtn.style.display = '';
+  if (_logBtn) _logBtn.style.display = 'flex';
   empTabSwitch('slip');
   _empCheckOnline();
   _empLoadHeaderStats();
@@ -712,6 +709,10 @@ function _empLoadHeaderStats() {
 }
 
 // ── LOGOUT ────────────────────────────────────────────────────
+function empLogoutConfirm() {
+  if (!confirm('ยืนยันลงชื่อออกจากระบบ?')) return;
+  empLogout();
+}
 function empLogout() {
   var _logBtn = document.getElementById('empLogoutTopBtn');
   if (_logBtn) _logBtn.style.display = 'none';
