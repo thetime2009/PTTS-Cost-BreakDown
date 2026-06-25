@@ -2927,13 +2927,43 @@ function _hrCalcPayslip(emp, att, month, period) {
       (_hrLoans || []).forEach(function(lr) {
         if (String(lr.empId) !== empIdStr) return;
         if (lr.amount <= 0) return;
-        // approved = อนุมัติแล้ว รอหัก (ยังไม่ได้โอน)
+        // approved = อนุมัติแล้ว → หักงวดถัดไปหลังวันเบิก
+        // เบิก p1(1-15) → หัก p2 เดือนเดียวกัน | เบิก p2(16-31) → หัก p1 เดือนถัดไป
         if (lr.status === 'approved') {
-          loanDeductItems.push({
-            requestId: lr.requestId, source: 'request', type: lr.type || 'advance',
-            label: 'หักเบิก (' + lr.requestId + ')',
-            amount: lr.amount
-          });
+          var _pc = _hrPayCfg();
+          var _nextPd = (function(requestDate) {
+            var rd = String(requestDate || '');
+            var day = 0, ceY = 0, _mm = '';
+            if (rd.length >= 10 && rd[2] === '/') {
+              day = parseInt(rd.slice(0,2)) || 0;
+              _mm  = rd.slice(3,5);
+              var beY = parseInt(rd.slice(6,10)) || 0;
+              ceY = beY > 2500 ? beY - 543 : beY;
+            } else { var _d = new Date(rd); if (!isNaN(_d)) { day=_d.getDate(); ceY=_d.getFullYear(); _mm=String(_d.getMonth()+1).padStart(2,'0'); } }
+            if (!day || !ceY) return null;
+            if (day >= _pc.p1.start && day <= _pc.p1.end) {
+              return { month: ceY + '-' + _mm, period: 'p2' };
+            } else {
+              var _nm = parseInt(_mm)+1, _ny = ceY;
+              if (_nm > 12) { _nm = 1; _ny++; }
+              return { month: _ny + '-' + String(_nm).padStart(2,'0'), period: 'p1' };
+            }
+          })(lr.requestDate);
+          var _shouldDeduct = false;
+          if (!_nextPd) {
+            _shouldDeduct = (period === 'all');
+          } else if (period === 'all') {
+            _shouldDeduct = _nextPd.month <= month; // due หรือค้างจ่าย
+          } else {
+            _shouldDeduct = (_nextPd.month === month && _nextPd.period === period);
+          }
+          if (_shouldDeduct) {
+            loanDeductItems.push({
+              requestId: lr.requestId, source: 'request', type: lr.type || 'advance',
+              label: 'หักเบิก (' + lr.requestId + ')',
+              amount: lr.amount
+            });
+          }
         }
         // closed = โอนแล้ว รอหักคืนจากสลิป — ตรวจ deductMonth ตรงกับเดือนปัจจุบัน
         if (lr.status === 'closed' && !lr.deducted && lr.deductMonth && lr.deductMonth === month) {
