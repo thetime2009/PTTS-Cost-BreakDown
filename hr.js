@@ -132,10 +132,25 @@ function _hrGET(action, params) {
 function _hrPOST(action, body) {
   const url = _hrUrl();
   if (!url) return Promise.reject('ไม่พบ Script URL — กรุณาตั้งค่าใน ⚙️ ตั้งค่า');
-  return fetch(url, {
-    method: 'POST',
-    body: JSON.stringify(Object.assign({ action }, body || {}))
-  }).then(function(r) { return r.json(); });
+  const payload = JSON.stringify(Object.assign({ action }, body || {}));
+  return fetch(url, { method: 'POST', body: payload })
+    .then(function(r) {
+      // อ่าน text ก่อน แล้วค่อย parse JSON
+      // เพื่อไม่ให้ Apps Script HTML error page ทำให้ตก catch โดยไม่ตั้งใจ
+      return r.text().then(function(txt) {
+        try { return JSON.parse(txt); }
+        catch(e) {
+          // server ตอบ non-JSON (HTML error page) — propagate เป็น error จริง
+          return { status: 'error', message: 'Server error: ' + txt.slice(0, 300) };
+        }
+      });
+    })
+    .catch(function(netErr) {
+      // ตรงนี้ = network/CORS error เท่านั้น (ไม่ใช่ JSON parse error แล้ว)
+      // ถ้า error มาจาก .text() เอง หรือ network fail → fallback no-cors
+      return fetch(url, { method: 'POST', mode: 'no-cors', body: payload })
+        .then(function() { return { status: 'ok', _nocors: true }; });
+    });
 }
 
 // ── Sub-tab navigation ────────────────────────────────────────
@@ -1564,7 +1579,7 @@ function _hrEmpModal(emp, idx) {
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">' +
         _hrField('empFAdvBudget', 'วงเงินเบิก/เดือน (฿)', emp && emp.advanceBudget || 0, 'number') +
-        '<div><label style="font-size:.76rem;color:var(--t3);display:block;margin-bottom:3px">PIN เข้าระบบ (4 หลัก)</label><div style="position:relative"><input id="empFPin" type="password" value="' + (emp && emp.pin ? emp.pin : '') + '" placeholder="••••" maxlength="6" style="width:100%;padding:8px 40px 8px 10px;border-radius:8px;border:1px solid var(--bc-input);background:var(--card);color:var(--t1);font-family:Sarabun,sans-serif;box-sizing:border-box"><button type="button" id="empFPinEye" onclick="hrTogglePinEye()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;padding:0;line-height:1">👁</button></div></div>' +
+        '<div><label style="font-size:.76rem;color:var(--t3);display:block;margin-bottom:3px">PIN เข้าระบบ (4 หลัก)</label><div style="position:relative"><input id="empFPin" type="password" value="' + (emp && emp.pin ? emp.pin : '') + '" placeholder="ตั้ง PIN" maxlength="6" style="width:100%;padding:8px 40px 8px 10px;border-radius:8px;border:1px solid var(--bc-input);background:var(--card);color:var(--t1);font-family:Sarabun,sans-serif;box-sizing:border-box"><button type="button" id="empFPinEye" onclick="hrTogglePinEye()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;padding:0;line-height:1">👁</button></div></div>' +
       '</div>' +
       // ── เอกสาร / รูปถ่าย ──
       '<div style="font-size:.72rem;font-weight:700;color:#6366f1;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">เอกสาร / รูปถ่าย (เก็บที่ Drive)</div>' +
@@ -2910,27 +2925,37 @@ function _hrCalcPayslip(emp, att, month, period) {
   }
   // ── ประกันสังคม — โหมดตาม _hrSSOMode(): split/p1/p2 ──
   if (emp && emp.ssoEnabled) {
-    var ssoFull = _hrCalcSSO(salary || dailyRate * 30);
-    if (ssoFull > 0) {
-      var ssoMode = _hrSSOMode();
-      var ssoAmt = 0, ssoLabel = '';
-      if (!isPeriod) {
-        // รายเดือน (all): หักเต็มเสมอ
-        ssoAmt = ssoFull;
-        ssoLabel = 'ประกันสังคม 5% (สูงสุด ฿750)';
-      } else if (ssoMode === 'split') {
-        // แบ่งครึ่ง: p1 = ceil, p2 = floor
-        ssoAmt   = period === 'p1' ? Math.ceil(ssoFull / 2) : Math.floor(ssoFull / 2);
+    var ssoAmt = 0, ssoLabel = '';
+    if (type === 'daily') {
+      // รายวัน: คิด SSO จากค่าแรงจริงในงวดนั้น (ไม่รวม OT) ต่อ 1 งวด ไม่ต้องแบ่ง 2
+      var ssoBase = _hrCalcSSO(basePay);
+      if (ssoBase > 0 && isPeriod) {
+        ssoAmt = ssoBase;
         ssoLabel = 'ประกันสังคม 5% (งวด ' + (period === 'p1' ? '1' : '2') + ')';
-      } else if (ssoMode === period) {
-        // หักเต็มในงวดที่ตั้งไว้
-        ssoAmt   = ssoFull;
-        ssoLabel = 'ประกันสังคม 5% (สูงสุด ฿750)';
+      } else if (ssoBase > 0 && !isPeriod) {
+        // ดูรายเดือน: รวมทั้งเดือนประมาณจาก basePay (ไม่มี OT)
+        ssoAmt = ssoBase;
+        ssoLabel = 'ประกันสังคม 5%';
       }
-      // งวดอื่นที่ไม่ใช่งวดที่เลือก → ssoAmt = 0 → ไม่หัก
-      if (ssoAmt > 0) {
-        loanDeductItems.unshift({ source: 'sso', label: ssoLabel, amount: ssoAmt });
+    } else {
+      // รายเดือน: คิดจากเงินเดือนเต็ม แบ่งตาม mode
+      var ssoFull = _hrCalcSSO(salary);
+      if (ssoFull > 0) {
+        var ssoMode = _hrSSOMode();
+        if (!isPeriod) {
+          ssoAmt = ssoFull;
+          ssoLabel = 'ประกันสังคม 5% (สูงสุด ฿875)';
+        } else if (ssoMode === 'split') {
+          ssoAmt   = period === 'p1' ? Math.ceil(ssoFull / 2) : Math.floor(ssoFull / 2);
+          ssoLabel = 'ประกันสังคม 5% (งวด ' + (period === 'p1' ? '1' : '2') + ')';
+        } else if (ssoMode === period) {
+          ssoAmt   = ssoFull;
+          ssoLabel = 'ประกันสังคม 5% (สูงสุด ฿875)';
+        }
       }
+    }
+    if (ssoAmt > 0) {
+      loanDeductItems.unshift({ source: 'sso', label: ssoLabel, amount: ssoAmt });
     }
   }
   var loanDeductTotal = loanDeductItems.reduce(function(s, x) { return s + x.amount; }, 0);
@@ -4450,10 +4475,6 @@ async function hrConfirmPayroll(id, nameEnc, net, month, period, loanEnc) {
     },
     preConfirm: function() {
       var inp = document.getElementById('cp_slip');
-      if (!inp || !inp.files || !inp.files[0]) {
-        Swal.showValidationMessage('\u26a0\ufe0f กรุณาแนบสลิปโอนเงินก่อนบันทึก');
-        return false;
-      }
       // อ่านยอดหักที่ปรับแล้ว
       var _adjItems = loanItems.map(function(x, i) {
         var el = document.getElementById('cp_ded_' + i);
@@ -4463,25 +4484,27 @@ async function hrConfirmPayroll(id, nameEnc, net, month, period, loanEnc) {
         transferDate: document.getElementById('cp_date').value,
         amount: parseFloat(document.getElementById('cp_amt').value) || 0,
         note: document.getElementById('cp_note').value.trim(),
-        slipFile: inp.files[0],
+        slipFile: (inp && inp.files && inp.files[0]) ? inp.files[0] : null,
         adjustedLoanItems: _adjItems
       };
     }
   });
   if (!isConfirmed || !v) return;
 
-  Swal.fire({ title: '\u23f3 กำลังอัปโหลดสลิป...', allowOutsideClick: false, didOpen: function(){ Swal.showLoading(); } });
+  Swal.fire({ title: '\u23f3 กำลังบันทึก...', allowOutsideClick: false, didOpen: function(){ Swal.showLoading(); } });
   try {
-    // อัปโหลดสลิปก่อน
-    var base64 = await readFileBase64(v.slipFile);
-    var upRes = await _hrPOST('uploadSlipImage', {
-      base64: base64, mimeType: v.slipFile.type, filename: 'salary_slip_' + id + '_' + month + '.jpg'
-    });
-    if (!upRes || upRes.status !== 'ok') {
-      Swal.fire({ icon:'error', title:'อัปโหลดสลิปไม่สำเร็จ', text:(upRes&&upRes.message)||'ลองใหม่อีกครั้ง' });
-      return;
+    // อัปโหลดสลิป (ถ้ามี)
+    var slipUrl = '';
+    if (v.slipFile) {
+      var base64 = await readFileBase64(v.slipFile);
+      var upRes = await _hrPOST('uploadSlipImage', {
+        base64: base64, mimeType: v.slipFile.type, filename: 'salary_slip_' + id + '_' + month + '.jpg'
+      });
+      if (upRes && upRes.status === 'ok') {
+        slipUrl = upRes.url || '';
+      }
+      // ถ้า upload ไม่สำเร็จ → ดำเนินการต่อได้ (slipUrl = '' ไม่มีปัญหา)
     }
-    var slipUrl = upRes.url || '';
 
     // บันทึกการโอน
     var res = await _hrPOST('recordSalaryPayment', {

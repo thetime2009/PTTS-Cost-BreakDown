@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v11.68</span>
+      <span class="ph-chip ver">v11.75</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -3482,7 +3482,7 @@
   <script src="report.js?v=1.0"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="hr.js?v=4.71"></script>
+<script src="hr.js?v=4.73"></script>
   <script src="imageEditor.js?v=1.1"></script>
 <script src="purchase.js?v=9.58"></script>
 <script src="invoice.js?v=9.03"></script>
@@ -3626,7 +3626,51 @@
 // ===== ประวัติการแก้ไขงาน (Dev Logs) =====
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
-      { ref:'#REV-20260625-D', date:'2026-06-25', current: true,
+      { ref:'#REV-20260625-K', date:'2026-06-25', current: true,
+        items:[
+          'Code.gs: เพิ่ม function payrollDeductLoans — หักยอดสัญญาเงินกู้พร้อมกันหลายรายการเมื่อยืนยันเงินเดือน',
+          'Code.gs: ต้อง Redeploy',
+          'form.html v11.75',
+        ] },
+      { ref:'#REV-20260625-J', date:'2026-06-25', current: false,
+        items:[
+          'hr.js: _hrPOST — แยก network error ออกจาก JSON parse error',
+          'hr.js: ถ้า Apps Script return HTML error → แสดง error จริงแทนที่จะ fallback เป็น no-cors',
+          'form.html v11.74: hr.js?v=4.72 → v4.73',
+        ] },
+      { ref:'#REV-20260625-I', date:'2026-06-25', current: false,
+        items:[
+          'hr.js: hrConfirmPayroll — สลิปไม่บังคับ (optional) บันทึกเงินเดือนได้แม้ไม่แนบสลิป',
+          'hr.js: ถ้าแนบสลิปแต่ upload ไม่สำเร็จ → ยังบันทึกการโอนได้ (slipUrl เป็นค่าว่าง)',
+          'form.html v11.73: hr.js?v=4.71 → v4.72',
+        ] },
+      { ref:'#REV-20260625-H', date:'2026-06-25', current: false,
+        items:[
+          'hr.js: _hrPOST — เพิ่ม CORS fallback สำหรับ file:// origin: ถ้า fetch ปกติ fail → ลอง no-cors mode',
+          'hr.js: no-cors mode ส่งข้อมูลไปยัง Apps Script ได้ แต่อ่าน response ไม่ได้ → return {status:ok} ทันที',
+          'form.html v11.72',
+        ] },
+      { ref:'#REV-20260625-G', date:'2026-06-25', current: false,
+        items:[
+          'hr.js: SSO รายวัน — คิดจากค่าแรงจริงในงวดนั้น (basePay ไม่รวม OT) แทน dailyRate×30',
+          'hr.js: SSO รายวัน — ไม่แบ่ง 2 งวด เพราะ basePay คือค่าแรงของงวดนั้นอยู่แล้ว',
+          'hr.js: SSO รายเดือน — แก้ label เป็น ฿875 ให้ตรงกับเพดานปี 2569',
+          'form.html v11.71',
+        ] },
+      { ref:'#REV-20260625-F', date:'2026-06-25', current: false,
+        items:[
+          'Code.gs: getHREmployees — return pin ให้ browser (แอปใช้ภายในองค์กร)',
+          'hr.js: field PIN แสดง PIN เดิมตอนเปิดแก้ไข + ปุ่ม 👁 toggle ดูได้',
+          'form.html v11.70',
+        ] },
+      { ref:'#REV-20260625-E', date:'2026-06-25', current: false,
+        items:[
+          'hr.js: field PIN — ไม่แสดงค่าเดิม (backend ไม่ส่ง PIN กลับมา security) placeholder บอกว่า "ว่าง = ไม่เปลี่ยน PIN เดิม"',
+          'hr.js: ปุ่ม 👁 ยังคงใช้ hrTogglePinEye() — toggle ช่วยตรวจ PIN ใหม่ที่พิมพ์',
+          'Code.gs: saveHREmployee — ถ้า PIN ว่างตอน save → เก็บ PIN เดิมในชีต (ไม่ overwrite)',
+          'form.html v11.69',
+        ] },
+      { ref:'#REV-20260625-D', date:'2026-06-25', current: false,
         items:[
           'hr.js: แก้ field PIN — ใส่ emp.pin เป็น value ตอน edit (ไม่ให้ PIN หายตอนบันทึก)',
           'hr.js: ปุ่ม 👁 toggle PIN แยกเป็น global function hrTogglePinEye() (แก้ toggle ไม่ทำงาน)',
