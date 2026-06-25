@@ -3626,7 +3626,13 @@
 // ===== ประวัติการแก้ไขงาน (Dev Logs) =====
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
-      { ref:'#REV-20260625-S', date:'2026-06-25', current: true,
+      { ref:'#REV-20260625-T', date:'2026-06-25', current: true,
+        items:[
+          'Code.gs: getHRLoanPayments payDate ใช้ _fmtDateStr() — แก้วันที่ยาวในตารางผ่อนชำระ',
+          'employee.html v2.7: badge .loan-notify-dot ใช้ absolute position บนปุ่ม nav',
+          'ต้อง Redeploy Code.gs',
+        ] },
+      { ref:'#REV-20260625-S', date:'2026-06-25', current: false,
         items:[
           'hr.js v4.79: hrConfirmPayroll — บังคับแนบสลิปทุกครั้ง (preConfirm validation)',
           'form.html v11.81: hr.js?v=4.78 → v4.79',

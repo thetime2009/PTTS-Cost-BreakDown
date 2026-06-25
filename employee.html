@@ -155,8 +155,16 @@
   font-size: .68rem;
   transition: color .15s, background .15s;
   padding: 4px 2px;
+  position: relative;
 }
-.emp-tab-btn .et-icon { font-size: 1.2rem; line-height: 1; }
+.emp-tab-btn .et-icon { font-size: 1.2rem; line-height: 1; position: relative; }
+/* badge dot — absolute top-right ของปุ่ม nav */
+.emp-tab-btn .loan-notify-dot {
+  position: absolute;
+  top: 3px; right: 6px;
+  margin-left: 0;
+  width: 10px; height: 10px;
+}
 .emp-tab-btn.active { color: var(--c1); }
 /* Center elevated slot */
 .emp-tab-center-slot {
@@ -324,7 +332,7 @@
     </div>
     <div class="emp-login-title">PTS Smart Factory</div>
     <div class="emp-login-sub">ระบบพนักงาน — กรุณาเข้าสู่ระบบ</div>
-    <div style="margin-top:6px"><span style="font-size:.68rem;font-weight:700;padding:2px 10px;border-radius:999px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);color:#6366f1;letter-spacing:.5px">v2.5</span></div>
+    <div style="margin-top:6px"><span style="font-size:.68rem;font-weight:700;padding:2px 10px;border-radius:999px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);color:#6366f1;letter-spacing:.5px">v2.7</span></div>
 
     <div class="emp-login-field">
       <label>เบอร์โทรศัพท์</label>
@@ -374,7 +382,7 @@
       <div class="ph-text" style="flex:1;display:flex;flex-direction:column;gap:2px">
         <div style="display:flex;align-items:center;gap:6px">
           <div class="ph-title" style="margin:0">PTS Smart Factory</div>
-          <span class="ph-chip ver">v2.6</span>
+          <span class="ph-chip ver">v2.7</span>
           <span class="ph-chip" id="empConnChip" style="display:none">✓ Online</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
@@ -1296,35 +1304,4 @@ function _empAttTableHtml(rows) {
       '<th style="padding:6px 4px;font-size:.72rem;color:var(--t3);text-align:left;font-weight:600">เข้างาน</th>' +
       '<th style="padding:6px 4px;font-size:.72rem;color:var(--t3);text-align:left;font-weight:600">ออกงาน</th>' +
       '<th style="padding:6px 4px;font-size:.72rem;color:var(--t3);text-align:left;font-weight:600">สถานะ</th>' +
-      '<th style="padding:6px 4px;font-size:.72rem;color:var(--t3);text-align:left;font-weight:600">สาย</th>' +
-      '<th style="padding:6px 4px;font-size:.72rem;color:var(--t3);text-align:left;font-weight:600">OT</th>' +
-    '</tr></thead>' +
-    '<tbody>' + dayRows + '</tbody>' +
-  '</table></div>';
-}
-
-
-</script>
-
-
-<script>
-// ── Service Worker registration + auto-update ──────────────
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').then(function(reg) {
-    reg.addEventListener('updatefound', function() {
-      var newSW = reg.installing;
-      if (!newSW) return;
-      newSW.addEventListener('statechange', function() {
-        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-          newSW.postMessage({ type: 'SKIP_WAITING' });
-          navigator.serviceWorker.addEventListener('controllerchange', function() {
-            window.location.reload();
-          });
-        }
-      });
-    });
-    reg.update();
-  });
-}
-</script>
-</body>
+      '<th style="padding:6px 4px;font-size:.72rem;color:var(
