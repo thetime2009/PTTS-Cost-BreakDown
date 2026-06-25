@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v11.95</span>
+      <span class="ph-chip ver">v11.97</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -1248,9 +1248,10 @@
         style="padding:4px 8px;border-radius:7px;border:1px solid var(--bc-input);
         background:var(--bg-input);color:var(--t1);font-size:.76rem;font-family:Sarabun,sans-serif;cursor:pointer">
         <option value="">ทั้งหมด</option>
-        <option value="ผ่าน">ผ่าน</option>
-        <option value="อนุมัติ">อนุมัติ</option>
         <option value="รอสรุป">รอสรุป</option>
+        <option value="ผ่าน">ผ่าน</option>
+        <option value="ไม่ผ่าน">ไม่ผ่าน</option>
+        <option value="อนุมัติ">อนุมัติ</option>
         <option value="ยกเลิก">ยกเลิก</option>
       </select>
     </div>
@@ -2058,6 +2059,7 @@
     <div id="trkPager" class="trk-pager"></div>
     </div>
     <div id="trkTaskListView" style="display:none">
+      <div id="trkTaskCustBar" style="padding:10px 4px 4px"></div>
       <div id="trkTaskList" class="trk-task-list"></div>
     </div>
   </div>
@@ -3471,11 +3473,11 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="core.js?v=9.01"></script>
-<script src="data.js?v=8.94"></script>
+<script src="data.js?v=8.95"></script>
 <script src="formcalc.js?v=9.08"></script>
 <script src="aifeatures.js?v=8.94"></script>
 <script src="theme.js?v=9.10"></script>
-<script src="order.js?v=9.78"></script>
+<script src="order.js?v=9.79"></script>
 <script src="dashboard.js?v=9.73"></script>
 <script src="inspect.js?v=10.09"></script>
   <script src="stock.js?v=10.32"></script>
@@ -3627,7 +3629,22 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
         { current: true,
-          ref: '#REV-20260625-AH',
+          ref: '#REV-20260625-AJ',
+          date: '2026-06-25',
+          items: [
+            'DATA tab — เพิ่มสถานะ "ไม่ผ่าน" ในชิป quick-filter และ dropdown กรองละเอียด',
+            'statusBadge สี: ไม่ผ่าน=แดง, ยกเลิก=เทา (แยกกันชัดเจน)',
+          ]
+        },
+        { ref: '#REV-20260625-AI',
+          date: '2025-06-25',
+          items: [
+            'List Tasks — เพิ่ม dropdown กรองลูกค้า (เรียงตามจำนวนงานมาก→น้อย)',
+            'กด ✕ เพื่อล้างตัวกรอง กลับแสดงทั้งหมด',
+            'employee.html v2.11 — ซ่อนปุ่ม "ทั้งเดือน" เมื่อ HR ตั้งค่า 2 งวด + auto-select งวดจากวันที่',
+          ]
+        },
+        { ref: '#REV-20260625-AH',
           date: '2026-06-25',
           items: [
             'employee.html: แก้ horizontal scroll — เพิ่ม overflow-x:hidden ที่ html,body และ #empSlipPreview',
@@ -6908,4 +6925,4 @@ const DEV_LOGS = [
     date: '2026-06-14',
     current: false,
     items: [
-      'ใบสั่งงานผลิต (Work Order): ปรับส่วน "รายการ/จำนวน" ให้ตัวใหญ่เด่นชัดแบบเดียวกับใบส่งชุบ — แปลงชื่อรายการเป็นรูปแบบ "ODxxxIDxxxHxxx mm." อัตโนมัติ และเพิ่มบรรทัดแสด�
+      'ใบสั่งงานผลิต (Work Order): ปรับส่วน "รายการ/จำนวน" ให้ตัวใหญ่เด่นชัดแบบเดียวกับใบส่งชุบ — แปลงชื่อรา�

@@ -1471,6 +1471,29 @@ body.trk-fullscreen-mode .trk-fs-toolbar {
 .trk-subtab-btn.active { background: var(--c1); color: #fff; border-color: var(--c1); }
 
 /* ── List tasks: สรุปยอดงานตามสถานะ ── */
+/* ── Customer filter bar (List Tasks) ── */
+.trk-cust-filter-wrap {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 6px 10px 8px;
+}
+.trk-cust-filter-lbl {
+  font-size: .78rem; font-weight: 700; color: var(--t2); white-space: nowrap;
+}
+.trk-cust-filter-sel {
+  flex: 1; min-width: 180px; max-width: 340px;
+  padding: 5px 10px; border-radius: 8px;
+  border: 1.5px solid rgba(99,102,241,.35);
+  background: var(--bg-card); color: var(--t1);
+  font-family: 'Sarabun', sans-serif; font-size: .82rem; cursor: pointer;
+}
+.trk-cust-filter-sel:focus { outline: none; border-color: #6366f1; }
+.trk-cust-filter-clr {
+  padding: 4px 10px; border-radius: 7px; border: none; cursor: pointer;
+  background: rgba(239,68,68,.12); color: #ef4444;
+  font-size: .78rem; font-weight: 700; transition: background .15s;
+}
+.trk-cust-filter-clr:hover { background: rgba(239,68,68,.22); }
+
 .trk-task-list {
   display: grid; grid-template-columns: 1fr; gap: 0;
   border: 2px solid #6366f1; border-radius: 12px; overflow: hidden;
@@ -1844,10 +1867,4 @@ body.trk-fullscreen-mode .trk-fs-toolbar {
   margin-left: 5px;
   vertical-align: middle;
   flex-shrink: 0;
-  animation: loan-dot-blink 1s ease-in-out infinite;
-}
-@keyframes loan-dot-blink {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: .25; transform: scale(.6); }
-}
-
+  animation: loan-dot-blink 1s ease-in-out

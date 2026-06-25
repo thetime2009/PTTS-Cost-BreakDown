@@ -277,7 +277,7 @@ function dtRender() {
     return n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0});
   };
   const statusBadge = s => {
-    const map = { 'อนุมัติ':'#22c55e','ผ่าน':'#60a5fa','รอสรุป':'#f59e0b','ยกเลิก':'#f87171','':'#64748b' };
+    const map = { 'อนุมัติ':'#22c55e','ผ่าน':'#60a5fa','รอสรุป':'#f59e0b','ไม่ผ่าน':'#f87171','ยกเลิก':'#94a3b8','':'#64748b' };
     const col = map[s] || '#64748b';
     return `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:.65rem;font-weight:600;
       background:${col}22;color:${col};border:1px solid ${col}55">${s||'—'}</span>`;
@@ -442,11 +442,12 @@ function dtRenderChips() {
     counts[s] = (counts[s] || 0) + 1;
   });
   const defs = [
-    { key:'all',    label:'ทั้งหมด',    col:'#a5b4fc' },
-    { key:'อนุมัติ', label:'อนุมัติแล้ว', col:'#22c55e' },
-    { key:'ผ่าน',    label:'ผ่าน',        col:'#60a5fa' },
-    { key:'รอสรุป',  label:'รอสรุป',      col:'#f59e0b' },
-    { key:'ยกเลิก',  label:'ยกเลิก',      col:'#f87171' },
+    { key:'all',     label:'ทั้งหมด',    col:'#a5b4fc' },
+    { key:'อนุมัติ',  label:'อนุมัติแล้ว', col:'#22c55e' },
+    { key:'ผ่าน',     label:'ผ่าน',        col:'#60a5fa' },
+    { key:'รอสรุป',   label:'รอสรุป',      col:'#f59e0b' },
+    { key:'ไม่ผ่าน',  label:'ไม่ผ่าน',     col:'#f87171' },
+    { key:'ยกเลิก',   label:'ยกเลิก',      col:'#94a3b8' },
   ];
   el.innerHTML = defs.filter(d => counts[d.key] > 0).map(d => {
     const active = _dtFilter === d.key;

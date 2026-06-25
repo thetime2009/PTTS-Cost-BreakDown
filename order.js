@@ -3394,14 +3394,61 @@ function _trkWorkStatusBadge(r) {
   return '';
 }
 
+// ── Customer filter สำหรับ List Tasks ──
+var _trkTaskCustFilter = '';
+
+// สร้าง/อัปเดต dropdown กรองลูกค้าใน List Tasks
+// เรียงลูกค้าตามจำนวนงานที่อยู่ใน TRK_TASKLIST_GROUPS (มาก→น้อย→ไม่มีงาน)
+function _trkBuildCustFilter() {
+  const bar = $('trkTaskCustBar');
+  if (!bar) return;
+  const activeKeys = new Set(TRK_TASKLIST_GROUPS.map(g => g.key));
+  // นับจำนวนงานต่อลูกค้า (เฉพาะที่อยู่ใน active groups)
+  const countMap = {};
+  _orderCache.forEach(function(r) {
+    if (!activeKeys.has(_trkEffectiveStatus(r))) return;
+    const c = String(r[ORDER_COLS.customer] || '').trim();
+    if (!c || c === '—') return;
+    countMap[c] = (countMap[c] || 0) + 1;
+  });
+  // เรียง: มีงานเรียงตามจำนวน desc → ไม่มีงาน
+  const allCusts = [...new Set(_orderCache
+    .filter(r => activeKeys.has(_trkEffectiveStatus(r)))
+    .map(r => String(r[ORDER_COLS.customer] || '').trim())
+    .filter(c => c && c !== '—')
+  )].sort((a, b) => (countMap[b] || 0) - (countMap[a] || 0));
+
+  const sel = bar.querySelector('select');
+  const prev = sel ? sel.value : _trkTaskCustFilter;
+  const opts = ['<option value="">👥 ทั้งหมด</option>']
+    .concat(allCusts.map(c => {
+      const n = countMap[c] || 0;
+      const sel2 = prev === c ? ' selected' : '';
+      return `<option value="${_escH(c)}"${sel2}>${_escH(c)} (${n})</option>`;
+    }));
+  bar.innerHTML = `<div class="trk-cust-filter-wrap">
+    <label class="trk-cust-filter-lbl">🔍 กรองลูกค้า</label>
+    <select class="trk-cust-filter-sel" onchange="trkSetCustFilter(this.value)">${opts.join('')}</select>
+    ${_trkTaskCustFilter ? '<button class="trk-cust-filter-clr" onclick="trkSetCustFilter(\'\')">✕</button>' : ''}
+  </div>`;
+}
+
+function trkSetCustFilter(val) {
+  _trkTaskCustFilter = val || '';
+  _trkBuildCustFilter();
+  _trkRenderTaskList();
+}
+
 function _trkRenderTaskList() {
   const wrap = $('trkTaskList');
   if (!wrap) return;
+  _trkBuildCustFilter();
 
   wrap.innerHTML = TRK_TASKLIST_GROUPS.map(grp => {
     // เรียงเร่งด่วนขึ้นก่อน → ปรกติ → สต๊อก
     const rows = _orderCache
       .filter(r => _trkEffectiveStatus(r) === grp.key)
+      .filter(r => !_trkTaskCustFilter || String(r[ORDER_COLS.customer]||'').trim() === _trkTaskCustFilter)
       .sort((a, b) => _trkWorkStatusOrder(a) - _trkWorkStatusOrder(b));
     const itemsHtml = rows.length
       ? rows.map(r => {
