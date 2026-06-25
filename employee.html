@@ -160,12 +160,28 @@ html, body { overflow-x: hidden; max-width: 100vw; }
   position: relative;
 }
 .emp-tab-btn .et-icon { font-size: 1.2rem; line-height: 1; position: relative; }
-/* badge dot — absolute top-right ของปุ่ม nav */
+/* badge number — absolute top-right ของปุ่ม nav */
 .emp-tab-btn .loan-notify-dot {
   position: absolute;
-  top: 3px; right: 6px;
-  margin-left: 0;
-  width: 10px; height: 10px;
+  top: 0px; right: 4px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--tabbar, #fff);
+  font-family: 'Sarabun', sans-serif;
+  padding: 0 3px;
+  animation: loan-badge-pulse 1.5s ease-in-out infinite;
+}
+@keyframes loan-badge-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.82); }
 }
 .emp-tab-btn.active { color: var(--c1); }
 /* Center elevated slot */
@@ -384,7 +400,7 @@ html, body { overflow-x: hidden; max-width: 100vw; }
       <div class="ph-text" style="flex:1;display:flex;flex-direction:column;gap:2px">
         <div style="display:flex;align-items:center;gap:6px">
           <div class="ph-title" style="margin:0">PTS Smart Factory</div>
-          <span class="ph-chip ver">v2.11</span>
+          <span class="ph-chip ver">v2.12</span>
           <span class="ph-chip" id="empConnChip" style="display:none">✓ Online</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
@@ -846,12 +862,12 @@ function _empCheckLoanBadgeFromServer() {
     .then(function(data) {
       var pays = (data && data.data) ? data.data : [];
       // ถ้ามี payment ที่ payDate หลัง lastSeen → แสดง badge
-      var hasNew = pays.some(function(p) {
-        var d = (p.payDate || '').replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'); // dd/MM/yyyy → yyyy-MM-dd
+      var newPays = pays.filter(function(p) {
+        var d = (p.payDate || '').replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1');
         return d > lastSeen;
       });
-      if (hasNew) {
-        try { localStorage.setItem(_LOAN_NOTIFY_KEY, '1'); } catch(e) {}
+      if (newPays.length > 0) {
+        try { localStorage.setItem(_LOAN_NOTIFY_KEY, String(newPays.length)); } catch(e) {}
       }
       _empRefreshLoanBadge();
     })
@@ -862,12 +878,17 @@ function _empRefreshLoanBadge() {
   var btn = document.getElementById('empBotBtn-contract');
   var topBtn = document.getElementById('empTabBtn-contract');
   try {
-    var has = localStorage.getItem(_LOAN_NOTIFY_KEY);
+    var count = localStorage.getItem(_LOAN_NOTIFY_KEY);
+    var num = count ? parseInt(count) || 0 : 0;
     [btn, topBtn].forEach(function(b) {
       if (!b) return;
       var dot = b.querySelector('.loan-notify-dot');
-      if (has && !dot) { var d = document.createElement('span'); d.className = 'loan-notify-dot'; b.appendChild(d); }
-      else if (!has && dot) dot.remove();
+      if (num > 0) {
+        if (!dot) { dot = document.createElement('span'); dot.className = 'loan-notify-dot'; b.appendChild(dot); }
+        dot.textContent = num;
+      } else {
+        if (dot) dot.remove();
+      }
     });
   } catch(e) {}
 }
