@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v12.14</span>
+      <span class="ph-chip ver">v12.16</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -3634,6 +3634,22 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
         { current: true,
+          ref: '#REV-20260626-M',
+          date: '2026-06-26',
+          items: [
+            'hr.js: ทะเบียนจ่าย — คอลัมน์ "ประเภทการจ่าย" แสดง "โอนเข้าบัญชี" ทุกกรณี (ทั้งหน้าจอและพิมพ์)',
+          ]
+        },
+        { current: false,
+          ref: '#REV-20260626-L',
+          date: '2026-06-26',
+          items: [
+            'hr.js: เพิ่ม type "executive" (ฝ่ายบริหาร ไม่สแกน) — dropdown + section 👔 ม่วง ทุกหน้า',
+            'hr.js: _hrRegBuildTable — executive ข้ามการเช็ค att.length, workDays = 15/30 เต็ม',
+            'hr.js: print register — salary col แสดงสำหรับ executive เหมือน monthly',
+          ]
+        },
+        { current: false,
           ref: '#REV-20260626-K',
           date: '2026-06-26',
           items: [

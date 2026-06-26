@@ -907,7 +907,8 @@ function _hrSumTableHtml(rows) {
     attByEmp[id].push(r);
   });
 
-  const monthly = Object.keys(emp).filter(function(id) { return emp[id].type !== 'daily'; });
+  const executive = Object.keys(emp).filter(function(id) { return emp[id].type === 'executive'; });
+  const monthly = Object.keys(emp).filter(function(id) { return !emp[id].type || emp[id].type === 'monthly'; });
   const daily   = Object.keys(emp).filter(function(id) { return emp[id].type === 'daily'; });
 
   function stat(val, label, color, unit) {
@@ -922,7 +923,7 @@ function _hrSumTableHtml(rows) {
   function empCard(id) {
     const e = emp[id];
     const isManager = !_hrSession || _hrSession.role === 'manager';
-    const ac = e.type === 'daily' ? '#0891b2' : '#4f46e5';
+    const ac = e.type === 'daily' ? '#0891b2' : e.type === 'executive' ? '#7c3aed' : '#4f46e5';
     const empRec = _hrEmps.find(function(x) { return String(x.empId) === id; }) || null;
     const initials = e.name ? e.name.charAt(0) : '?';
     const thumbUrl = _hrDriveThumb(empRec && empRec.profileUrl);
@@ -936,7 +937,7 @@ function _hrSumTableHtml(rows) {
         '<div style="flex:1;min-width:0">' +
           '<div style="font-weight:700;font-size:.93rem;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + e.name + '</div>' +
           '<div style="font-size:.7rem;color:' + ac + ';font-weight:600;margin-top:1px">' +
-            (e.dept || '—') + ' · ' + (e.type === 'daily' ? 'รายวัน' : 'รายเดือน') +
+            (e.dept || '—') + ' · ' + (e.type === 'daily' ? 'รายวัน' : e.type === 'executive' ? 'ฝ่ายบริหาร' : 'รายเดือน') +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -970,6 +971,10 @@ function _hrSumTableHtml(rows) {
 
   let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px">';
 
+  if (executive.length) {
+    html += sectionLabel('👔 ฝ่ายบริหาร', executive.length, '#7c3aed');
+    executive.forEach(function(id) { html += empCard(id); });
+  }
   if (monthly.length) {
     html += sectionLabel('💼 รายเดือน', monthly.length, '#4f46e5');
     monthly.forEach(function(id) { html += empCard(id); });
@@ -1146,7 +1151,8 @@ function _hrPayTableHtml(rows) {
     attByEmp[id].push(r);
   });
 
-  const monthly = Object.keys(emp).filter(function(id) { return emp[id].type !== 'daily'; });
+  const executive = Object.keys(emp).filter(function(id) { return emp[id].type === 'executive'; });
+  const monthly = Object.keys(emp).filter(function(id) { return !emp[id].type || emp[id].type === 'monthly'; });
   const daily   = Object.keys(emp).filter(function(id) { return emp[id].type === 'daily'; });
 
   function payCard(id, paidRec) {
@@ -1350,6 +1356,14 @@ function _hrPayTableHtml(rows) {
   }
 
   let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px">';
+  if (executive.length) {
+    html += sectionLabel('👔 ฝ่ายบริหาร', executive.length, '#7c3aed');
+    executive.forEach(function(id) {
+      var _pr = paidMap[id+'|'+_hrSumPeriod];
+      if (!_pr && _hrSumPeriod === 'all') _pr = paidMap[id+'|all'];
+      html += payCard(id, _pr || null);
+    });
+  }
   if (monthly.length) {
     html += sectionLabel('💼 รายเดือน', monthly.length, '#4f46e5');
     monthly.forEach(function(id) {
@@ -1495,7 +1509,8 @@ function _hrEmpsHtml() {
 
   const cards = _hrEmps.map(function(e, i) {
     const isDaily = e.type === 'daily';
-    const ac = isDaily ? '#0891b2' : '#4f46e5';
+    const isExec  = e.type === 'executive';
+    const ac = isDaily ? '#0891b2' : isExec ? '#7c3aed' : '#4f46e5';
     const payLabel = isDaily ? 'ค่าแรง/วัน' : 'เงินเดือน';
     const payVal = _hrFmt(isDaily ? e.dailyRate : e.salary);
     const initials = e.name ? e.name.trim().charAt(0).toUpperCase() : '?';
@@ -1522,7 +1537,7 @@ function _hrEmpsHtml() {
     return '<div style="background:var(--bg-card);border:1.5px solid var(--bc-card);border-radius:14px;overflow:hidden">' +
       // ── photo + name header ──
       '<div style="background:' + ac + '12;padding:16px 14px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;border-bottom:1.5px solid ' + ac + '25;position:relative">' +
-        '<span style="position:absolute;top:10px;right:10px;background:' + ac + '22;color:' + ac + ';border-radius:6px;padding:2px 8px;font-size:.65rem;font-weight:700">' + (isDaily ? 'รายวัน' : 'รายเดือน') + '</span>' +
+        '<span style="position:absolute;top:10px;right:10px;background:' + ac + '22;color:' + ac + ';border-radius:6px;padding:2px 8px;font-size:.65rem;font-weight:700">' + (isDaily ? 'รายวัน' : isExec ? 'ฝ่ายบริหาร' : 'รายเดือน') + '</span>' +
         photoZone +
         '<div style="text-align:center">' +
           '<div style="font-weight:700;font-size:.96rem;color:var(--t1)">' + e.name + '</div>' +
@@ -1774,8 +1789,9 @@ function _hrEmpModal(emp, idx) {
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">' +
         '<div><label style="font-size:.76rem;color:var(--t3);display:block;margin-bottom:3px">ประเภทค่าจ้าง</label>' +
           '<select id="empFType" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--bc-input);background:var(--card);color:var(--t1);font-family:\'Sarabun\',sans-serif;box-sizing:border-box">' +
-            '<option value="monthly"' + (emp && emp.type !== 'daily' ? ' selected' : '') + '>รายเดือน</option>' +
+            '<option value="monthly"' + (emp && emp.type === 'monthly' ? ' selected' : '') + '>รายเดือน</option>' +
             '<option value="daily"' + (emp && emp.type === 'daily' ? ' selected' : '') + '>รายวัน</option>' +
+            '<option value="executive"' + (emp && emp.type === 'executive' ? ' selected' : '') + '>ฝ่ายบริหาร (ไม่สแกน)</option>' +
           '</select></div>' +
         '<div><label style="font-size:.76rem;color:var(--t3);display:block;margin-bottom:3px">รอบการจ่าย</label>' +
           '<select id="empFPayCycle" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--bc-input);background:var(--card);color:var(--t1);font-family:\'Sarabun\',sans-serif;box-sizing:border-box">' +
@@ -5669,7 +5685,7 @@ function _hrRegBuildTable() {
     emps.forEach(function(emp) {
       var id = String(emp.empId || '');
       var att = attByEmp[id] || [];
-      if (!att.length) return; // ไม่มีข้อมูล attendance ข้ามไป
+      if (!att.length && emp.type !== 'executive') return; // executive ไม่ต้องมี attendance
 
       // ใช้ snapshot rate ถ้ามี paidRec
       var empForCalc = emp;
@@ -5716,7 +5732,7 @@ function _hrRegBuildTable() {
         workDays: (function(){
           // รายเดือน: แสดง periodDays - วันขาด (เพื่อให้บัญชีอ่านง่าย)
           // รายวัน: นับวันมาจริง
-          if (ps.type === 'monthly') {
+          if (ps.type === 'monthly' || ps.type === 'executive') {
             var pDays = (period === 'all') ? 30 : 15;
             var absentCnt = att.filter(function(r){ return r.status === 'absent'; }).length;
             return pDays - absentCnt;
@@ -5737,7 +5753,7 @@ function _hrRegBuildTable() {
         otherDed: Math.round(otherDed),
         totalDed: Math.round(totalDed),
         net: netFinal,
-        payType: paidRec ? 'โอนแล้ว' : 'โอนเข้าบัญชี',
+        payType: 'โอนเข้าบัญชี',
         isPaid: !!paidRec,
         allowances: (function(){
           // ใช้ snapshot allowances จาก paidRec ถ้ามี (บันทึกตอนโอนเงิน)
@@ -5805,7 +5821,7 @@ function _hrRegBuildTable() {
       }).join('');
       return '<tr style="' + paidStyle + '">' +
         td(i+1) + td(r.name, 'left') +
-        td(r.type==='monthly' ? fmt(r.salary) : '-', 'right') +
+        td(r.type==='monthly'||r.type==='executive' ? fmt(r.salary) : '-', 'right') +
         td(r.type==='daily'   ? fmt(r.dailyRate) : '-', 'right') +
         td(r.workDays) +
         td(fmt(r.basePay), 'right') +
@@ -5820,7 +5836,7 @@ function _hrRegBuildTable() {
         td(r.otherDed ? fmt(r.otherDed) : '-', 'right') +
         '<td style="padding:4px 7px;font-size:.78rem;border:1px solid #e2e8f0;text-align:right;color:#dc2626;white-space:nowrap">' + (r.totalDed ? fmt(r.totalDed) : '-') + '</td>' +
         '<td style="padding:4px 7px;font-size:.78rem;border:1px solid #e2e8f0;text-align:right;font-weight:700;color:#059669;white-space:nowrap">' + fmt(r.net) + '</td>' +
-        '<td style="padding:4px 7px;font-size:.78rem;border:1px solid #e2e8f0;text-align:center;color:' + (r.isPaid?'#059669':'#64748b') + '">' + r.payType + '</td>' +
+        '<td style="padding:4px 7px;font-size:.78rem;border:1px solid #e2e8f0;text-align:center;color:#64748b">' + r.payType + '</td>' +
       '</tr>';
     }).join('');
 
@@ -5900,7 +5916,7 @@ function hrPrintPayrollRegister() {
     return '<tr style="'+bg+'">' +
       '<td style="'+tdCStyle+'">'+  (i+1) +'</td>' +
       '<td style="'+tdLStyle+'">'+  r.name +'</td>' +
-      '<td style="'+tdStyle+'">'+ (r.type==='monthly' ? fmt(r.salary) : '-') +'</td>' +
+      '<td style="'+tdStyle+'">'+ (r.type==='monthly'||r.type==='executive' ? fmt(r.salary) : '-') +'</td>' +
       '<td style="'+tdStyle+'">'+ (r.type==='daily'   ? fmt(r.dailyRate): '-') +'</td>' +
       '<td style="'+tdCStyle+'">'+ r.workDays +'</td>' +
       '<td style="'+tdStyle+'">'+ fmt(r.basePay) +'</td>' +
@@ -5917,7 +5933,7 @@ function hrPrintPayrollRegister() {
       '<td style="'+tdStyle+'">'+ (r.otherDed?fmt(r.otherDed):'-') +'</td>' +
       '<td style="'+tdStyle+';color:#dc2626">'+ (r.totalDed?fmt(r.totalDed):'-') +'</td>' +
       '<td style="'+tdStyle+';font-weight:700;color:#059669">'+ fmt(r.net) +'</td>' +
-      '<td style="'+tdCStyle+';color:'+(r.isPaid?'#059669':'#64748b')+'">'+r.payType+'</td>' +
+'<td style="'+tdCStyle+';color:#64748b">' + r.payType + '</td>' +
     '</tr>';
   }).join('');
 
