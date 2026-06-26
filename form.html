@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v12.07</span>
+      <span class="ph-chip ver">v12.08</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -3634,8 +3634,16 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
         { current: true,
+          ref: '#REV-20260626-E',
+          date: '2026-06-26',
+          items: [
+            'hr.js: ทะเบียนเงินเดือน — คอลัมน์วันทำงาน: รายเดือน = periodDays(15/30) - วันขาด, รายวัน = วันมาจริง',
+          ]
+        },
+        { current: false,
           ref: '#REV-20260626-D',
           date: '2026-06-26',
+          current: false,
           items: [
             'hr.js: แก้ bug dynamic allowance columns — ใช้ a.label แทน a.name (allowances struct ใช้ label ไม่ใช่ name)',
             'hr.js: แก้ทั้งหน้าจอและ print (allAllowNames, pAllowNames, find, total)',

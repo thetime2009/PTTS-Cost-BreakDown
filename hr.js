@@ -5658,7 +5658,16 @@ function _hrRegBuildTable() {
       rows.push({
         empId: ps.empId, name: ps.name, dept: ps.dept,
         type: ps.type, salary: ps.salary, dailyRate: ps.dailyRate,
-        workDays: ps.present,
+        workDays: (function(){
+          // รายเดือน: แสดง periodDays - วันขาด (เพื่อให้บัญชีอ่านง่าย)
+          // รายวัน: นับวันมาจริง
+          if (ps.type === 'monthly') {
+            var pDays = (period === 'all') ? 30 : 15;
+            var absentCnt = att.filter(function(r){ return r.status === 'absent'; }).length;
+            return pDays - absentCnt;
+          }
+          return ps.present;
+        })(),
         basePay: ps.basePay,
         otHours: Math.round((ps.otWDH + ps.otSunH)*10)/10,
         otRate: ps.otRateWD,
