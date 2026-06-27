@@ -7,6 +7,15 @@ let specMatData  = {};
 // sync local spec mat into specMatData on declaration
 _localSpecMat.forEach(r => { specMatData[r.code] = {w:+r.w, l:+r.l}; });
 
+function _addNoneOptToMeshSel(id) {
+  var sel = $(id);
+  if (!sel) return;
+  if ([].slice.call(sel.options).some(function(o){ return o.value === 'ไม่มี'; })) return;
+  var opt = document.createElement('option');
+  opt.value = opt.textContent = 'ไม่มี';
+  sel.insertBefore(opt, sel.options[1] || null);
+}
+
 function fillSelect(id, items) {
   const sel = $(id);
   const prev = sel.value;
@@ -25,7 +34,8 @@ function fillSelect(id, items) {
 // ── Seed dropdowns from local MAT on startup ──────────
 (function(){
   if (_localMatFlap.length) { MAT_FLAP.forEach(id => fillSelect(id, _localMatFlap)); fillSelect('f_matOd2', _localMatFlap); _syncMatToMaps(); }
-  if (_localMatMesh.length) { MAT_MESH.forEach(id => fillSelect(id, _localMatMesh)); _syncMatToMaps(); }
+  if (_localMatMesh.length) { MAT_MESH.forEach(id => fillSelect(id, _localMatMesh)); MAT_MESH.forEach(id => _addNoneOptToMeshSel(id)); _syncMatToMaps(); }
+  else { MAT_MESH.forEach(id => _addNoneOptToMeshSel(id)); }
 })();
 
 // ── LOAD ALL DATA ────────────────────────────────────
@@ -241,7 +251,7 @@ function loadMatOptions(silent) {
             if (!localCodes.has(m.code)) { arr.push({code:m.code,price:+m.price||0,w:1219,l:2438,unit:'มิล'}); changed=true; }
           });
           if (changed) _saveLocalMat('mesh');
-          else { MAT_MESH.forEach(id => fillSelect(id, arr)); arr.forEach(m => { matPriceMap[m.code]=+m.price||0; }); }
+          else { MAT_MESH.forEach(id => fillSelect(id, arr)); MAT_MESH.forEach(id => _addNoneOptToMeshSel(id)); arr.forEach(m => { matPriceMap[m.code]=+m.price||0; }); }
         }
         if (!silent) Swal.fire({icon:'success',title:'โหลด MAT แล้ว ✅',background:'#0a1c2e',color:'#f1f5f9',timer:1200,showConfirmButton:false,toast:true,position:'top-end'});
       } else {
@@ -1117,6 +1127,11 @@ function submitForm() {
     if ($('apiTab_scriptUrl')) $('apiTab_scriptUrl').focus(); return;
   }
   // ── Validation ──────────────────────────────────────
+  // ฝาบน-ล่างเท่านั้น (ไม่มีตะแกรง): H=0 ได้ + mesh field ไม่ required
+  const _noMeshOut = ['','ไม่มี'].includes(($('f_meshOut')?.value||'').trim());
+  const _noMeshIn  = ['','ไม่มี'].includes(($('f_meshIn')?.value||'').trim());
+  const _flatOnly  = _noMeshOut && _noMeshIn;
+
   const _required = [
     { id:'f_od',      label:'OD' },
     { id:'f_id',      label:'ID' },
@@ -1128,6 +1143,8 @@ function submitForm() {
     { id:'f_meshIn',  label:'ตะแกรงใน' },
   ];
   const _missing = _required.filter(f => {
+    // ถ้าฝาเท่านั้น: H=0 ได้, mesh ไม่ต้อง required
+    if (_flatOnly && (f.id === 'f_h' || f.id === 'f_meshOut' || f.id === 'f_meshIn')) return false;
     const el = $(f.id);
     return !el || !String(el.value).trim() || el.value === '0';
   });
@@ -1145,7 +1162,8 @@ function submitForm() {
     _required.forEach(f => {
       const el = $(f.id);
       if (!el) return;
-      const missing = !String(el.value).trim() || el.value === '0';
+      const skip = _flatOnly && (f.id === 'f_h' || f.id === 'f_meshOut' || f.id === 'f_meshIn');
+      const missing = !skip && (!String(el.value).trim() || el.value === '0');
       el.style.borderColor = missing ? '#f87171' : '';
     });
     // scroll to first missing

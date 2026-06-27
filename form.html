@@ -38,7 +38,7 @@
       <div class="ph-sub">Smart Manufacturing &amp; Business Platform</div>
     </div>
     <div class="ph-right">
-      <span class="ph-chip ver">v12.24</span>
+      <span class="ph-chip ver">v12.25</span>
       <span class="ph-chip" id="phConnChip" style="display:none">✓ Online</span>
       <button class="theme-fab" onclick="location.reload()" title="รีเฟรชระบบ (F5)" style="font-size:1rem">🔄</button>
       <button class="theme-fab" onclick="switchTab('api')" title="ตั้งค่า">⚙️</button>
@@ -3634,6 +3634,14 @@
 // เพิ่มรายการใหม่ไว้ "บนสุด" ของ array นี้ทุกครั้งที่แก้ไขโค้ดเสร็จในแต่ละรอบ
 const DEV_LOGS = [
         { current: true,
+          ref: '#REV-20260627-A',
+          date: '2026-06-27',
+          items: [
+            'formcalc.js: เพิ่ม option "ไม่มี" ในช่อง ตะแกรงนอก/ใน (seed + loadMatOptions)',
+            'formcalc.js: ผ่อน validation — ถ้า ตะแกรงนอก+ใน = ไม่มี/ว่าง → H=0 ได้ ไม่บล็อก (รองรับ order ฝาบน-ล่างเท่านั้น)',
+          ]
+        },
+        { current: false,
           ref: '#REV-20260626-U',
           date: '2026-06-26',
           items: [
